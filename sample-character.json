@@ -1,0 +1,16 @@
+{
+  "name": "Sigon Talandriel",
+  "classlevel": "Wizard 2",
+  "race": "High Elf",
+  "alignment": "Chaotic Neutral",
+  "gold": 15,
+  "image": "https://example.com/portrait.jpg",
+  "abilities": {
+    "Strength": { "score": 13, "mod": 1 },
+    "Dexterity": { "score": 15, "mod": 2 },
+    "Constitution": { "score": 12, "mod": 1 },
+    "Intelligence": { "score": 15, "mod": 2 },
+    "Wisdom": { "score": 12, "mod": 1 },
+    "Charisma": { "score": 11, "mod": 0 }
+  }
+}
