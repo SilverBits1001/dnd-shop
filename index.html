@@ -83,7 +83,13 @@
 </head>
 <body class="min-h-screen p-4 sm:p-6 lg:p-8">
 
-    <div id="app-container" class="max-w-7xl mx-auto">
+    <div id="app-container" class="max-w-7xl mx-auto relative">
+        <div id="dm-controls" class="absolute top-4 right-4 hidden">
+            <div class="relative inline-block text-left">
+                <button id="create-shop-btn" class="btn">Create a Shop</button>
+                <div id="shop-dropdown" class="hidden absolute right-0 mt-2 w-48 border border-white bg-black"></div>
+            </div>
+        </div>
         <!-- Initial View: Shop Selection -->
         <div id="initial-view" class="text-center">
             <div class="ascii-title">
@@ -103,10 +109,7 @@
                 </div>
             </div>
 
-            <p id="status-text" class="text-lg mb-8 blinking-cursor">> Dungeon Master: Create a New Shop</p>
-            <div id="shop-selection-container" class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                <!-- Shop selection buttons will be injected here -->
-            </div>
+            <p id="status-text" class="hidden text-lg mb-8 blinking-cursor"></p>
             <div id="size-selection-container" class="hidden max-w-md mx-auto grid grid-cols-3 gap-4 mb-8">
                 <!-- Size selection buttons will appear here -->
             </div>
@@ -185,9 +188,11 @@
         const initialView = document.getElementById('initial-view');
         const dmView = document.getElementById('dm-view');
         const playerView = document.getElementById('player-view');
-        const shopSelectionContainer = document.getElementById('shop-selection-container');
         const sizeSelectionContainer = document.getElementById('size-selection-container');
         const statusText = document.getElementById('status-text');
+        const dmControls = document.getElementById('dm-controls');
+        const createShopBtn = document.getElementById('create-shop-btn');
+        const shopDropdown = document.getElementById('shop-dropdown');
         const playerNameModal = document.getElementById('player-name-modal');
         const playerNameInput = document.getElementById('player-name-input');
         const submitPlayerNameBtn = document.getElementById('submit-player-name-btn');
@@ -204,6 +209,7 @@
             } catch (error) {
                 console.error("Authentication failed:", error);
                 statusText.textContent = "Could not connect. Please check your Firebase config and internet connection.";
+                statusText.classList.remove('hidden');
             }
         }
 
@@ -213,33 +219,48 @@
             playerNameInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') joinSession(); });
             joinShopBtn.addEventListener('click', handlePlayerJoinAttempt);
             joinShopIdInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePlayerJoinAttempt(); });
+            createShopBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                shopDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if (!dmControls.contains(e.target)) {
+                    shopDropdown.classList.add('hidden');
+                }
+            });
         }
-        
+
         function renderShopSelection() {
             dmView.classList.add('hidden');
             playerView.classList.add('hidden');
             initialView.classList.remove('hidden');
-            statusText.textContent = "> Dungeon Master: Create a New Shop";
+            dmControls.classList.remove('hidden');
+            statusText.textContent = '';
+            statusText.classList.add('hidden');
             sizeSelectionContainer.classList.add('hidden');
-            shopSelectionContainer.classList.remove('hidden');
+            shopDropdown.classList.add('hidden');
 
             if (!itemCatalog) return;
-            shopSelectionContainer.innerHTML = ''; // Clear previous buttons
+            shopDropdown.innerHTML = '';
             Object.keys(itemCatalog).forEach(shopKey => {
                 const shop = itemCatalog[shopKey];
                 const button = document.createElement('button');
-                button.className = 'btn';
+                button.className = 'block w-full text-left px-4 py-2 hover:bg-white hover:text-black';
                 button.textContent = shop.name;
                 button.dataset.shopKey = shopKey;
-                button.addEventListener('click', () => renderSizeSelection(shopKey));
-                shopSelectionContainer.appendChild(button);
+                button.addEventListener('click', () => {
+                    shopDropdown.classList.add('hidden');
+                    renderSizeSelection(shopKey);
+                });
+                shopDropdown.appendChild(button);
             });
         }
 
         function renderSizeSelection(shopKey) {
             selectedShopKey = shopKey;
             statusText.textContent = `> Choose a size for the ${itemCatalog[shopKey].name}.`;
-            shopSelectionContainer.classList.add('hidden');
+            statusText.classList.remove('hidden');
+            shopDropdown.classList.add('hidden');
             sizeSelectionContainer.classList.remove('hidden');
 
             sizeSelectionContainer.innerHTML = '';
@@ -282,7 +303,8 @@
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             initialView.classList.add('hidden');
-            
+            dmControls.classList.add('hidden');
+
             const shopTemplate = itemCatalog[shopKey];
             if (!shopTemplate) {
                 alert("Error: Invalid shop type selected.");
@@ -349,6 +371,7 @@
                 state.sessionId = shopId;
                 state.isDM = false;
                 initialView.classList.add('hidden');
+                dmControls.classList.add('hidden');
                 playerNameModal.classList.remove('hidden');
             } else {
                 alert("Shop ID not found. Please check the code and try again.");
@@ -388,6 +411,7 @@
             if (!state.shopData) return;
 
             initialView.classList.add('hidden');
+            dmControls.classList.add('hidden');
 
             if (state.isDM) {
                 dmView.classList.remove('hidden');
