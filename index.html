@@ -539,12 +539,12 @@
                 logoutBtn.classList.add('hidden');
             }
 
-            if (!loggedIn) {
-                authView.classList.remove('hidden');
-            } else if (!inShop) {
-                characterHubView.classList.remove('hidden');
-                renderCharacterHub();
-            } else if (state.isDM) {
+            if (!loggedIn && !state.isDM) {
+                authView.classList.remove('hidden');␊
+            } else if (!inShop) {␊
+                characterHubView.classList.remove('hidden');␊
+                renderCharacterHub();␊
+            } else if (state.isDM) {␊
 
                 dmView.classList.remove('hidden');
                 renderDMView();
@@ -744,4 +744,5 @@
     </script>
 </body>
 </html>
+
 
