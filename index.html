@@ -193,14 +193,7 @@
         const submitPlayerNameBtn = document.getElementById('submit-player-name-btn');
         const joinShopBtn = document.getElementById('join-shop-btn');
         const joinShopIdInput = document.getElementById('join-shop-id-input');
-
-        // --- SHOPKEEPER GENERATOR DATA ---
-        const names = ["Bartholomew 'Barty' Buttercup", "Seraphina 'Silk' Whisperwind", "Grunk Ironhand", "Elara Meadowlight", "Mortimer 'Morty' Blackwood"];
-        const quirks = ["Constantly polishing a single gold coin", "Speaks only in riddles", "Has a pet mimic disguised as a stool", "Allergic to magic", "Believes they are a reincarnated dragon"];
-        const needs = ["A rare Phoenix Feather for their collection", "Information about a rival merchant", "Protection from a local gang", "A cure for their unusual magical ailment", "To find their long-lost sibling"];
-        const wants = ["To own the most famous shop in the land", "To retire to a quiet life on a farm", "To fund an expedition to a lost city", "To finally win the annual baking contest", "To impress a noble they admire"];
-        const secrets = ["Is a retired adventurer with a hidden past", "Secretly works for the Thieves' Guild", "Owes a great debt to a powerful entity", "The 'rare' items are clever illusions", "Is hiding a political fugitive in the back room"];
-
+        
         // --- CORE FUNCTIONS ---
         
         async function main() {
@@ -325,7 +318,7 @@
             const newSessionRef = doc(db, 'shops', state.sessionId);
 
             const initialShopData = {
-                shopkeeper: { name: "Awaiting Generation...", quirk: "", needs: "", wants: "", secrets: "", gold: 1000 },
+                shopkeeper: { name: "Awaiting Generation...", description: "", wants: "", needs: "", secrets_or_obstacles: "", carried_items: [], identifying_trait: "" },
                 inventory: finalInventory,
                 carts: {},
                 ownerId: userId,
@@ -427,12 +420,13 @@
                         </div>
                         <div class="cli-window">
                             <h3 class="text-2xl mb-4">> Shopkeeper</h3>
-                            <button id="generate-shopkeeper-btn" class="btn w-full mb-4">Generate New</button>
-                            <p>> Name: ${shopkeeper.name}</p>
-                            <p>> Quirk: ${shopkeeper.quirk}</p>
-                            <p>> Needs: ${shopkeeper.needs}</p>
-                            <p>> Wants: ${shopkeeper.wants}</p>
-                            <p>> Secrets: ${shopkeeper.secrets}</p>
+                            <button id="generate-shopkeeper-btn" class="btn w-full mb-4">Generate with AI</button>
+                            <p>> Desc: ${shopkeeper.description || '...'}</p>
+                            <p>> Trait: ${shopkeeper.identifying_trait || '...'}</p>
+                            <p>> Wants: ${shopkeeper.wants || '...'}</p>
+                            <p>> Needs: ${shopkeeper.needs || '...'}</p>
+                            <p>> Secret/Obstacle: ${shopkeeper.secrets_or_obstacles || '...'}</p>
+                            <p>> Carrying: ${(shopkeeper.carried_items || []).join(', ') || '...'}</p>
                             <div class="flex items-center gap-2 mt-2">
                                 <p class="whitespace-nowrap">> Gold:</p>
                                 <input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field">
@@ -488,8 +482,8 @@
                     <div class="lg:col-span-2">
                         <div class="cli-window mb-6">
                              <h1 class="text-3xl">${shopType}</h1>
-                             <p class="text-xl">> Run by: ${shopkeeper.name}</p>
-                            <p class="italic mt-2">> "${shopkeeper.quirk}"</p>
+                             <p class="text-xl">> ${shopkeeper.description || '...'}</p>
+                            <p class="italic mt-2">> "${shopkeeper.identifying_trait || '...'}"</p>
                         </div>
                         <div class="cli-window">
                             <h2 class="text-2xl mb-4">> Items for Sale</h2>
@@ -539,7 +533,71 @@
             await updateDoc(shopDocRef, data);
         }
 
-        function handleGenerateShopkeeper() { const newShopkeeper = { ...state.shopData.shopkeeper, name: names[Math.floor(Math.random() * names.length)], quirk: quirks[Math.floor(Math.random() * quirks.length)], needs: needs[Math.floor(Math.random() * needs.length)], wants: wants[Math.floor(Math.random() * wants.length)], secrets: secrets[Math.floor(Math.random() * secrets.length)], }; updateShop({ shopkeeper: newShopkeeper }); }
+        async function handleGenerateShopkeeperAI(e) {
+            const button = e.target;
+            button.disabled = true;
+            button.textContent = "Generating...";
+
+            const prompt = `Generate a unique and interesting D&D shopkeeper for a ${state.shopData.shopType || 'fantasy shop'}. Provide a brief description, their wants, their needs, their secrets or obstacles, a list of 2-3 interesting items they are carrying, and a single identifying trait (like a catchphrase, a distinct physical feature, or a mannerism).`;
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "description": { "type": "STRING" },
+                            "wants": { "type": "STRING" },
+                            "needs": { "type": "STRING" },
+                            "secrets_or_obstacles": { "type": "STRING" },
+                            "carried_items": { "type": "ARRAY", "items": { "type": "STRING" } },
+                            "identifying_trait": { "type": "STRING" }
+                        },
+                        required: ["description", "wants", "needs", "secrets_or_obstacles", "carried_items", "identifying_trait"]
+                    }
+                }
+            };
+
+            try {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonText = result.candidates[0].content.parts[0].text;
+                    const newShopkeeperData = JSON.parse(jsonText);
+                    
+                    const newShopkeeper = { 
+                        ...state.shopData.shopkeeper, 
+                        description: newShopkeeperData.description,
+                        wants: newShopkeeperData.wants,
+                        needs: newShopkeeperData.needs,
+                        secrets_or_obstacles: newShopkeeperData.secrets_or_obstacles,
+                        carried_items: newShopkeeperData.carried_items,
+                        identifying_trait: newShopkeeperData.identifying_trait,
+                    };
+                    await updateShop({ shopkeeper: newShopkeeper });
+                } else {
+                    throw new Error("Invalid response structure from AI.");
+                }
+            } catch (error) {
+                console.error("Error generating shopkeeper with AI:", error);
+                alert("Failed to generate an AI shopkeeper. Please try again.");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Generate with AI";
+            }
+        }
+
         function handleUpdateGold(e) { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateShop({ "shopkeeper.gold": newGold }); }
         function handleToggleVisibility(e) { const index = parseInt(e.target.dataset.index, 10); const newInventory = [...state.shopData.inventory]; newInventory[index].forSale = e.target.checked; updateShop({ inventory: newInventory }); }
         function handleDeleteItem(e) { const index = parseInt(e.target.dataset.index, 10); const newInventory = state.shopData.inventory.filter((_, i) => i !== index); updateShop({ inventory: newInventory }); }
@@ -564,7 +622,7 @@
                 document.execCommand('copy'); 
                 alert('Shop ID copied to clipboard!'); 
             }); 
-            document.getElementById('generate-shopkeeper-btn')?.addEventListener('click', handleGenerateShopkeeper); 
+            document.getElementById('generate-shopkeeper-btn')?.addEventListener('click', handleGenerateShopkeeperAI); 
             document.getElementById('shop-gold-input')?.addEventListener('change', handleUpdateGold); 
             document.querySelectorAll('.toggle-visibility-btn').forEach(btn => btn.addEventListener('change', handleToggleVisibility)); 
             document.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', handleDeleteItem)); 
