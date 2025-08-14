@@ -389,7 +389,34 @@
             state.inShop = false;
             state.shopId = null;
             state.shopData = null;
-            render(); 
+            render();
+        }
+
+        function generateShopkeeper() {
+            const names = [
+                'Aelar',
+                'Borin',
+                'Cedric',
+                'Daria',
+                'Eldon',
+                'Fira',
+                'Garron',
+                'Hilda'
+            ];
+            const personalities = [
+                'cheerful and talkative',
+                'gruff but fair',
+                'mysterious and quiet',
+                'greedy with a sharp eye for coin',
+                'kind-hearted and generous',
+                'sarcastic with a dark sense of humor',
+                'nervous and jumpy',
+                'wise and patient'
+            ];
+            const name = names[Math.floor(Math.random() * names.length)];
+            const description = personalities[Math.floor(Math.random() * personalities.length)];
+            const gold = Math.floor(Math.random() * 1501) + 500;
+            return { name, description, gold };
         }
 
         async function createSession(shopKey, shopSize) {
@@ -422,7 +449,7 @@
             const newSessionRef = doc(db, 'shops', state.shopId);
             const initialShopData = {
                 shopType: shopTemplate.name,
-                shopkeeper: { gold: Math.floor(Math.random() * 1501) + 500, description: "..." },
+                shopkeeper: generateShopkeeper(),
                 inventory: finalInventory,
                 carts: {},
                 priceModifier: 0,
@@ -562,7 +589,7 @@
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div></div>
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p class="text-dim">> Desc: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3><div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3" data-index="${index}"><p><span class="text-item-name">${item.name}</span> (x${item.quantity})</p><p class="text-price">${getModifiedPrice(item.price)} GP</p></div>`).join('')}</div></div>
@@ -580,7 +607,7 @@
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-2">
-                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopType}</h1><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopType}</h1><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
                 <div class="lg:col-span-1">
