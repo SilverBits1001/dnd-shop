@@ -503,17 +503,19 @@
                 }
             }
             
-            if (!loggedIn) {
-                authView.classList.remove('hidden');
-            } else if (!inShop) {
+            if (inShop) {
+                if (state.isDM) {
+                    dmView.classList.remove('hidden');
+                    renderDMView();
+                } else {
+                    playerView.classList.remove('hidden');
+                    renderPlayerView();
+                }
+            } else if (loggedIn) {
                 characterHubView.classList.remove('hidden');
                 renderCharacterHub();
-            } else if (state.isDM) {
-                dmView.classList.remove('hidden');
-                renderDMView();
             } else {
-                playerView.classList.remove('hidden');
-                renderPlayerView();
+                authView.classList.remove('hidden');
             }
         }
 
