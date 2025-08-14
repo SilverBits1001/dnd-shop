@@ -584,6 +584,7 @@
             return Math.round(modified * 100) / 100;
         }
 
+ codex/create-shopkeeper-helper-function
         function renderDMView() {
             const { shopkeeper, inventory, carts, shopType, priceModifier } = state.shopData;
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
@@ -600,6 +601,7 @@
             </div>`;
             attachDMListeners();
         }
+
 
         function renderPlayerView() {
             const { shopkeeper, inventory, carts, shopType } = state.shopData;
@@ -670,18 +672,40 @@
         function handleAddToCart(itemId) {
             const itemToAdd = state.shopData.inventory.find(item => item.id === itemId);
             if (!itemToAdd || itemToAdd.quantity <= 0) return;
-            
+
             const playerCart = state.shopData.carts[state.characterKey] || { items: [] };
             const newItems = [...playerCart.items, itemToAdd];
-            updateDoc(doc(db, 'shops', state.shopId), { 
+            updateDoc(doc(db, 'shops', state.shopId), {
                 [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newItems }
             });
         }
 
-        function attachDMListeners() { 
-            document.getElementById('copy-id-btn')?.addEventListener('click', () => { const input = document.getElementById('session-id-input'); input.select(); document.execCommand('copy'); alert('Shop ID copied!'); }); 
-            document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); }); 
+        function handleInventoryUpdate(e) {
+            const index = parseInt(e.target.dataset.index, 10);
+            const field = e.target.classList.contains('dm-qty-input') ? 'quantity' : 'price';
+            let value = field === 'price' ? parseFloat(e.target.value) : parseInt(e.target.value, 10);
+            if (isNaN(value) || value < 0) return;
+            const newInventory = [...state.shopData.inventory];
+            newInventory[index] = { ...newInventory[index], [field]: value };
+            state.shopData.inventory = newInventory;
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+            renderDMView();
+        }
+
+        function handleRemoveInventoryItem(e) {
+            const index = parseInt(e.target.dataset.index, 10);
+            const newInventory = state.shopData.inventory.filter((_, i) => i !== index);
+            state.shopData.inventory = newInventory;
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+            renderDMView();
+        }
+
+        function attachDMListeners() {
+            document.getElementById('copy-id-btn')?.addEventListener('click', () => { const input = document.getElementById('session-id-input'); input.select(); document.execCommand('copy'); alert('Shop ID copied!'); });
+            document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
             document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
+            document.querySelectorAll('.dm-qty-input, .dm-price-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
+            document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
             const priceModifierSlider = document.getElementById('price-modifier');
             const priceModifierLabel = document.getElementById('price-modifier-label');
             if (priceModifierSlider) {
