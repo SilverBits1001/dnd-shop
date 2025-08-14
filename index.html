@@ -516,11 +516,9 @@
             controlsContainer.classList.remove('hidden');
             dmToolsDropdown.classList.add('hidden');
 
-            dmToolsBtn.removeEventListener('click', toggleDmTools);
-            logoutBtn.removeEventListener('click', logout);
-
             if (inShop) {
                 dmToolsBtn.classList.add('hidden');
+                dmToolsBtn.onclick = null;
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
                 toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
@@ -528,31 +526,32 @@
                 exitModeBtn.classList.add('hidden');
                 toolbarTitle.classList.add('hidden');
                 dmToolsBtn.classList.remove('hidden');
-                dmToolsBtn.textContent = "DM Tools";
-                dmToolsBtn.addEventListener('click', toggleDmTools);
+                dmToolsBtn.onclick = null;
+                if (loggedIn) {
+                    dmToolsBtn.textContent = "Logout";
+                    dmToolsBtn.onclick = logout;
+                } else {
+                    dmToolsBtn.textContent = "DM Tools";
+                    dmToolsBtn.onclick = toggleDmTools;
+                }
             }
-
-            if (loggedIn) {
-                logoutBtn.classList.remove('hidden');
-                logoutBtn.addEventListener('click', logout);
-            } else {
-                logoutBtn.classList.add('hidden');
-            }
-
-            if (!loggedIn) {
-                authView.classList.remove('hidden');
-            } else if (!inShop) {
+            
+            if (inShop) {
+                if (state.isDM) {
+                    dmView.classList.remove('hidden');
+                    renderDMView();
+                } else {
+                    playerView.classList.remove('hidden');
+                    renderPlayerView();
+                }
+            } else if (loggedIn) {
                 characterHubView.classList.remove('hidden');
                 renderCharacterHub();
-            } else if (state.isDM) {
-
-                dmView.classList.remove('hidden');
-                renderDMView();
             } else {
-                playerView.classList.remove('hidden');
-                renderPlayerView();
+                authView.classList.remove('hidden');
             }
         }
+
 
         function renderCharacterHub() {
             const player = state.playerData;
