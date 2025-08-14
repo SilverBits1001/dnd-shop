@@ -77,8 +77,9 @@ z<!DOCTYPE html>
         .text-price { color: var(--color-price); font-weight: bold; }
         .text-dim { color: var(--color-dim); }
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
-        #dm-tools-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
-        #dm-tools-btn:hover { text-decoration: underline; }
+        #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
+        #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
+        #dm-tools-dropdown { position: absolute; top: 100%; }
         .dropdown-link {
             background: none;
             border: none;
@@ -119,14 +120,14 @@ z<!DOCTYPE html>
 
     <div id="toolbar" class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
-        <div id="controls-container" class="relative ml-auto">
+        <div id="controls-container" class="relative ml-auto flex items-center gap-4">
              <button id="dm-tools-btn">DM Tools</button>
              <div id="dm-tools-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-black cli-window">
                  <button id="create-new-shop-btn" class="dropdown-link mb-2">> Create New Shop</button>
                  <button id="view-keys-btn" class="dropdown-link">> View Character Keys</button>
-                 <button id="logout-btn" class="dropdown-link hidden">> Logout</button>
              </div>
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
+             <button id="logout-btn" class="hidden">Logout</button>
         </div>
     </div>
 
@@ -161,8 +162,6 @@ z<!DOCTYPE html>
         <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
         <div id="player-view" class="hidden"></div>
-        <!-- DM Keys View -->
-        <div id="dm-keys-view" class="hidden"></div>
     </div>
 
     <!-- New Key Modal (Moved outside app-container) -->
@@ -174,6 +173,15 @@ z<!DOCTYPE html>
                 <p id="new-key-display" class="text-4xl text-header tracking-widest"></p>
             </div>
             <button id="key-modal-continue-btn" class="btn w-full">Continue to Hub</button>
+        </div>
+    </div>
+
+    <!-- Character Keys Modal -->
+    <div id="keys-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+        <div class="cli-window w-full max-w-md text-center">
+            <button id="keys-modal-close" class="subview-exit-btn">ⓧ</button>
+            <h2 class="text-2xl font-bold mb-4 text-header">> All Character Keys</h2>
+            <div id="keys-list" class="space-y-2"></div>
         </div>
     </div>
  
@@ -225,7 +233,6 @@ z<!DOCTYPE html>
         const createShopView = document.getElementById('create-shop-view');
         const dmView = document.getElementById('dm-view');
         const playerView = document.getElementById('player-view');
-        const dmKeysView = document.getElementById('dm-keys-view');
         const toolbarTitle = document.getElementById('toolbar-title');
         const controlsContainer = document.getElementById('controls-container');
         const dmToolsBtn = document.getElementById('dm-tools-btn');
@@ -235,6 +242,7 @@ z<!DOCTYPE html>
         const logoutBtn = document.getElementById('logout-btn');
         const exitModeBtn = document.getElementById('exit-mode-btn');
         const newKeyModal = document.getElementById('new-key-modal');
+        const keysModal = document.getElementById('keys-modal');
 
         function toggleDmTools() {
             dmToolsDropdown.classList.toggle('hidden');
@@ -256,9 +264,14 @@ z<!DOCTYPE html>
             // DM
             dmToolsBtn.addEventListener('click', toggleDmTools);
             createNewShopBtn.addEventListener('click', showCreateShopView);
-            viewKeysBtn.addEventListener('click', showAllKeys);
+            viewKeysBtn.addEventListener('click', openKeysModal);
             logoutBtn.addEventListener('click', logout);
             exitModeBtn.addEventListener('click', exitCurrentMode);
+            keysModal.addEventListener('click', (e) => {
+                if (e.target === keysModal || e.target.id === 'keys-modal-close') {
+                    keysModal.classList.add('hidden');
+                }
+            });
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
@@ -333,7 +346,6 @@ z<!DOCTYPE html>
         // --- Core App Logic ---
         function exitSubView() {
             createShopView.classList.add('hidden');
-            dmKeysView.classList.add('hidden');
             render(); // This will show the correct main view (auth or hub)
         }
 
@@ -356,27 +368,23 @@ z<!DOCTYPE html>
             document.getElementById('exit-create-shop-btn').addEventListener('click', exitSubView);
         }
         
-        async function showAllKeys() {
+        async function openKeysModal() {
             dmToolsDropdown.classList.add('hidden');
-            authView.classList.add('hidden');
-            characterHubView.classList.add('hidden');
-            dmKeysView.classList.remove('hidden');
-            dmKeysView.innerHTML = `<div class="cli-window">
-                <button id="exit-keys-view-btn" class="subview-exit-btn">ⓧ</button>
-                <h2 class="text-header text-2xl mb-4">> All Character Keys</h2>
-                <div id="keys-list">Loading...</div>
-            </div>`;
-            document.getElementById('exit-keys-view-btn').addEventListener('click', exitSubView);
-            
+            keysModal.classList.remove('hidden');
+            const keysList = document.getElementById('keys-list');
+            keysList.innerHTML = 'Loading...';
+
             try {
                 const querySnapshot = await getDocs(collection(db, "characters"));
-                const keysList = document.getElementById('keys-list');
                 keysList.innerHTML = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-                    return `<p><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></p>`
+                    return `<p class="key-item cursor-pointer" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></p>`;
                 }).join('');
+                document.querySelectorAll('.key-item').forEach(el => {
+                    el.addEventListener('click', () => navigator.clipboard.writeText(el.dataset.key));
+                });
             } catch (error) {
-                document.getElementById('keys-list').innerHTML = `<p class="text-red-500">Could not load keys.</p>`;
+                keysList.innerHTML = `<p class="text-red-500">Could not load keys.</p>`;
                 console.error("Error fetching keys:", error);
             }
         }
@@ -517,24 +525,26 @@ z<!DOCTYPE html>
             dmToolsDropdown.classList.add('hidden');
 
             dmToolsBtn.removeEventListener('click', toggleDmTools);
-            logoutBtn.removeEventListener('click', logout);
 
+            const showDmTools = !loggedIn || state.isDM;
             if (inShop) {
-                dmToolsBtn.classList.add('hidden');
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
                 toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
             } else {
                 exitModeBtn.classList.add('hidden');
                 toolbarTitle.classList.add('hidden');
+            }
+            if (showDmTools) {
                 dmToolsBtn.classList.remove('hidden');
                 dmToolsBtn.textContent = "DM Tools";
                 dmToolsBtn.addEventListener('click', toggleDmTools);
+            } else {
+                dmToolsBtn.classList.add('hidden');
             }
 
             if (loggedIn) {
                 logoutBtn.classList.remove('hidden');
-                logoutBtn.addEventListener('click', logout);
             } else {
                 logoutBtn.classList.add('hidden');
             }
