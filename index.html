@@ -124,6 +124,7 @@
              <div id="dm-tools-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-black cli-window">
                  <button id="create-new-shop-btn" class="dropdown-link mb-2">> Create New Shop</button>
                  <button id="view-keys-btn" class="dropdown-link">> View Character Keys</button>
+                 <button id="logout-btn" class="dropdown-link hidden">> Logout</button>
              </div>
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
         </div>
@@ -231,6 +232,7 @@
         const dmToolsDropdown = document.getElementById('dm-tools-dropdown');
         const createNewShopBtn = document.getElementById('create-new-shop-btn');
         const viewKeysBtn = document.getElementById('view-keys-btn');
+        const logoutBtn = document.getElementById('logout-btn');
         const exitModeBtn = document.getElementById('exit-mode-btn');
         const newKeyModal = document.getElementById('new-key-modal');
 
@@ -243,6 +245,7 @@
             // Auth
             document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
             document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
+
             document.getElementById('key-modal-continue-btn').addEventListener('click', () => {
                 newKeyModal.classList.add('hidden');
                 if (state.characterKey) {
@@ -502,17 +505,20 @@
         
         // --- RENDER FUNCTIONS ---
         function render() {
+
             const loggedIn = !!state.characterKey;
             const inShop = state.inShop;
 
             allViews.forEach(v => v.classList.add('hidden'));
-            
+
             controlsContainer.classList.remove('hidden');
             dmToolsDropdown.classList.add('hidden');
 
+            dmToolsBtn.removeEventListener('click', toggleDmTools);
+            logoutBtn.removeEventListener('click', logout);
+
             if (inShop) {
                 dmToolsBtn.classList.add('hidden');
-                dmToolsBtn.onclick = null;
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
                 toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
@@ -520,22 +526,24 @@
                 exitModeBtn.classList.add('hidden');
                 toolbarTitle.classList.add('hidden');
                 dmToolsBtn.classList.remove('hidden');
-                dmToolsBtn.onclick = null;
-                if (loggedIn) {
-                    dmToolsBtn.textContent = "Logout";
-                    dmToolsBtn.onclick = logout;
-                } else {
-                    dmToolsBtn.textContent = "DM Tools";
-                    dmToolsBtn.onclick = toggleDmTools;
-                }
+                dmToolsBtn.textContent = "DM Tools";
+                dmToolsBtn.addEventListener('click', toggleDmTools);
             }
-            
+
+            if (loggedIn) {
+                logoutBtn.classList.remove('hidden');
+                logoutBtn.addEventListener('click', logout);
+            } else {
+                logoutBtn.classList.add('hidden');
+            }
+
             if (!loggedIn) {
                 authView.classList.remove('hidden');
             } else if (!inShop) {
                 characterHubView.classList.remove('hidden');
                 renderCharacterHub();
             } else if (state.isDM) {
+
                 dmView.classList.remove('hidden');
                 renderDMView();
             } else {
