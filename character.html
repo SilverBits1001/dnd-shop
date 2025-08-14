@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Character Sheet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --color-text: #E0E0E0;
+            --color-header: #00FF00;
+            --color-accent: #00FFFF;
+            --color-price: #FFD700;
+            --color-dim: #a0a0a0;
+            --color-border: #cccccc;
+            --shadow-glow: 0 0 7px;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #000000;
+            color: var(--color-text);
+            font-size: 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 5rem;
+        }
+        .cli-window {
+            border: 2px solid var(--color-border);
+            padding: 1rem;
+            background-color: rgba(10, 10, 10, 0.4);
+            box-shadow: 0 0 10px rgba(204, 204, 204, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+            position: relative;
+        }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.25rem;
+            background-color: #ffffff;
+            color: #000000;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover:not(:disabled) { background-color: #000000; color: #ffffff; box-shadow: 0 0 5px #ffffff; }
+        .btn-secondary { background-color: transparent; color: #ffffff; border: 1px solid #ffffff; }
+        .btn-secondary:hover { background-color: #ffffff; color: #000000; }
+        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
+        .text-item-name { color: var(--color-accent); }
+        .text-price { color: var(--color-price); font-weight: bold; }
+        .text-dim { color: var(--color-dim); }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="toolbar" class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20">
+        <button id="back-btn" class="btn btn-secondary">Back</button>
+        <h1 class="text-2xl text-header">Character Sheet</h1>
+        <button id="logout-btn" class="btn-secondary">Logout</button>
+    </div>
+    <main id="sheet-container" class="space-y-6"></main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCwFPAjqfOC1cqTjbpqTu-xk7DrK44NPvU",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.firebasestorage.app",
+          messagingSenderId: "42798381853",
+          appId: "1:42798381853:web:856301cb1ca5ce5ce071da"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('dndShopCharacterKey');
+            window.location.href = 'index.html';
+        });
+
+        function abilityBox(name, obj = {}) {
+            const mod = typeof obj.mod === 'number' && obj.mod >= 0 ? `+${obj.mod}` : obj.mod ?? '';
+            return `<div class="border border-white/50 p-2 text-center">
+                        <div class="text-item-name">${name.slice(0,3).toUpperCase()}</div>
+                        <div class="text-2xl">${obj.score ?? '-'}</div>
+                        <div class="text-dim">${mod ?? ''}</div>
+                    </div>`;
+        }
+
+        function renderCharacterSheet(data) {
+            const abilities = Object.entries(data.abilities || {}).map(([n,o]) => abilityBox(n,o)).join('');
+            const saves = Object.entries(data.abilities || {}).map(([n,o]) => `<div>${n} Save: <span class="text-item-name">${o.save ?? '-'}</span>${o.saveProf ? ' *' : ''}</div>`).join('');
+            const skills = Object.entries(data.skills || {}).map(([n,o]) => `<div>${n}: <span class="text-item-name">${o.bonus ?? '-'}</span>${o.prof ? ' *' : ''}</div>`).join('');
+            const inv = (data.inventory || []).map(i => `<li><span class="text-item-name">${i.name}</span></li>`).join('');
+            const equipmentList = data.equipment?.list ? `<p class="mt-2 whitespace-pre-line">${data.equipment.list}</p>` : '';
+            const money = data.equipment?.money ? `CP:${data.equipment.money.cp || 0} SP:${data.equipment.money.sp || 0} EP:${data.equipment.money.ep || 0} GP:${data.equipment.money.gp || 0} PP:${data.equipment.money.pp || 0}` : '';
+
+            document.getElementById('sheet-container').innerHTML = `
+                <div class="cli-window">
+                    <h2 class="text-2xl text-header mb-2">> ${data.name || 'Unknown Adventurer'}</h2>
+                    ${data.classlevel ? `<p>> ${data.classlevel}</p>` : ''}
+                    ${data.race ? `<p class="text-dim">> ${data.race}</p>` : ''}
+                    ${data.alignment ? `<p class="text-dim">> ${data.alignment}</p>` : ''}
+                    <p class="text-2xl text-price mt-2">${data.gold || 0} GP</p>
+                </div>
+                <div class="cli-window">
+                    <h3 class="text-2xl text-header mb-4">> Combat</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>> AC: <span class="text-item-name">${data.combat?.ac ?? '-'}</span></div>
+                        <div>> HP: <span class="text-item-name">${data.combat?.hp?.current ?? '-'} / ${data.combat?.hp?.max ?? '-'}</span></div>
+                        <div>> Initiative: <span class="text-item-name">${data.combat?.initiative ?? '-'}</span></div>
+                        <div>> Speed: <span class="text-item-name">${data.combat?.speed ?? '-'}</span></div>
+                    </div>
+                </div>
+                <div class="cli-window">
+                    <h3 class="text-2xl text-header mb-4">> Abilities</h3>
+                    <div class="grid grid-cols-3 gap-4">${abilities || '<p class="text-dim">No ability data.</p>'}</div>
+                </div>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Skills & Saves</summary>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        ${saves || '<p class="text-dim">No save data.</p>'}
+                        ${skills || ''}
+                    </div>
+                </details>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Equipment</summary>
+                    <div class="mt-4">
+                        ${money ? `<p>> ${money}</p>` : ''}
+                        ${inv ? `<ul class="list-disc pl-5 mt-2">${inv}</ul>` : '<p class="text-dim mt-2">No equipment.</p>'}
+                        ${equipmentList}
+                    </div>
+                </details>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Notes</summary>
+                    <div class="mt-4 space-y-2">
+                        ${data.flavor?.personality ? `<p><span class="text-header">Personality:</span> ${data.flavor.personality}</p>` : ''}
+                        ${data.flavor?.ideals ? `<p><span class="text-header">Ideals:</span> ${data.flavor.ideals}</p>` : ''}
+                        ${data.flavor?.bonds ? `<p><span class="text-header">Bonds:</span> ${data.flavor.bonds}</p>` : ''}
+                        ${data.flavor?.flaws ? `<p><span class="text-header">Flaws:</span> ${data.flavor.flaws}</p>` : ''}
+                        ${data.features ? `<p><span class="text-header">Features:</span> ${data.features}</p>` : ''}
+                    </div>
+                </details>
+            `;
+        }
+
+        async function loadCharacter() {
+            const key = localStorage.getItem('dndShopCharacterKey');
+            if (!key) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const docSnap = await getDoc(doc(db, 'characters', key));
+            if (docSnap.exists()) {
+                renderCharacterSheet(docSnap.data());
+            } else {
+                document.getElementById('sheet-container').innerHTML = '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
+            }
+        }
+
+        loadCharacter();
+    </script>
+</body>
+</html>
