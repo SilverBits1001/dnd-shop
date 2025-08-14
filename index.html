@@ -233,7 +233,11 @@
         const viewKeysBtn = document.getElementById('view-keys-btn');
         const exitModeBtn = document.getElementById('exit-mode-btn');
         const newKeyModal = document.getElementById('new-key-modal');
-        
+
+        function toggleDmTools() {
+            dmToolsDropdown.classList.toggle('hidden');
+        }
+
         // --- Initialization ---
         function main() {
             // Auth
@@ -247,7 +251,6 @@
             });
 
             // DM
-            dmToolsBtn.addEventListener('click', () => dmToolsDropdown.classList.toggle('hidden'));
             createNewShopBtn.addEventListener('click', showCreateShopView);
             viewKeysBtn.addEventListener('click', showAllKeys);
             exitModeBtn.addEventListener('click', exitCurrentMode);
@@ -257,6 +260,8 @@
             if (savedKey) {
                 loginWithKey(savedKey);
             }
+
+            render();
         }
 
         // --- Auth & Character Functions ---
@@ -416,15 +421,19 @@
             state.shopId = Math.random().toString(36).substring(2, 8).toUpperCase();
             const newSessionRef = doc(db, 'shops', state.shopId);
             const initialShopData = {
+                shopType: shopTemplate.name,
                 shopkeeper: { gold: Math.floor(Math.random() * 1501) + 500, description: "..." },
                 inventory: finalInventory,
                 carts: {},
                 priceModifier: 0,
             };
 
+            state.shopData = initialShopData;
+
             try {
                 await setDoc(newSessionRef, initialShopData);
-                listenToShopChanges(state.shopId); 
+                listenToShopChanges(state.shopId);
+                render();
             } catch (error) {
                 console.error("Error creating session:", error);
                 alert("Error creating session.");
@@ -476,6 +485,7 @@
 
             if (inShop) {
                 dmToolsBtn.classList.add('hidden');
+                dmToolsBtn.onclick = null;
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
                 toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
@@ -483,12 +493,13 @@
                 exitModeBtn.classList.add('hidden');
                 toolbarTitle.classList.add('hidden');
                 dmToolsBtn.classList.remove('hidden');
+                dmToolsBtn.onclick = null;
                 if (loggedIn) {
                     dmToolsBtn.textContent = "Logout";
                     dmToolsBtn.onclick = logout;
                 } else {
                     dmToolsBtn.textContent = "DM Tools";
-                    dmToolsBtn.onclick = () => dmToolsDropdown.classList.toggle('hidden');
+                    dmToolsBtn.onclick = toggleDmTools;
                 }
             }
             
