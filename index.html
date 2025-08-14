@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Interactive Shop</title>
+    <title>D&D Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,9 +18,7 @@
             --color-border: #cccccc;
             --shadow-glow: 0 0 7px;
         }
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
         body {
             font-family: 'VT323', monospace;
             background-color: #000000;
@@ -38,16 +36,12 @@
             opacity: 0;
             transform: translateY(20px);
             animation: fadeIn 0.5s forwards;
+            position: relative; /* For positioning exit buttons */
         }
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
         .btn {
             display: inline-block;
-            padding: 0.75rem 1.25rem; /* Larger touch targets */
+            padding: 0.75rem 1.25rem;
             background-color: #ffffff;
             color: #000000;
             text-shadow: none;
@@ -55,38 +49,20 @@
             border: none;
             transition: all 0.2s ease-in-out;
         }
-        .btn:hover:not(:disabled) {
-            background-color: #000000;
-            color: #ffffff;
-            box-shadow: 0 0 5px #ffffff;
-        }
-        .btn-secondary {
-             background-color: transparent;
-             color: #ffffff;
-             border: 1px solid #ffffff;
-        }
-         .btn-secondary:hover {
-             background-color: #ffffff;
-             color: #000000;
-         }
-        .btn:disabled {
-            background-color: #333;
-            color: #888;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
+        .btn:hover:not(:disabled) { background-color: #000000; color: #ffffff; box-shadow: 0 0 5px #ffffff; }
+        .btn-secondary { background-color: transparent; color: #ffffff; border: 1px solid #ffffff; }
+        .btn-secondary:hover { background-color: #ffffff; color: #000000; }
+        .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
         .input-field, .select-field {
             background-color: #111;
             border: 1px solid #ffffff;
             color: #ffffff;
-            padding: 0.75rem; /* Larger touch targets */
+            padding: 0.75rem;
             width: 100%;
             font-family: 'VT323', monospace;
+            text-transform: uppercase;
         }
-        .input-field:focus, .select-field:focus {
-            outline: none;
-            box-shadow: 0 0 8px #ffffff;
-        }
+        .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px #ffffff; }
         .ascii-title {
             font-family: monospace; 
             white-space: pre;
@@ -96,109 +72,114 @@
             color: var(--color-header);
             text-shadow: var(--shadow-glow) var(--color-header);
         }
-        /* Readability & New Control Classes */
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-item-name { color: var(--color-accent); }
         .text-price { color: var(--color-price); font-weight: bold; }
         .text-dim { color: var(--color-dim); }
+        .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
         #dm-tools-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover { text-decoration: underline; }
+        .dropdown-link {
+            background: none;
+            border: none;
+            color: var(--color-text);
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .dropdown-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--color-accent);
+        }
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
         #exit-mode-btn:hover { color: white; }
-
-        /* Animation & Interaction Styles */
-        .item-card {
-            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
-            touch-action: pan-y; /* Allow vertical scroll */
+        .subview-exit-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--color-header);
+            font-size: 1.75rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0.25rem;
         }
-        .item-card.swiping {
-            transition: none;
-        }
-        @keyframes glow-success {
-            0% { box-shadow: 0 0 0px var(--color-header); }
-            50% { box-shadow: 0 0 15px var(--color-header); }
-            100% { box-shadow: 0 0 0px var(--color-header); }
-        }
-        .glow-once {
-            animation: glow-success 0.7s ease-out;
-        }
+        .subview-exit-btn:hover { color: white; }
+        .item-card { transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s; touch-action: pan-y; }
+        .item-card.sold-out { opacity: 0.5; }
+        .item-card.swiping { transition: none; }
+        @keyframes glow-success { 0% { box-shadow: 0 0 0px var(--color-header); } 50% { box-shadow: 0 0 15px var(--color-header); } 100% { box-shadow: 0 0 0px var(--color-header); } }
+        .glow-once { animation: glow-success 0.7s ease-out; }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
     <div id="toolbar" class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20">
-        <div id="dm-toolbar-title" class="text-2xl hidden text-header">> DM Mode</div>
-        <div id="player-toolbar-title" class="text-2xl hidden text-header">> Player Mode</div>
-        <div id="dm-controls-container" class="relative ml-auto">
+        <div id="toolbar-title" class="text-2xl hidden text-header"></div>
+        <div id="controls-container" class="relative ml-auto">
              <button id="dm-tools-btn">DM Tools</button>
              <div id="dm-tools-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-black cli-window">
-                 <button id="create-new-shop-btn" class="btn w-full text-left">Create New Shop</button>
+                 <button id="create-new-shop-btn" class="dropdown-link mb-2">> Create New Shop</button>
+                 <button id="view-keys-btn" class="dropdown-link">> View Character Keys</button>
              </div>
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
         </div>
     </div>
 
-    <div id="app-container" class="max-w-7xl mx-auto my-8">
-        <!-- Initial View: Shop Selection -->
-        <div id="initial-view">
-            <div class="text-center">
-                <div class="ascii-title">
-██████╗ ███╗   ██╗██████╗     ███████╗██╗  ██╗ ██████╗ ██████╗ 
-██╔══██╗████╗  ██║██╔══██╗    ██╔════╝██║  ██║██╔═══██╗██╔══██╗
-██║  ██║██╔██╗ ██║██║  ██║    ███████╗███████║██║   ██║██████╔╝
-██║  ██║██║╚██╗██║██║  ██║    ╚════██║██╔══██║██║   ██║██╔═══╝ 
-██████╔╝██║ ╚████║██████╔╝    ███████║██║  ██║╚██████╔╝██║     
-╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     
+    <div id="app-container" class="max-w-7xl mx-auto">
+        <!-- Auth View -->
+        <div id="auth-view">
+             <div class="ascii-title">
+██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
+██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
+██║  ██║██╔██╗ ██║██║  ██║    ███████║██║   ██║██████╔╝
+██║  ██║██║╚██╗██║██║  ██║    ██╔══██║██║   ██║██╔══██╗
+██████╔╝██║ ╚████║██████╔╝    ██║  ██║╚██████╔╝██████╔╝
+╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
+                                                       
+            </div>
+            <div id="login-container" class="max-w-md mx-auto mb-8 cli-window text-center">
+                <h2 class="text-2xl mb-4 text-header">> Welcome, Adventurer!</h2>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
+                    <button id="login-key-btn" class="btn">Enter</button>
                 </div>
-                <div id="player-join-container" class="max-w-md mx-auto mb-8 cli-window">
-                    <h2 class="text-2xl mb-4 text-header">> Players: Join a Shop</h2>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="join-shop-id-input" class="input-field flex-grow" placeholder="ENTER SHOP ID" maxlength="6">
-                        <button id="join-shop-btn" class="btn">Join</button>
-                    </div>
-                </div>
+                <p class="my-4 text-dim">-- OR --</p>
+                <button id="create-character-btn" class="btn w-full">Create New Character</button>
             </div>
         </div>
-        
-        <!-- Create Shop View -->
-        <div id="create-shop-view" class="hidden max-w-md mx-auto cli-window">
-             <h2 class="text-2xl mb-4 text-header">> Create a New Shop</h2>
-             <div class="space-y-4">
-                <div>
-                    <label for="shop-type-select" class="block mb-1">> Shop Type</label>
-                    <select id="shop-type-select" class="select-field"></select>
-                </div>
-                <div>
-                    <label for="shop-size-select" class="block mb-1">> Shop Size</label>
-                    <select id="shop-size-select" class="select-field"></select>
-                </div>
-                <button id="generate-shop-btn" class="btn w-full">Go</button>
-             </div>
-        </div>
 
+        <!-- Character Hub View -->
+        <div id="character-hub-view" class="hidden"></div>
+        <!-- Create Shop View -->
+        <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
         <!-- DM View -->
         <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
         <div id="player-view" class="hidden"></div>
+        <!-- DM Keys View -->
+        <div id="dm-keys-view" class="hidden"></div>
+    </div>
 
-        <!-- Player Name Modal -->
-        <div id="player-name-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div class="cli-window w-full max-w-md">
-                <h2 class="text-2xl font-bold mb-4 text-header">> Enter Your Name</h2>
-                <p class="mb-6 text-dim">> Please enter your character's name to join the shop.</p>
-                <input type="text" id="player-name-input" class="input-field mb-4" placeholder="e.g., Elara Swiftbow">
-                <button id="submit-player-name-btn" class="btn w-full">Join Session</button>
+    <!-- New Key Modal (Moved outside app-container) -->
+    <div id="new-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+        <div class="cli-window w-full max-w-md text-center">
+            <h2 class="text-2xl font-bold mb-4 text-header">> Your New Character Key!</h2>
+            <p class="mb-4 text-dim">> This is your secret key. Write it down! It is the ONLY way to access your character again.</p>
+            <div class="bg-gray-900 p-4 border-2 border-dashed border-header mb-6">
+                <p id="new-key-display" class="text-4xl text-header tracking-widest"></p>
             </div>
+            <button id="key-modal-continue-btn" class="btn w-full">Continue to Hub</button>
         </div>
     </div>
  
     <script type="module">
-        // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- PASTE YOUR FIREBASE CONFIG HERE ---
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
           authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
@@ -208,13 +189,10 @@
           appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
           measurementId: "G-DWLMWMZTZ3"
         };
-        // -----------------------------------------
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app);
 
-        // --- ITEM CATALOG ---
         const itemCatalog = {
           "blacksmith": { "name": "Blacksmith/Armory", "items": [ { "name": "Studded Leather", "price": 45 }, { "name": "Chain Shirt", "price": 50 }, { "name": "Scale Mail", "price": 50 }, { "name": "Breastplate", "price": 400 }, { "name": "Half Plate", "price": 750 }, { "name": "Ring Mail", "price": 30 }, { "name": "Chain Mail", "price": 75 }, { "name": "Splint", "price": 200 }, { "name": "Plate", "price": 1500 }, { "name": "Shield", "price": 10 }, { "name": "Dagger", "price": 2 }, { "name": "Handaxe", "price": 5 }, { "name": "Javelin", "price": 0.5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Mace", "price": 5 }, { "name": "Sickle", "price": 1 }, { "name": "Spear", "price": 1 }, { "name": "Battleaxe", "price": 10 }, { "name": "Flail", "price": 10 }, { "name": "Glaive", "price": 20 }, { "name": "Greataxe", "price": 30 }, { "name": "Greatsword", "price": 50 }, { "name": "Halberd", "price": 20 }, { "name": "Lance", "price": 10 }, { "name": "Longsword", "price": 15 }, { "name": "Maul", "price": 10 }, { "name": "Morningstar", "price": 15 }, { "name": "Pike", "price": 5 }, { "name": "Rapier", "price": 25 }, { "name": "Scimitar", "price": 25 }, { "name": "Shortsword", "price": 10 }, { "name": "Trident", "price": 5 }, { "name": "War Pick", "price": 5 }, { "name": "Warhammer", "price": 15 }, { "name": "Ball Bearings (bag of 1,000)", "price": 1 }, { "name": "Bell", "price": 1 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Crowbar", "price": 2 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Sledgehammer", "price": 2 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Manacles", "price": 2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Spikes, Iron", "price": 1 }, { "name": "Whetstone", "price": 0.01 }, { "name": "Carpenter's Tools", "price": 8 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Horn", "price": 3 } ] },
           "fletcher": { "name": "Fletcher/Bowyer", "items": [ { "name": "Crossbow, Light", "price": 25 }, { "name": "Shortbow", "price": 25 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Quiver", "price": 1 } ] },
@@ -227,111 +205,193 @@
           "potion_shop": { "name": "Potion Shop", "items": [ { "name": "Acid (vial)", "price": 25 }, { "name": "Alchemist's Fire (flask)", "price": 50 }, { "name": "Antitoxin (vial)", "price": 50 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Component Pouch", "price": 25 }, { "name": "Flask", "price": 0.02 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Jug", "price": 0.02 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Perfume (vial)", "price": 5 }, { "name": "Poison, Basic (vial)", "price": 100 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Vial", "price": 1 }, { "name": "Alchemist's Supplies", "price": 50 }, { "name": "Brewer's Supplies", "price": 20 }, { "name": "Cook's Utensils", "price": 1 }, { "name": "Poisoner's Kit", "price": 50 }, { "name": "Potion (Common)", "price": 50 }, { "name": "Potion (Uncommon)", "price": 250 }, { "name": "Potion (Rare)", "price": 2500 } ] }
         };
 
-        let userId = null;
-        let unsubscribe = null;
-        const apiCache = {};
+        let shopUnsubscribe = null;
+        let playerUnsubscribe = null;
 
-        let state = { isDM: false, sessionId: null, playerName: null, shopData: null };
+        let state = {
+            isDM: false,
+            inShop: false,
+            characterKey: null,
+            playerData: null,
+            shopId: null,
+            shopData: null,
+        };
 
-        const initialView = document.getElementById('initial-view');
+        // DOM Elements
+        const allViews = document.querySelectorAll('#app-container > div');
+        const authView = document.getElementById('auth-view');
+        const characterHubView = document.getElementById('character-hub-view');
         const createShopView = document.getElementById('create-shop-view');
         const dmView = document.getElementById('dm-view');
         const playerView = document.getElementById('player-view');
-        const dmToolbarTitle = document.getElementById('dm-toolbar-title');
-        const playerToolbarTitle = document.getElementById('player-toolbar-title');
-        const dmControlsContainer = document.getElementById('dm-controls-container');
+        const dmKeysView = document.getElementById('dm-keys-view');
+        const toolbarTitle = document.getElementById('toolbar-title');
+        const controlsContainer = document.getElementById('controls-container');
         const dmToolsBtn = document.getElementById('dm-tools-btn');
         const dmToolsDropdown = document.getElementById('dm-tools-dropdown');
         const createNewShopBtn = document.getElementById('create-new-shop-btn');
+        const viewKeysBtn = document.getElementById('view-keys-btn');
         const exitModeBtn = document.getElementById('exit-mode-btn');
-        const playerNameModal = document.getElementById('player-name-modal');
-        const playerNameInput = document.getElementById('player-name-input');
-        const submitPlayerNameBtn = document.getElementById('submit-player-name-btn');
-        const joinShopBtn = document.getElementById('join-shop-btn');
-        const joinShopIdInput = document.getElementById('join-shop-id-input');
-        const shopTypeSelect = document.getElementById('shop-type-select');
-        const shopSizeSelect = document.getElementById('shop-size-select');
-        const generateShopBtn = document.getElementById('generate-shop-btn');
+        const newKeyModal = document.getElementById('new-key-modal');
         
-        async function main() {
-            try {
-                await signInAnonymously(auth);
-                userId = auth.currentUser.uid;
-                initializeAppLogic();
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                document.getElementById('app-container').innerHTML = `<div class="cli-window text-red-400">Could not connect. Please check your Firebase config and internet connection.</div>`;
+        // --- Initialization ---
+        function main() {
+            // Auth
+            document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
+            document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
+            document.getElementById('key-modal-continue-btn').addEventListener('click', () => {
+                newKeyModal.classList.add('hidden');
+                if (state.characterKey) {
+                    listenToPlayerData(state.characterKey);
+                }
+            });
+
+            // DM
+            dmToolsBtn.addEventListener('click', () => dmToolsDropdown.classList.toggle('hidden'));
+            createNewShopBtn.addEventListener('click', showCreateShopView);
+            viewKeysBtn.addEventListener('click', showAllKeys);
+            exitModeBtn.addEventListener('click', exitCurrentMode);
+
+            // Check for saved key
+            const savedKey = localStorage.getItem('dndShopCharacterKey');
+            if (savedKey) {
+                loginWithKey(savedKey);
             }
         }
 
-        function initializeAppLogic() {
-            submitPlayerNameBtn.addEventListener('click', joinSession);
-            playerNameInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') joinSession(); });
-            joinShopBtn.addEventListener('click', handlePlayerJoinAttempt);
-            joinShopIdInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePlayerJoinAttempt(); });
-            
-            dmToolsBtn.addEventListener('click', () => dmToolsDropdown.classList.toggle('hidden'));
-            createNewShopBtn.addEventListener('click', showCreateShopView);
-            generateShopBtn.addEventListener('click', handleGenerateShop);
-            exitModeBtn.addEventListener('click', exitCurrentMode);
+        // --- Auth & Character Functions ---
+        async function handleKeyLogin() {
+            const key = document.getElementById('character-key-input').value.toUpperCase();
+            if (key.length !== 6) { alert("Please enter a valid 6-character key."); return; }
+            await loginWithKey(key);
         }
-        
+
+        async function loginWithKey(key) {
+            const playerDocRef = doc(db, 'characters', key);
+            const docSnap = await getDoc(playerDocRef);
+            if (docSnap.exists()) {
+                state.characterKey = key;
+                localStorage.setItem('dndShopCharacterKey', key);
+                listenToPlayerData(key);
+            } else {
+                alert("Character key not found.");
+            }
+        }
+
+        async function handleCreateCharacter() {
+            const key = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const playerDocRef = doc(db, 'characters', key);
+            
+            try {
+                await setDoc(playerDocRef, {
+                    name: "Adventurer",
+                    gold: 50,
+                    inventory: []
+                });
+                document.getElementById('new-key-display').textContent = key;
+                newKeyModal.classList.remove('hidden');
+                state.characterKey = key;
+                localStorage.setItem('dndShopCharacterKey', key);
+            } catch (error) {
+                console.error("Error creating character:", error);
+                alert("Could not create character. Please try again.");
+            }
+        }
+
+        function listenToPlayerData(key) {
+            if (playerUnsubscribe) playerUnsubscribe();
+            const playerDocRef = doc(db, 'characters', key);
+            playerUnsubscribe = onSnapshot(playerDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    state.playerData = docSnap.data();
+                } else {
+                    alert("Character data lost or deleted.");
+                    logout();
+                }
+                render();
+            });
+        }
+
+        function logout() {
+            if (playerUnsubscribe) playerUnsubscribe();
+            localStorage.removeItem('dndShopCharacterKey');
+            state.characterKey = null;
+            state.playerData = null;
+            exitCurrentMode();
+        }
+
+        // --- Core App Logic ---
+        function exitSubView() {
+            createShopView.classList.add('hidden');
+            dmKeysView.classList.add('hidden');
+            render(); // This will show the correct main view (auth or hub)
+        }
+
         function showCreateShopView() {
             dmToolsDropdown.classList.add('hidden');
-            initialView.classList.add('hidden');
+            authView.classList.add('hidden');
+            characterHubView.classList.add('hidden');
             createShopView.classList.remove('hidden');
-            shopTypeSelect.innerHTML = Object.keys(itemCatalog).map(key => `<option value="${key}">${itemCatalog[key].name}</option>`).join('');
-            shopSizeSelect.innerHTML = ['Small', 'Urban', 'Specialty'].map(size => `<option value="${size.toLowerCase()}">${size}</option>`).join('');
+            createShopView.innerHTML = `
+                <div class="cli-window">
+                    <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
+                    <h2 class="text-2xl mb-4 text-header">> Create a New Shop</h2>
+                    <div class="space-y-4">
+                        <div><label for="shop-type-select" class="block mb-1">> Shop Type</label><select id="shop-type-select" class="select-field">${Object.keys(itemCatalog).map(key => `<option value="${key}">${itemCatalog[key].name}</option>`).join('')}</select></div>
+                        <div><label for="shop-size-select" class="block mb-1">> Shop Size</label><select id="shop-size-select" class="select-field">${['Small', 'Urban', 'Specialty'].map(size => `<option value="${size.toLowerCase()}">${size}</option>`).join('')}</select></div>
+                        <button id="generate-shop-btn" class="btn w-full">Go</button>
+                    </div>
+                </div>`;
+            document.getElementById('generate-shop-btn').addEventListener('click', handleGenerateShop);
+            document.getElementById('exit-create-shop-btn').addEventListener('click', exitSubView);
         }
         
+        async function showAllKeys() {
+            dmToolsDropdown.classList.add('hidden');
+            authView.classList.add('hidden');
+            characterHubView.classList.add('hidden');
+            dmKeysView.classList.remove('hidden');
+            dmKeysView.innerHTML = `<div class="cli-window">
+                <button id="exit-keys-view-btn" class="subview-exit-btn">ⓧ</button>
+                <h2 class="text-header text-2xl mb-4">> All Character Keys</h2>
+                <div id="keys-list">Loading...</div>
+            </div>`;
+            document.getElementById('exit-keys-view-btn').addEventListener('click', exitSubView);
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, "characters"));
+                const keysList = document.getElementById('keys-list');
+                keysList.innerHTML = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return `<p><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></p>`
+                }).join('');
+            } catch (error) {
+                document.getElementById('keys-list').innerHTML = `<p class="text-red-500">Could not load keys.</p>`;
+                console.error("Error fetching keys:", error);
+            }
+        }
+
         function handleGenerateShop() {
-            const shopKey = shopTypeSelect.value;
-            const shopSize = shopSizeSelect.value;
+            const shopKey = document.getElementById('shop-type-select').value;
+            const shopSize = document.getElementById('shop-size-select').value;
             createShopView.classList.add('hidden');
             createSession(shopKey, shopSize);
         }
 
         function exitCurrentMode() {
-            if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-            state = { isDM: false, sessionId: null, playerName: null, shopData: null };
-            dmView.classList.add('hidden');
-            playerView.classList.add('hidden');
-            createShopView.classList.add('hidden');
-            initialView.classList.remove('hidden');
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = false;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
             render(); 
-        }
-
-        async function fetchItemDetails(item) {
-            const formattedName = item.name.toLowerCase().replace(/\s*\(.*\)\s*/g, '').replace(/,/g, '').replace(/\s+/g, '-');
-            if (apiCache[formattedName]) return { ...item, ...apiCache[formattedName] };
-            try {
-                const response = await fetch(`https://www.dnd5eapi.co/api/equipment/${formattedName}`);
-                if (!response.ok) throw new Error('Item not found in API');
-                const data = await response.json();
-                apiCache[formattedName] = data;
-                return { ...item, ...data };
-            } catch (error) {
-                console.warn(`Could not fetch details for ${item.name}:`, error.message);
-                return item;
-            }
-        }
-        
-        function generateShopId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
-        
-        function generateInitialGold(shopSize) {
-            if (shopSize === 'small') return Math.floor(Math.random() * 401) + 100;
-            if (shopSize === 'urban') return Math.floor(Math.random() * 1501) + 500;
-            if (shopSize === 'specialty') return Math.floor(Math.random() * 4001) + 1000;
-            return 1000;
         }
 
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
-            initialView.classList.add('hidden');
+            state.inShop = true;
             
             const shopTemplate = itemCatalog[shopKey];
-            if (!shopTemplate) { alert("Error: Invalid shop type selected."); return; }
-
             const fullInventory = shopTemplate.items;
             let randomInventory = [];
             if (shopSize === 'small') {
@@ -347,58 +407,49 @@
                 randomInventory = sorted.slice(0, Math.floor(Math.random() * 5) + 3);
             }
 
-            const detailedInventory = await Promise.all(randomInventory.map(fetchItemDetails));
-            const finalInventory = detailedInventory.map(item => ({...item, forSale: true, id: `item-${Math.random().toString(36).substr(2, 9)}`}));
+            const finalInventory = randomInventory.map(item => ({
+                ...item, 
+                quantity: Math.floor(Math.random() * 5) + 1,
+                id: `item-${Math.random().toString(36).substr(2, 9)}`
+            }));
             
-            state.sessionId = generateShopId();
-            const newSessionRef = doc(db, 'shops', state.sessionId);
+            state.shopId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const newSessionRef = doc(db, 'shops', state.shopId);
             const initialShopData = {
-                shopkeeper: { gold: generateInitialGold(shopSize), description: "Generating...", wants: "...", needs: "...", secrets_or_obstacles: "...", carried_items: [], identifying_trait: "..." },
+                shopkeeper: { gold: Math.floor(Math.random() * 1501) + 500, description: "..." },
                 inventory: finalInventory,
                 carts: {},
-                ownerId: userId,
-                shopType: `${shopTemplate.name} (${shopSize.charAt(0).toUpperCase() + shopSize.slice(1)})`
+                priceModifier: 0,
             };
 
             try {
                 await setDoc(newSessionRef, initialShopData);
-                listenToShopChanges(); 
-                const generatedShopkeeper = await generateInitialShopkeeperAI(initialShopData.shopType);
-                if (generatedShopkeeper) await updateDoc(newSessionRef, { shopkeeper: generatedShopkeeper });
+                listenToShopChanges(state.shopId); 
             } catch (error) {
                 console.error("Error creating session:", error);
-                dmView.innerHTML = `<div class="cli-window"><p class="text-red-400">Error: Could not create the shop session.</p></div>`;
-                dmView.classList.remove('hidden');
+                alert("Error creating session.");
+                exitCurrentMode();
             }
         }
         
         async function handlePlayerJoinAttempt() {
-            const shopId = joinShopIdInput.value.trim().toUpperCase();
+            const shopId = document.getElementById('hub-join-shop-id-input').value.trim().toUpperCase();
             if (shopId.length !== 6) { alert("Please enter a valid 6-character Shop ID."); return; }
             const shopDocRef = doc(db, 'shops', shopId);
             const docSnap = await getDoc(shopDocRef);
             if (docSnap.exists()) {
-                state.sessionId = shopId;
-                state.isDM = false;
-                initialView.classList.add('hidden');
-                playerNameModal.classList.remove('hidden');
+                state.shopId = shopId;
+                state.inShop = true;
+                listenToShopChanges(shopId);
             } else {
-                alert("Shop ID not found. Please check the code and try again.");
+                alert("Shop ID not found.");
             }
         }
 
-        function joinSession() {
-            const name = playerNameInput.value.trim();
-            if (!name) { alert("Please enter a name."); return; }
-            state.playerName = name;
-            playerNameModal.classList.add('hidden');
-            listenToShopChanges();
-        }
-
-        function listenToShopChanges() {
-            if (unsubscribe) unsubscribe(); 
-            const shopDocRef = doc(db, 'shops', state.sessionId);
-            unsubscribe = onSnapshot(shopDocRef, (docSnap) => {
+        function listenToShopChanges(shopId) {
+            if (shopUnsubscribe) shopUnsubscribe(); 
+            const shopDocRef = doc(db, 'shops', shopId);
+            shopUnsubscribe = onSnapshot(shopDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     state.shopData = docSnap.data();
                     render();
@@ -413,65 +464,100 @@
             });
         }
         
+        // --- RENDER FUNCTIONS ---
         function render() {
-            // Toolbar state
-            if (state.isDM) {
-                dmControlsContainer.classList.remove('hidden');
-                dmToolsBtn.classList.add('hidden');
-                exitModeBtn.classList.remove('hidden');
-                dmToolbarTitle.classList.remove('hidden');
-                playerToolbarTitle.classList.add('hidden');
-            } else if (state.playerName) {
-                dmControlsContainer.classList.remove('hidden');
-                dmToolsBtn.classList.add('hidden');
-                dmToolsDropdown.classList.add('hidden');
-                exitModeBtn.classList.remove('hidden');
-                dmToolbarTitle.classList.add('hidden');
-                playerToolbarTitle.classList.remove('hidden');
-            } else {
-                dmControlsContainer.classList.remove('hidden');
-                dmToolsBtn.classList.remove('hidden');
-                exitModeBtn.classList.add('hidden');
-                dmToolbarTitle.classList.add('hidden');
-                playerToolbarTitle.classList.add('hidden');
-            }
+            const loggedIn = !!state.characterKey;
+            const inShop = state.inShop;
 
-            if (!state.shopData) return;
+            allViews.forEach(v => v.classList.add('hidden'));
             
-            initialView.classList.add('hidden');
-            createShopView.classList.add('hidden');
+            controlsContainer.classList.remove('hidden');
+            dmToolsDropdown.classList.add('hidden');
 
-            if (state.isDM) {
+            if (inShop) {
+                dmToolsBtn.classList.add('hidden');
+                exitModeBtn.classList.remove('hidden');
+                toolbarTitle.classList.remove('hidden');
+                toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
+            } else {
+                exitModeBtn.classList.add('hidden');
+                toolbarTitle.classList.add('hidden');
+                dmToolsBtn.classList.remove('hidden');
+                if (loggedIn) {
+                    dmToolsBtn.textContent = "Logout";
+                    dmToolsBtn.onclick = logout;
+                } else {
+                    dmToolsBtn.textContent = "DM Tools";
+                    dmToolsBtn.onclick = () => dmToolsDropdown.classList.toggle('hidden');
+                }
+            }
+            
+            if (!loggedIn) {
+                authView.classList.remove('hidden');
+            } else if (!inShop) {
+                characterHubView.classList.remove('hidden');
+                renderCharacterHub();
+            } else if (state.isDM) {
                 dmView.classList.remove('hidden');
-                playerView.classList.add('hidden');
                 renderDMView();
             } else {
                 playerView.classList.remove('hidden');
-                dmView.classList.add('hidden');
                 renderPlayerView();
             }
         }
+
+        function renderCharacterHub() {
+            const player = state.playerData;
+            if (!player) {
+                characterHubView.innerHTML = `<div class="cli-window text-center"><p class="text-header">Loading Character...</p></div>`;
+                return;
+            }
+            const inventorySummary = player.inventory.reduce((acc, item) => {
+                acc[item.name] = (acc[item.name] || 0) + 1;
+                return acc;
+            }, {});
+
+            characterHubView.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="cli-window">
+                        <h2 class="text-2xl text-header mb-2">> ${player.name}</h2>
+                        <p class="text-dim">Key: <span class="text-header">${state.characterKey}</span></p>
+                        <p class="text-2xl text-price mt-2">${player.gold} GP</p>
+                    </div>
+                    <div class="cli-window">
+                        <h3 class="text-2xl text-header mb-4">> Inventory</h3>
+                        <div class="space-y-2 max-h-60 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
+                    </div>
+                </div>
+                <div class="mt-8 cli-window max-w-md mx-auto">
+                     <h2 class="text-2xl mb-4 text-header">> Enter a Shop</h2>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="hub-join-shop-id-input" class="input-field flex-grow" placeholder="ENTER SHOP ID" maxlength="6">
+                        <button id="hub-join-shop-btn" class="btn">Enter</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('hub-join-shop-btn').addEventListener('click', handlePlayerJoinAttempt);
+        }
         
-        function formatItemDetails(item) {
-            let details = [];
-            if (item.armor_class) { details.push(`AC: ${item.armor_class.base}${item.armor_class.dex_bonus ? ' + Dex' : ''}`); }
-            if (item.damage) { details.push(`Damage: ${item.damage.damage_dice} ${item.damage.damage_type.name}`); }
-            if (item.desc) { details.push(...item.desc); }
-            return details.map(d => `<p>> ${d}</p>`).join('');
+        function getModifiedPrice(basePrice) {
+            const modifier = state.shopData?.priceModifier || 0;
+            const modified = basePrice * (1 + modifier / 100);
+            return Math.round(modified * 100) / 100;
         }
 
         function renderDMView() {
-            const { shopkeeper, inventory, carts, shopType } = state.shopData;
+            const { shopkeeper, inventory, carts, shopType, priceModifier } = state.shopData;
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
-                <div class="lg:col-span-1 flex flex-col gap-6">${/* DM Controls & Shopkeeper */''}
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.sessionId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div></div>
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><button id="generate-shopkeeper-btn" class="btn w-full mb-4">Generate New</button><p class="text-dim">> Desc: ${shopkeeper.description||'...'}</p><p class="text-dim">> Trait: ${shopkeeper.identifying_trait||'...'}</p><p class="text-dim">> Wants: ${shopkeeper.wants||'...'}</p><p class="text-dim">> Needs: ${shopkeeper.needs||'...'}</p><p class="text-dim">> Secret/Obstacle: ${shopkeeper.secrets_or_obstacles||'...'}</p><p class="text-dim">> Carrying: ${(shopkeeper.carried_items||[]).join(', ')||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div></div>
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p class="text-dim">> Desc: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
-                <div class="lg:col-span-1 flex flex-col gap-6">${/* Inventory */''}
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3><div id="dm-inventory-list" class="space-y-4">${inventory.length===0?'<p>Empty.</p>':inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3" data-index="${index}"><p><span class="text-item-name">${item.name}</span> - <span class="text-price">${item.price} GP</span></p><div id="details-dm-${item.id}" class="text-sm italic hidden mt-2 border-t border-white/20 pt-2 text-dim">${formatItemDetails(item)}</div><div class="flex justify-between items-center text-sm mt-2"><button class="btn btn-secondary text-sm toggle-details-btn" data-item-id="${item.id}" data-view="dm">[Details]</button><div class="flex items-center gap-2"><span>> For Sale:</span><input type="checkbox" class="toggle-visibility-btn" data-index="${index}" ${item.forSale?'checked':''}></div></div></div>`).join('')}</div></div>
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3><div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3" data-index="${index}"><p><span class="text-item-name">${item.name}</span> (x${item.quantity})</p><p class="text-price">${getModifiedPrice(item.price)} GP</p></div>`).join('')}</div></div>
                 </div>
-                <div class="lg:col-span-1 flex flex-col gap-6">${/* Player Carts */''}
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4><ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span> (<span class="text-price">${item.price} GP</span>)</li>`).join('')}</ul><p class="mt-2 text-right">> Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+item.price,0)} GP</span></p><button class="btn w-full mt-3 checkout-btn" data-player-id="${playerId}">Checkout</button></div>`).join('')}</div></div>
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><button class="btn w-full mt-3 checkout-btn" data-player-id="${playerId}">Checkout</button>` : ''}</div>`).join('')}</div></div>
                 </div>
             </div>`;
             attachDMListeners();
@@ -479,103 +565,91 @@
 
         function renderPlayerView() {
             const { shopkeeper, inventory, carts, shopType } = state.shopData;
-            const playerCart = carts[userId] || { items: [], playerName: state.playerName };
-            const cartTotal = playerCart.items.reduce((sum, item) => sum + item.price, 0);
+            const playerCart = carts[state.characterKey] || { items: [] };
+            const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
-                <div class="lg:col-span-2">${/* Shop Info & Inventory */''}
-                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopType}</h1><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p><p class="italic mt-2 text-dim">> "${shopkeeper.identifying_trait||'...'}"</p></div>
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.filter(item=>item.forSale).map(item=>`<div class="item-card border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> - <span class="text-price">${item.price} GP</span></p><div id="details-player-${item.id}" class="text-sm italic hidden mt-2 border-t border-white/20 pt-2 text-dim">${formatItemDetails(item)}</div><div class="mt-auto pt-2 flex justify-end items-center gap-2"><button class="btn btn-secondary text-sm toggle-details-btn" data-item-id="${item.id}" data-view="player">[Details]</button><button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button></div></div>`).join('')}${inventory.filter(item=>item.forSale).length===0?'<p class="text-dim">Nothing for sale.</p>':''}</div></div>
+                <div class="lg:col-span-2">
+                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopType}</h1><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
-                <div class="lg:col-span-1">${/* Player Cart */''}
-                    <div class="cli-window sticky top-24"><h2 class="text-2xl mb-4 text-header">> Your Cart (${state.playerName})</h2><div id="player-cart-list" class="space-y-2 mb-4 min-h-[50px]">${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`<div class="flex justify-between items-center"><span>- <span class="text-item-name">${item.name}</span> (<span class="text-price">${item.price} GP</span>)</span><button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button></div>`).join('')}</div><hr class="border-white/50 my-4"><p class="text-xl text-right">> Total: <span class="text-price">${cartTotal} GP</span></p></div>
+                <div class="lg:col-span-1">
+                    <div class="cli-window sticky top-24"><h2 class="text-2xl mb-4 text-header">> ${state.playerData.name}'s Purse</h2><p class="text-2xl text-price">${state.playerData.gold} GP</p><hr class="border-white/50 my-4"><h2 class="text-2xl mb-4 text-header">> Your Cart</h2><div id="player-cart-list" class="space-y-2 mb-4 min-h-[50px]">${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`<div class="flex justify-between items-center"><span>- <span class="text-item-name">${item.name}</span></span><button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button></div>`).join('')}</div><hr class="border-white/50 my-4"><p class="text-xl text-right">> Total: <span class="text-price">${cartTotal} GP</span></p></div>
                 </div>
             </div>`;
             attachPlayerListeners();
         }
         
-        async function updateShop(data) {
-            const shopDocRef = doc(db, 'shops', state.sessionId);
-            await updateDoc(shopDocRef, data);
-        }
+        async function handleCheckout(e) {
+            const playerId = e.target.dataset.playerId;
+            const shopDocRef = doc(db, "shops", state.shopId);
+            const playerDocRef = doc(db, "characters", playerId);
 
-        async function generateShopkeeperAI(shopType, currentShopkeeper) {
-            const prompt = `Generate a unique and interesting D&D shopkeeper for a ${shopType||'fantasy shop'}. Provide a brief description, their wants, their needs, their secrets or obstacles, a list of 2-3 interesting items they are carrying, and a single identifying trait.`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "description": { "type": "STRING" }, "wants": { "type": "STRING" }, "needs": { "type": "STRING" }, "secrets_or_obstacles": { "type": "STRING" }, "carried_items": { "type": "ARRAY", "items": { "type": "STRING" } }, "identifying_trait": { "type": "STRING" } }, required: ["description", "wants", "needs", "secrets_or_obstacles", "carried_items", "identifying_trait"] } } };
             try {
-                const apiKey = "AIzaSyBi2X9dbc_8PCVDFaX_ojQe6ufZrvWvnb8"; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const result = await response.json();
-                if (result.candidates && result.candidates[0]?.content?.parts[0]) {
-                    const newShopkeeperData = JSON.parse(result.candidates[0].content.parts[0].text);
-                    return { ...currentShopkeeper, ...newShopkeeperData };
-                } else { throw new Error("Invalid response structure from AI."); }
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopDocRef);
+                    const playerDoc = await transaction.get(playerDocRef);
+                    if (!shopDoc.exists() || !playerDoc.exists()) { throw "Document not found!"; }
+
+                    const shopData = shopDoc.data();
+                    const playerData = playerDoc.data();
+                    const cart = shopData.carts[playerId];
+                    if (!cart || cart.items.length === 0) { return; }
+
+                    const totalCost = cart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
+                    if (playerData.gold < totalCost) { throw `${playerData.name} doesn't have enough gold!`; }
+
+                    const newShopInventory = [...shopData.inventory];
+                    const purchasedItems = [];
+
+                    for (const cartItem of cart.items) {
+                        const invItem = newShopInventory.find(i => i.id === cartItem.id);
+                        if (invItem && invItem.quantity > 0) {
+                            invItem.quantity -= 1;
+                            const { quantity, ...itemToStore } = invItem;
+                            purchasedItems.push(itemToStore);
+                        } else {
+                            throw `Item ${cartItem.name} is sold out!`;
+                        }
+                    }
+                    
+                    transaction.update(shopDocRef, {
+                        inventory: newShopInventory,
+                        "shopkeeper.gold": shopData.shopkeeper.gold + totalCost,
+                        [`carts.${playerId}`]: { items: [] }
+                    });
+
+                    transaction.update(playerDocRef, {
+                        gold: playerData.gold - totalCost,
+                        inventory: [...playerData.inventory, ...purchasedItems]
+                    });
+                });
             } catch (error) {
-                console.error("Error generating shopkeeper with AI:", error);
-                alert("Failed to generate an AI shopkeeper.");
-                return null;
+                console.error("Transaction failed: ", error);
+                alert(`Checkout failed: ${error}`);
             }
         }
-        
-        async function generateInitialShopkeeperAI(shopType) {
-            const placeholder = { gold: 0, description: "Generating...", wants: "...", needs: "...", secrets_or_obstacles: "...", carried_items: [], identifying_trait: "..." };
-            return await generateShopkeeperAI(shopType, placeholder);
-        }
 
-        async function handleGenerateNewShopkeeperAI(e) {
-            const button = e.target;
-            button.disabled = true;
-            button.textContent = "Generating...";
-            const newShopkeeper = await generateShopkeeperAI(state.shopData.shopType, state.shopData.shopkeeper);
-            if (newShopkeeper) await updateShop({ shopkeeper: newShopkeeper });
-            button.disabled = false;
-            button.textContent = "Generate New";
-        }
-
-        function handleUpdateGold(e) { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateShop({ "shopkeeper.gold": newGold }); }
-        function handleToggleVisibility(index) { const newInventory = [...state.shopData.inventory]; newInventory[index].forSale = !newInventory[index].forSale; updateShop({ inventory: newInventory }); }
-        function handleCheckout(e) { const playerId = e.target.dataset.playerId; const cart = state.shopData.carts[playerId]; if (!cart) return; const totalCost = cart.items.reduce((sum, item) => sum + item.price, 0); const newShopGold = state.shopData.shopkeeper.gold + totalCost; const newCarts = { ...state.shopData.carts }; delete newCarts[playerId]; updateShop({ carts: newCarts, "shopkeeper.gold": newShopGold }); }
-        function handleAddToCart(itemId) { const itemToAdd = state.shopData.inventory.find(item => item.id === itemId); if (!itemToAdd) return; const playerCart = state.shopData.carts[userId] || { items: [], playerName: state.playerName }; const newItems = [...playerCart.items, itemToAdd]; updateShop({ [`carts.${userId}`]: { playerName: state.playerName, items: newItems } }); }
-        function handleRemoveFromCart(e) { const index = parseInt(e.target.dataset.index, 10); const playerCart = state.shopData.carts[userId]; if (!playerCart) return; const newItems = playerCart.items.filter((_, i) => i !== index); updateShop({ [`carts.${userId}.items`]: newItems }); }
-        function handleToggleDetails(e) { const itemId = e.target.dataset.itemId; const view = e.target.dataset.view; const detailsDiv = document.getElementById(`details-${view}-${itemId}`); if (detailsDiv) { detailsDiv.classList.toggle('hidden'); e.target.textContent = detailsDiv.classList.contains('hidden') ? '[Details]' : '[Hide]'; } }
-
-        function attachSwipeListeners(containerSelector, onSwipeRight) {
-            const container = document.querySelector(containerSelector);
-            if (!container) return;
-            container.querySelectorAll('.item-card').forEach(card => {
-                let startX = 0; let deltaX = 0;
-                card.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                    card.classList.add('swiping');
-                }, { passive: true });
-                card.addEventListener('touchmove', (e) => {
-                    deltaX = e.touches[0].clientX - startX;
-                    if (deltaX > 0) card.style.transform = `translateX(${deltaX}px)`;
-                }, { passive: true });
-                card.addEventListener('touchend', () => {
-                    card.classList.remove('swiping');
-                    if (deltaX > 100) { // Swipe threshold
-                        onSwipeRight(card);
-                    } else {
-                        card.style.transform = 'translateX(0)';
-                    }
-                    startX = 0; deltaX = 0;
-                });
+        function handleAddToCart(itemId) {
+            const itemToAdd = state.shopData.inventory.find(item => item.id === itemId);
+            if (!itemToAdd || itemToAdd.quantity <= 0) return;
+            
+            const playerCart = state.shopData.carts[state.characterKey] || { items: [] };
+            const newItems = [...playerCart.items, itemToAdd];
+            updateDoc(doc(db, 'shops', state.shopId), { 
+                [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newItems }
             });
         }
 
         function attachDMListeners() { 
             document.getElementById('copy-id-btn')?.addEventListener('click', () => { const input = document.getElementById('session-id-input'); input.select(); document.execCommand('copy'); alert('Shop ID copied!'); }); 
-            document.getElementById('generate-shopkeeper-btn')?.addEventListener('click', handleGenerateNewShopkeeperAI); 
-            document.getElementById('shop-gold-input')?.addEventListener('change', handleUpdateGold); 
-            document.querySelectorAll('.toggle-visibility-btn').forEach(btn => btn.addEventListener('change', (e) => handleToggleVisibility(parseInt(e.target.dataset.index, 10)))); 
-            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout)); 
-            document.querySelectorAll('.toggle-details-btn').forEach(btn => btn.addEventListener('click', handleToggleDetails));
-            attachSwipeListeners('#dm-inventory-list', (card) => {
-                const index = parseInt(card.dataset.index, 10);
-                handleToggleVisibility(index);
-                card.style.transform = 'translateX(0)'; // Reset position after action
-            });
+            document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); }); 
+            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
+            const priceModifierSlider = document.getElementById('price-modifier');
+            const priceModifierLabel = document.getElementById('price-modifier-label');
+            if (priceModifierSlider) {
+                priceModifierSlider.addEventListener('input', () => priceModifierLabel.textContent = `${priceModifierSlider.value}%`);
+                priceModifierSlider.addEventListener('change', () => updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(priceModifierSlider.value, 10) }));
+            }
         }
         function attachPlayerListeners() { 
             document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
@@ -584,21 +658,15 @@
                 card.classList.add('glow-once');
                 setTimeout(() => card.classList.remove('glow-once'), 700);
             })); 
-            document.querySelectorAll('.remove-from-cart-btn').forEach(btn => btn.addEventListener('click', handleRemoveFromCart)); 
-            document.querySelectorAll('.toggle-details-btn').forEach(btn => btn.addEventListener('click', handleToggleDetails)); 
-            attachSwipeListeners('#player-view', (card) => {
-                handleAddToCart(card.dataset.itemId);
-                card.classList.add('glow-once');
-                card.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    card.style.transition = 'none';
-                    card.style.transform = 'translateX(0)';
-                    setTimeout(() => {
-                        card.style.transition = 'transform 0.3s ease-out';
-                        card.classList.remove('glow-once');
-                    }, 50);
-                }, 300);
-            });
+            document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const indexToRemove = parseInt(e.target.dataset.index, 10);
+                    const playerCart = state.shopData.carts[state.characterKey];
+                    if (!playerCart) return;
+                    const newItems = playerCart.items.filter((_, i) => i !== indexToRemove);
+                    updateDoc(doc(db, 'shops', state.shopId), { [`carts.${state.characterKey}.items`]: newItems });
+                });
+            }); 
         }
 
         main();
