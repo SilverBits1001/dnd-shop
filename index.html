@@ -57,6 +57,7 @@
             padding: 0.5rem;
             width: 100%;
             font-family: 'VT323', monospace;
+            text-transform: uppercase;
         }
         .input-field:focus {
             outline: none;
@@ -86,24 +87,29 @@
         <!-- Initial View: Shop Selection -->
         <div id="initial-view" class="text-center">
             <div class="ascii-title">
-
 ██████╗ ███╗   ██╗██████╗     ███████╗██╗  ██╗ ██████╗ ██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██╔════╝██║  ██║██╔═══██╗██╔══██╗
 ██║  ██║██╔██╗ ██║██║  ██║    ███████╗███████║██║   ██║██████╔╝
 ██║  ██║██║╚██╗██║██║  ██║    ╚════██║██╔══██║██║   ██║██╔═══╝ 
 ██████╔╝██║ ╚████║██████╔╝    ███████║██║  ██║╚██████╔╝██║     
 ╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     
-                                                               
-
             </div>
-            <p id="status-text" class="text-lg mb-8 blinking-cursor">Step 1: Choose a shop type.</p>
+
+            <div id="player-join-container" class="max-w-md mx-auto mb-8 cli-window">
+                <h2 class="text-2xl mb-4">> Players: Join a Shop</h2>
+                <div class="flex gap-2">
+                    <input type="text" id="join-shop-id-input" class="input-field flex-grow" placeholder="ENTER SHOP ID" maxlength="6">
+                    <button id="join-shop-btn" class="btn">Join</button>
+                </div>
+            </div>
+
+            <p id="status-text" class="text-lg mb-8 blinking-cursor">> Dungeon Master: Create a New Shop</p>
             <div id="shop-selection-container" class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                 <!-- Shop selection buttons will be injected here -->
             </div>
             <div id="size-selection-container" class="hidden max-w-md mx-auto grid grid-cols-3 gap-4 mb-8">
                 <!-- Size selection buttons will appear here -->
             </div>
-            <p class="mt-6 text-sm">> Players: Please use the unique link your DM provides.</p>
         </div>
 
         <!-- DM View -->
@@ -131,7 +137,7 @@
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- PASTE YOUR FIREBASE CONFIG HERE ---
         const firebaseConfig = {
@@ -185,6 +191,8 @@
         const playerNameModal = document.getElementById('player-name-modal');
         const playerNameInput = document.getElementById('player-name-input');
         const submitPlayerNameBtn = document.getElementById('submit-player-name-btn');
+        const joinShopBtn = document.getElementById('join-shop-btn');
+        const joinShopIdInput = document.getElementById('join-shop-id-input');
 
         // --- SHOPKEEPER GENERATOR DATA ---
         const names = ["Bartholomew 'Barty' Buttercup", "Seraphina 'Silk' Whisperwind", "Grunk Ironhand", "Elara Meadowlight", "Mortimer 'Morty' Blackwood"];
@@ -203,33 +211,22 @@
             } catch (error) {
                 console.error("Authentication failed:", error);
                 statusText.textContent = "Could not connect. Please check your Firebase config and internet connection.";
-                statusText.classList.add('text-red-400');
             }
         }
 
         function initializeAppLogic() {
-            const urlHash = window.location.hash.substring(1);
-            if (urlHash) {
-                // Player joining
-                state.sessionId = urlHash;
-                state.isDM = false;
-                initialView.classList.add('hidden');
-                playerNameModal.classList.remove('hidden');
-            } else {
-                // DM on home page
-                renderShopSelection();
-            }
+            renderShopSelection();
             submitPlayerNameBtn.addEventListener('click', joinSession);
-            playerNameInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') joinSession();
-            });
+            playerNameInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') joinSession(); });
+            joinShopBtn.addEventListener('click', handlePlayerJoinAttempt);
+            joinShopIdInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handlePlayerJoinAttempt(); });
         }
         
         function renderShopSelection() {
             dmView.classList.add('hidden');
             playerView.classList.add('hidden');
             initialView.classList.remove('hidden');
-            statusText.textContent = "Step 1: Choose a shop type.";
+            statusText.textContent = "> Dungeon Master: Create a New Shop";
             sizeSelectionContainer.classList.add('hidden');
             shopSelectionContainer.classList.remove('hidden');
 
@@ -248,7 +245,7 @@
 
         function renderSizeSelection(shopKey) {
             selectedShopKey = shopKey;
-            statusText.textContent = `Step 2: Choose a size for the ${itemCatalog[shopKey].name}.`;
+            statusText.textContent = `> Choose a size for the ${itemCatalog[shopKey].name}.`;
             shopSelectionContainer.classList.add('hidden');
             sizeSelectionContainer.classList.remove('hidden');
 
@@ -279,11 +276,19 @@
                 return item; // Return original item if API call fails
             }
         }
+        
+        function generateShopId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
 
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             initialView.classList.add('hidden');
-            statusText.textContent = "Generating shop inventory..."; // Loading state
             
             const shopTemplate = itemCatalog[shopKey];
             if (!shopTemplate) {
@@ -315,9 +320,9 @@
             const detailedInventory = await Promise.all(detailedInventoryPromises);
 
             const finalInventory = detailedInventory.map(item => ({...item, forSale: true, id: `item-${Math.random().toString(36).substr(2, 9)}`}));
-
-            const newSessionRef = doc(collection(db, 'shops'));
-            state.sessionId = newSessionRef.id;
+            
+            state.sessionId = generateShopId();
+            const newSessionRef = doc(db, 'shops', state.sessionId);
 
             const initialShopData = {
                 shopkeeper: { name: "Awaiting Generation...", quirk: "", needs: "", wants: "", secrets: "", gold: 1000 },
@@ -329,12 +334,31 @@
 
             try {
                 await setDoc(newSessionRef, initialShopData);
-                window.location.hash = state.sessionId;
                 listenToShopChanges();
             } catch (error) {
                 console.error("Error creating session:", error);
                 dmView.innerHTML = `<div class="cli-window"><p class="text-red-400">Error: Could not create the shop session. Please check your Firebase config and security rules.</p><p class="text-sm mt-2">${error.message}</p></div>`;
                 dmView.classList.remove('hidden');
+            }
+        }
+        
+        async function handlePlayerJoinAttempt() {
+            const shopId = joinShopIdInput.value.trim().toUpperCase();
+            if (shopId.length !== 6) {
+                alert("Please enter a valid 6-character Shop ID.");
+                return;
+            }
+
+            const shopDocRef = doc(db, 'shops', shopId);
+            const docSnap = await getDoc(shopDocRef);
+
+            if (docSnap.exists()) {
+                state.sessionId = shopId;
+                state.isDM = false;
+                initialView.classList.add('hidden');
+                playerNameModal.classList.remove('hidden');
+            } else {
+                alert("Shop ID not found. Please check the code and try again.");
             }
         }
 
@@ -387,8 +411,7 @@
 
         function renderDMView() {
             const { shopkeeper, inventory, carts, shopType } = state.shopData;
-            const sessionLink = `${window.location.origin}${window.location.pathname}#${state.sessionId}`;
-
+            
             dmView.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                     <div class="lg:col-span-1 flex flex-col gap-6">
@@ -396,10 +419,10 @@
                             <h2 class="text-2xl mb-4">> DM Controls</h2>
                             <button id="back-to-shops-btn" class="btn btn-secondary w-full mb-4">Back to Shops</button>
                             <p class="mb-1">> Shop Type: ${shopType}</p>
-                            <p class="mb-2">> Share Link:</p>
+                            <p class="mb-2">> Shop ID:</p>
                             <div class="flex gap-2">
-                                <input type="text" readonly value="${sessionLink}" id="session-link-input" class="input-field flex-grow">
-                                <button id="copy-link-btn" class="btn btn-secondary">Copy</button>
+                                <input type="text" readonly value="${state.sessionId}" id="session-id-input" class="input-field flex-grow">
+                                <button id="copy-id-btn" class="btn btn-secondary">Copy</button>
                             </div>
                         </div>
                         <div class="cli-window">
@@ -535,7 +558,12 @@
 
         function attachDMListeners() { 
             document.getElementById('back-to-shops-btn')?.addEventListener('click', renderShopSelection);
-            document.getElementById('copy-link-btn')?.addEventListener('click', () => { const linkInput = document.getElementById('session-link-input'); linkInput.select(); document.execCommand('copy'); alert('Link copied to clipboard!'); }); 
+            document.getElementById('copy-id-btn')?.addEventListener('click', () => { 
+                const idInput = document.getElementById('session-id-input');
+                idInput.select(); 
+                document.execCommand('copy'); 
+                alert('Shop ID copied to clipboard!'); 
+            }); 
             document.getElementById('generate-shopkeeper-btn')?.addEventListener('click', handleGenerateShopkeeper); 
             document.getElementById('shop-gold-input')?.addEventListener('change', handleUpdateGold); 
             document.querySelectorAll('.toggle-visibility-btn').forEach(btn => btn.addEventListener('change', handleToggleVisibility)); 
