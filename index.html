@@ -474,13 +474,6 @@
             return `The ${adj} ${noun}`;
         }
 
-        function generateShopName() {
-            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
-            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
-            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-            const noun = nouns[Math.floor(Math.random() * nouns.length)];
-            return `The ${adj} ${noun}`;
-        }
 
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
@@ -908,6 +901,7 @@
     </script>
 </body>
 </html>
+
 
 
 
