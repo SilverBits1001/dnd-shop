@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -361,6 +362,16 @@
             render();
         }
 
+        function enterDMHub() {
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = true;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
+            render();
+        }
+
+
         // --- Core App Logic ---
         function exitSubView() {
             createShopView.classList.add('hidden');
@@ -457,6 +468,15 @@
             return `The ${adj} ${noun}`;
         }
 
+        function generateShopName() {
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            return `The ${adj} ${noun}`;
+        }
+
+
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             state.inShop = true;
@@ -494,6 +514,7 @@
                 priceModifier: 0,
                 active: true,
             };
+
 
             state.shopData = initialShopData;
 
@@ -587,6 +608,8 @@
                 renderPlayerView();
             }
         }
+
+
 
         function renderCharacterHub() {
             const player = state.playerData;
@@ -731,6 +754,7 @@
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-2">
                     <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopName}</h1><p class="text-xl text-dim">(${shopType})</p><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
                 <div class="lg:col-span-1">
@@ -925,12 +949,13 @@
                     handleRemoveFromCart(indexToRemove);
                 });
             });
-        }
 
         main();
     </script>
 </body>
 </html>
+
+
 
 
 
