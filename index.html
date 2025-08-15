@@ -72,15 +72,8 @@
                 margin-bottom: 1rem;
                 color: var(--color-header);
                 text-shadow: var(--shadow-glow) var(--color-header);
-                font-size: 0.9rem;
+                font-size: clamp(0.6rem, 4vw, 1.6rem);
             }
-            @media (min-width: 640px) {
-                .ascii-title { font-size: 1.2rem; }
-            }
-            @media (min-width: 1024px) {
-                .ascii-title { font-size: 1.6rem; }
-            }
-
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-item-name { color: var(--color-accent); }
         .text-price { color: var(--color-price); font-weight: bold; }
@@ -88,7 +81,6 @@
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
         #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
-
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
         #exit-mode-btn:hover { color: white; }
         .subview-exit-btn {
@@ -125,7 +117,6 @@
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
         <!-- Auth View -->
         <div id="auth-view">
-
              <div class="ascii-title">
 ██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
@@ -152,7 +143,6 @@
         <div id="dm-hub-view" class="hidden"></div>
         <!-- Create Shop View -->
         <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
-
         <!-- DM View -->
         <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
@@ -182,8 +172,7 @@
  
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -239,7 +228,6 @@
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
 
-
         // --- Initialization ---
         function main() {
             // Auth
@@ -293,7 +281,6 @@
             updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
             renderCharacterHub();
         }
-
 
         // --- Auth & Character Functions ---
         async function handleKeyLogin() {
@@ -375,6 +362,15 @@
             render();
         }
 
+        function enterDMHub() {
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = true;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
+            render();
+        }
+
 
         // --- Core App Logic ---
         function exitSubView() {
@@ -387,7 +383,6 @@
             characterHubView.classList.add('hidden');
             dmHubView.classList.add('hidden');
             createShopView.classList.remove('hidden');
-
             createShopView.innerHTML = `
                 <div class="cli-window">
                     <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
@@ -421,7 +416,6 @@
                 console.error("Error fetching keys:", error);
             }
         }
-
 
         function handleGenerateShop() {
             const shopKey = document.getElementById('shop-type-select').value;
@@ -464,6 +458,14 @@
             const description = personalities[Math.floor(Math.random() * personalities.length)];
             const gold = Math.floor(Math.random() * 1501) + 500;
             return { name, description, gold };
+        }
+
+        function generateShopName() {
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            return `The ${adj} ${noun}`;
         }
 
         function generateShopName() {
@@ -691,7 +693,6 @@
             state.activeShops = state.activeShops.filter(s => s.id !== shopId);
             renderDMHub();
         }
-
         
         function getModifiedPrice(basePrice) {
             const modifier = state.shopData?.priceModifier || 0;
@@ -739,7 +740,7 @@
                     </div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><button class="btn w-full mt-3 checkout-btn" data-player-id="${playerId}">Checkout</button>` : ''}</div>`).join('')}</div></div>
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><div class="grid grid-cols-2 gap-2 mt-3"><button class="btn checkout-btn" data-player-id="${playerId}">Checkout</button><button class="btn btn-secondary clear-cart-btn" data-player-id="${playerId}">Clear Cart</button></div>` : `<p class="text-dim">Cart is empty.</p><div class="mt-3"><button class="btn btn-secondary clear-cart-btn w-full" data-player-id="${playerId}">Remove Cart</button></div>`}</div>`).join('')}</div></div>
                 </div>
             </div>`;
             attachDMListeners();
@@ -748,7 +749,6 @@
 
         function renderPlayerView() {
             const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
-
             const playerCart = carts[state.characterKey] || { items: [] };
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
@@ -783,29 +783,14 @@
                     const totalCost = cart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
                     if (playerData.gold < totalCost) { throw `${playerData.name} doesn't have enough gold!`; }
 
-                    const newShopInventory = [...shopData.inventory];
-                    const purchasedItems = [];
-
-                    for (const cartItem of cart.items) {
-                        const invItem = newShopInventory.find(i => i.id === cartItem.id);
-                        if (invItem && invItem.quantity > 0) {
-                            invItem.quantity -= 1;
-                            const { quantity, ...itemToStore } = invItem;
-                            purchasedItems.push(itemToStore);
-                        } else {
-                            throw `Item ${cartItem.name} is sold out!`;
-                        }
-                    }
-                    
                     transaction.update(shopDocRef, {
-                        inventory: newShopInventory,
                         "shopkeeper.gold": shopData.shopkeeper.gold + totalCost,
                         [`carts.${playerId}`]: { items: [] }
                     });
 
                     transaction.update(playerDocRef, {
                         gold: playerData.gold - totalCost,
-                        inventory: [...playerData.inventory, ...purchasedItems]
+                        inventory: [...playerData.inventory, ...cart.items]
                     });
                 });
             } catch (error) {
@@ -814,15 +799,87 @@
             }
         }
 
-        function handleAddToCart(itemId) {
-            const itemToAdd = state.shopData.inventory.find(item => item.id === itemId);
-            if (!itemToAdd || itemToAdd.quantity <= 0) return;
+        async function handleAddToCart(itemId) {
+            const shopRef = doc(db, 'shops', state.shopId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopRef);
+                    if (!shopDoc.exists()) throw "Shop not found";
+                    const shopData = shopDoc.data();
+                    const invIndex = shopData.inventory.findIndex(item => item.id === itemId);
+                    if (invIndex === -1) throw "Item not found";
+                    const item = shopData.inventory[invIndex];
+                    if (item.quantity <= 0) throw "Item sold out";
 
-            const playerCart = state.shopData.carts[state.characterKey] || { items: [] };
-            const newItems = [...playerCart.items, itemToAdd];
-            updateDoc(doc(db, 'shops', state.shopId), {
-                [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newItems }
-            });
+                    const newInventory = [...shopData.inventory];
+                    newInventory[invIndex] = { ...item, quantity: item.quantity - 1 };
+
+                    const playerCart = shopData.carts[state.characterKey] || { playerName: state.playerData.name, items: [] };
+                    const { id, name, price } = item;
+                    const newCartItems = [...playerCart.items, { id, name, price }];
+
+                    transaction.update(shopRef, {
+                        inventory: newInventory,
+                        [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newCartItems }
+                    });
+                });
+            } catch (err) {
+                alert(err);
+            }
+        }
+
+        async function handleRemoveFromCart(indexToRemove) {
+            const shopRef = doc(db, 'shops', state.shopId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopRef);
+                    if (!shopDoc.exists()) throw "Shop not found";
+                    const shopData = shopDoc.data();
+                    const cart = shopData.carts[state.characterKey];
+                    if (!cart) return;
+                    const item = cart.items[indexToRemove];
+                    if (!item) return;
+
+                    const invIndex = shopData.inventory.findIndex(i => i.id === item.id);
+                    const newInventory = [...shopData.inventory];
+                    if (invIndex !== -1) {
+                        newInventory[invIndex] = { ...newInventory[invIndex], quantity: newInventory[invIndex].quantity + 1 };
+                    }
+                    const newCartItems = cart.items.filter((_, i) => i !== indexToRemove);
+
+                    const updates = { inventory: newInventory };
+                    updates[`carts.${state.characterKey}.items`] = newCartItems;
+                    transaction.update(shopRef, updates);
+                });
+            } catch (err) {
+                console.error('Remove from cart failed:', err);
+            }
+        }
+
+        async function handleClearCart(e) {
+            const playerId = e.target.dataset.playerId;
+            const shopRef = doc(db, 'shops', state.shopId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopRef);
+                    if (!shopDoc.exists()) throw "Shop not found";
+                    const shopData = shopDoc.data();
+                    const cart = shopData.carts[playerId];
+                    if (!cart) return;
+                    const newInventory = [...shopData.inventory];
+                    cart.items.forEach(it => {
+                        const idx = newInventory.findIndex(inv => inv.id === it.id);
+                        if (idx !== -1) {
+                            newInventory[idx] = { ...newInventory[idx], quantity: newInventory[idx].quantity + 1 };
+                        }
+                    });
+                    const updates = { inventory: newInventory };
+                    updates[`carts.${playerId}`] = deleteField();
+                    transaction.update(shopRef, updates);
+                });
+            } catch (err) {
+                console.error('Clear cart failed:', err);
+            }
         }
 
         function handleInventoryUpdate(e) {
@@ -866,6 +923,7 @@
         function attachDMListeners() {
             document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
             document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
+            document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
             document.querySelectorAll('.dm-qty-input, .dm-price-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
             document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
             document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => { updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(e.target.dataset.value, 10) }); }));
@@ -878,24 +936,19 @@
                 }
             });
         }
-
-        function attachPlayerListeners() { 
+        function attachPlayerListeners() {
             document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const card = e.target.closest('.item-card');
                 handleAddToCart(card.dataset.itemId);
                 card.classList.add('glow-once');
                 setTimeout(() => card.classList.remove('glow-once'), 700);
-            })); 
+            }));
             document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const indexToRemove = parseInt(e.target.dataset.index, 10);
-                    const playerCart = state.shopData.carts[state.characterKey];
-                    if (!playerCart) return;
-                    const newItems = playerCart.items.filter((_, i) => i !== indexToRemove);
-                    updateDoc(doc(db, 'shops', state.shopId), { [`carts.${state.characterKey}.items`]: newItems });
+                    handleRemoveFromCart(indexToRemove);
                 });
-            }); 
-        }
+            });
 
         main();
     </script>
