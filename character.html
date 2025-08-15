@@ -97,7 +97,8 @@
       <h1 class="text-2xl text-header">Character Sheet</h1>
       <button id="logout-btn" class="btn-secondary">Logout</button>
     </div>
-    <main id="sheet-container" class="space-y-6"></main>
+    <main id="sheet-container" class="space-y-6 py-8 my-8 max-w-4xl mx-auto"></main>
+
 
     <script>
       document.getElementById("back-btn").addEventListener("click", () => {
@@ -155,7 +156,9 @@
           : "";
 
         const imgSrc =
-          data.avatarUrl || "https://via.placeholder.com/300x300?text=Character";
+          data.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
+
+
 
         document.getElementById("sheet-container").innerHTML = `
                 <div class="cli-window">
@@ -164,8 +167,9 @@
                         ${[data.classlevel, data.race, data.alignment].filter(Boolean).join(" | ")}
                     </p>
                     <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
-                        <img src="${imgSrc}" alt="${data.charname || "Character"} image" class="w-full md:w-1/2 max-w-xs object-cover border border-white/50" />
-                        <div class="grid grid-cols-2 gap-2 w-full md:w-1/2">${abilities}</div>
+                        <img src="${imgSrc}" alt="${data.charname || "Character"} image" class="w-full md:w-1/2 max-w-xs aspect-square object-cover border border-white/50 max-h-60 md:max-h-80" />
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full md:w-1/2">${abilities}</div>
+
                     </div>
                 </div>
                 <div class="cli-window">
@@ -178,15 +182,21 @@
                     </div>
                 </div>
                 <details class="cli-window">
-                    <summary class="text-2xl text-header cursor-pointer">> Skills & Saves</summary>
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <summary class="text-2xl text-header cursor-pointer">> Saving Throws</summary>
+                    <div class="mt-4 space-y-1">
                         ${saves || '<p class="text-dim">No save data.</p>'}
-                        ${skills || ""}
+                    </div>
+                </details>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Skills</summary>
+                    <div class="mt-4 space-y-1">
+                        ${skills || '<p class="text-dim">No skill data.</p>'}
                         ${data.passiveperception ? `<div>Passive Perception: <span class="text-item-name">${data.passiveperception}</span></div>` : ""}
                         ${data.otherprofs ? `<div>Other Profs: <span class="text-item-name">${data.otherprofs}</span></div>` : ""}
                     </div>
                 </details>
                 <details class="cli-window">
+
                     <summary class="text-2xl text-header cursor-pointer">> Attacks</summary>
                     <ul class="mt-4 list-disc pl-5">
                         ${attacks || '<li class="text-dim">No attacks.</li>'}
