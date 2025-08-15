@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -151,6 +152,7 @@
         <div id="dm-hub-view" class="hidden"></div>
         <!-- Create Shop View -->
         <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
+
         <!-- DM View -->
         <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
@@ -180,7 +182,8 @@
  
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, getDoc, runTransaction, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -260,7 +263,6 @@
                 }
             });
 
-
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
             if (savedKey) {
@@ -269,6 +271,29 @@
             listenToActiveShops();
             render();
         }
+
+        function handleEditInventory() {
+            const summary = state.playerData.inventory.reduce((acc, item) => {
+                acc[item.name] = (acc[item.name] || 0) + 1;
+                return acc;
+            }, {});
+            const itemName = prompt('Enter the item name to remove:');
+            if (!itemName) return;
+            const available = summary[itemName];
+            if (!available) { alert('Item not found.'); return; }
+            const qty = parseInt(prompt(`Remove how many? (1-${available})`), 10);
+            if (!qty || qty <= 0 || qty > available) return;
+            if (!confirm(`Remove ${qty} ${itemName}? This cannot be undone.`)) return;
+            let remaining = qty;
+            const newInv = state.playerData.inventory.filter(it => {
+                if (it.name === itemName && remaining > 0) { remaining--; return false; }
+                return true;
+            });
+            state.playerData.inventory = newInv;
+            updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
+            renderCharacterHub();
+        }
+
 
         // --- Auth & Character Functions ---
         async function handleKeyLogin() {
@@ -350,6 +375,15 @@
             render();
         }
 
+        function enterDMHub() {
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = true;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
+            render();
+        }
+
         // --- Core App Logic ---
         function exitSubView() {
             createShopView.classList.add('hidden');
@@ -361,6 +395,7 @@
             characterHubView.classList.add('hidden');
             dmHubView.classList.add('hidden');
             createShopView.classList.remove('hidden');
+
             createShopView.innerHTML = `
                 <div class="cli-window">
                     <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
@@ -447,6 +482,14 @@
             return `The ${adj} ${noun}`;
         }
 
+        function generateShopName() {
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            return `The ${adj} ${noun}`;
+        }
+
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             state.inShop = true;
@@ -473,8 +516,8 @@
                 id: `item-${Math.random().toString(36).substr(2, 9)}`
             }));
 
-            state.shopId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const newSessionRef = doc(db, 'shops', state.shopId);
+            const newSessionRef = doc(collection(db, 'shops'));
+            state.shopId = newSessionRef.id;
             const initialShopData = {
                 shopName: generateShopName(),
                 shopType: shopTemplate.name,
@@ -580,6 +623,7 @@
         }
 
 
+
         function renderCharacterHub() {
             const player = state.playerData;
             if (!player) {
@@ -602,6 +646,7 @@
                     <div class="cli-window">
                         <h3 class="text-2xl text-header mb-4">> Inventory</h3>
                         <div class="space-y-2 max-h-60 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
+                        <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit Inventory</button>
                     </div>
                 </div>
                 <div class="mt-8 cli-window max-w-md mx-auto">
@@ -610,7 +655,7 @@
                         ? '<p class="text-dim">No active shops.</p>'
                         : state.activeShops.map(s => `
                             <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
+                                <span><span class="text-item-name">${s.shopName || s.shopType}</span></span>
                                 <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
                             </div>
                         `).join('')}
@@ -619,6 +664,7 @@
             document.querySelectorAll('.join-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
+            document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
         }
 
         function renderDMHub() {
@@ -636,8 +682,11 @@
                         ? '<p class="text-dim">No active shops.</p>'
                         : state.activeShops.map(s => `
                             <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
-                                <button class="btn dm-enter-shop-btn" data-shop-id="${s.id}">Open</button>
+                                <span><span class="text-item-name">${s.shopName || s.shopType}</span></span>
+                                <div class="flex gap-2">
+                                    <button class="btn dm-enter-shop-btn" data-shop-id="${s.id}">Open</button>
+                                    <button class="btn btn-secondary dm-delete-shop-btn" data-shop-id="${s.id}">Delete</button>
+                                </div>
                             </div>
                         `).join('')}
                 </div>
@@ -647,6 +696,15 @@
             document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
+            document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
+        }
+
+        async function handleDMDeleteShop(e) {
+            const shopId = e.target.dataset.shopId;
+            if (!confirm('Delete this shop? This cannot be undone.')) return;
+            await deleteDoc(doc(db, 'shops', shopId));
+            state.activeShops = state.activeShops.filter(s => s.id !== shopId);
+            renderDMHub();
         }
 
         
@@ -660,12 +718,40 @@
             const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p><p class="mb-1">> Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div><div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div></div>
-
+                    <div class="cli-window">
+                        <h2 class="text-2xl mb-4 text-header">> DM Controls</h2>
+                        <p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p>
+                        <p class="mb-1">> Type: ${shopType}</p>
+                        <div class="mt-4">
+                            <label class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[-50,-25,-15,15,25,50].map(v => `<button class="btn btn-secondary price-mod-btn" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label>
+                            <button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button>
+                        </div>
+                        <div class="mt-4">
+                            <button id="delete-shop-btn" class="btn btn-secondary w-full text-red-500 border-red-500">Delete Shop</button>
+                        </div>
+                    </div>
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3><div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3" data-index="${index}"><p><span class="text-item-name">${item.name}</span> (x${item.quantity})</p><p class="text-price">${getModifiedPrice(item.price)} GP</p></div>`).join('')}</div></div>
+                    <div class="cli-window">
+                        <h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3>
+                        <div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3 space-y-2" data-index="${index}"><div class="flex justify-between items-center"><span class="text-item-name">${item.name}</span><button class="text-red-500 hover:text-red-400 dm-remove-item-btn" data-index="${index}">[X]</button></div><div class="flex items-center gap-2"><label class="text-dim">Qty:</label><input type="number" min="0" class="input-field dm-qty-input w-16" data-index="${index}" value="${item.quantity}"><label class="text-dim">Price:</label><input type="number" min="0" step="0.01" class="input-field dm-price-input w-24" data-index="${index}" value="${item.price}"></div></div>`).join('')}</div>
+                        <div class="mt-4">
+                            <h4 class="text-xl mb-2 text-header">> Add Custom Item</h4>
+                            <input id="custom-item-name" class="input-field mb-2" placeholder="Item Name">
+                            <div class="flex gap-2 mb-2">
+                                <input id="custom-item-price" type="number" class="input-field flex-1" placeholder="Price">
+                                <input id="custom-item-qty" type="number" class="input-field flex-1" placeholder="Qty">
+                            </div>
+                            <button id="add-custom-item-btn" class="btn w-full">Add Item</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><button class="btn w-full mt-3 checkout-btn" data-player-id="${playerId}">Checkout</button>` : ''}</div>`).join('')}</div></div>
@@ -677,11 +763,13 @@
 
         function renderPlayerView() {
             const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
+
             const playerCart = carts[state.characterKey] || { items: [] };
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-2">
                     <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopName}</h1><p class="text-xl text-dim">(${shopType})</p><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
                 <div class="lg:col-span-1">
@@ -772,22 +860,40 @@
             renderDMView();
         }
 
+        function handleAddCustomItem() {
+            const nameInput = document.getElementById('custom-item-name');
+            const priceInput = document.getElementById('custom-item-price');
+            const qtyInput = document.getElementById('custom-item-qty');
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+            const qty = parseInt(qtyInput.value, 10);
+            if (!name || isNaN(price) || isNaN(qty) || qty < 0 || price < 0) return;
+            const newItem = { id: `item-${Math.random().toString(36).substr(2,9)}`, name, price, quantity: qty };
+            const newInventory = [...state.shopData.inventory, newItem];
+            state.shopData.inventory = newInventory;
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+            nameInput.value = '';
+            priceInput.value = '';
+            qtyInput.value = '';
+            renderDMView();
+        }
+
         function attachDMListeners() {
-            document.getElementById('copy-id-btn')?.addEventListener('click', () => { const input = document.getElementById('session-id-input'); input.select(); document.execCommand('copy'); alert('Shop ID copied!'); });
             document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
             document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
             document.querySelectorAll('.dm-qty-input, .dm-price-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
             document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
-            const priceModifierSlider = document.getElementById('price-modifier');
-            const priceModifierLabel = document.getElementById('price-modifier-label');
-            if (priceModifierSlider) {
-                priceModifierSlider.addEventListener('input', () => priceModifierLabel.textContent = `${priceModifierSlider.value}%`);
-                priceModifierSlider.addEventListener('change', () => updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(priceModifierSlider.value, 10) }));
-            }
-            document.getElementById('toggle-active-btn')?.addEventListener('click', () => {
-                updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active });
+            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => { updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(e.target.dataset.value, 10) }); }));
+            document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
+            document.getElementById('add-custom-item-btn')?.addEventListener('click', handleAddCustomItem);
+            document.getElementById('delete-shop-btn')?.addEventListener('click', async () => {
+                if (confirm('Delete this shop? This cannot be undone.')) {
+                    await deleteDoc(doc(db, 'shops', state.shopId));
+                    exitCurrentMode();
+                }
             });
         }
+
         function attachPlayerListeners() { 
             document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const card = e.target.closest('.item-card');
