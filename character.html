@@ -13,20 +13,20 @@
     />
     <style>
       :root {
-        --color-text: #e0e0e0;
-        --color-header: #33ff99;
-        --color-accent: #33ffff;
-        --color-price: #ffd700;
-        --color-dim: #bbbbbb;
-        --color-border: #555555;
-        --shadow-glow: 0 0 7px;
+        --color-text: #e6e6e6;
+        --color-header: #00ff88;
+        --color-accent: #00e5ff;
+        --color-price: #ffb454;
+        --color-dim: #6b7280;
+        --color-border: #333333;
+        --shadow-glow: 0 0 8px;
       }
       html {
         scroll-behavior: smooth;
       }
       body {
         font-family: "VT323", monospace;
-        background-color: #111111;
+        background-color: #0a0a0a;
         color: var(--color-text);
         font-size: 22px;
         line-height: 1.6;
@@ -39,21 +39,12 @@
         padding: 1rem;
         background-color: rgba(20, 20, 20, 0.9);
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-        opacity: 0;
-        transform: translateY(20px);
-        animation: fadeIn 0.5s forwards;
         position: relative;
-      }
-      @keyframes fadeIn {
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
       }
       .btn {
         display: inline-block;
         padding: 0.75rem 1.25rem;
-        background-color: #ffffff;
+        background-color: var(--color-accent);
         color: #000000;
         cursor: pointer;
         border: none;
@@ -62,17 +53,17 @@
       }
       .btn:hover:not(:disabled) {
         background-color: #000000;
-        color: #ffffff;
-        box-shadow: 0 0 5px #ffffff;
+        color: var(--color-accent);
+        box-shadow: 0 0 5px var(--color-accent);
       }
       .btn-secondary {
         background-color: transparent;
-        color: #ffffff;
-        border: 1px solid #ffffff;
+        color: var(--color-accent);
+        border: 1px solid var(--color-accent);
         border-radius: 0.25rem;
       }
       .btn-secondary:hover {
-        background-color: #ffffff;
+        background-color: var(--color-accent);
         color: #000000;
       }
       .text-header {
@@ -96,9 +87,9 @@
       id="toolbar"
       class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20"
     >
-      <button id="back-btn" class="btn btn-secondary">Back</button>
+      <button id="back-btn" type="button" class="btn btn-secondary">Back</button>
       <h1 class="text-2xl text-header">Character Sheet</h1>
-      <button id="logout-btn" class="btn-secondary">Logout</button>
+      <button id="logout-btn" type="button" class="btn-secondary">Logout</button>
     </div>
     <main id="sheet-container" class="space-y-6 py-8 my-8 max-w-4xl mx-auto"></main>
 
@@ -168,7 +159,7 @@
         const statsLine = `Armor Class: <span class="text-item-name">${data.combat?.ac ?? "-"}</span> | Initiative: <span class="text-item-name">${data.combat?.initiative ?? "-"}</span> | Hit Points: <span class="text-item-name">${hpValue}</span> | Speed: <span class="text-item-name">${data.combat?.speed ?? "-"}</span>`;
 
         document.getElementById("sheet-container").innerHTML = `
-                <div class="cli-window space-y-4">
+                <section class="cli-window">
                     <div class="flex flex-col md:flex-row md:items-center gap-4">
                         <img src="${imgSrc}" alt="${data.charname || "Character"} image" class="w-full md:w-1/3 aspect-square object-cover border border-white/50 max-w-[12rem] md:max-w-[16rem] mx-auto md:mx-0" />
                         <div class="flex-1 text-center md:text-left">
@@ -177,8 +168,11 @@
                             <p class="mt-2 text-2xl">${statsLine}</p>
                         </div>
                     </div>
+                </section>
+                <section class="cli-window">
+                    <h3 class="text-2xl text-header mb-2">> Abilities</h3>
                     <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${abilities}</div>
-                </div>
+                </section>
                 <details class="cli-window">
                     <summary class="text-2xl text-header cursor-pointer">> Saving Throws</summary>
                     <div class="mt-4"><div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${saveBoxes}</div></div>

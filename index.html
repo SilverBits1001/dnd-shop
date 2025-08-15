@@ -11,18 +11,18 @@
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-text: #E0E0E0;
-            --color-header: #33FF99; /* Softer Green */
-            --color-accent: #33FFFF; /* Soft Cyan */
-            --color-price: #FFD700;  /* Gold */
-            --color-dim: #BBBBBB;
-            --color-border: #555555;
-            --shadow-glow: 0 0 7px;
+            --color-text: #E6E6E6;
+            --color-header: #00FF88; /* Neon Green */
+            --color-accent: #00E5FF; /* Cyan */
+            --color-price: #FFB454;  /* Amber */
+            --color-dim: #6B7280;
+            --color-border: #333333;
+            --shadow-glow: 0 0 8px;
         }
         html { scroll-behavior: smooth; }
         body {
             font-family: 'VT323', monospace;
-            background-color: #111111;
+            background-color: #0A0A0A;
             color: var(--color-text);
             font-size: 20px;
             line-height: 1.6;
@@ -35,16 +35,12 @@
             padding: 1rem;
             background-color: rgba(20, 20, 20, 0.9);
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.5s forwards;
             position: relative; /* For positioning exit buttons */
         }
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
         .btn {
             display: inline-block;
             padding: 0.75rem 1.25rem;
-            background-color: #ffffff;
+            background-color: var(--color-accent);
             color: #000000;
             text-shadow: none;
             cursor: pointer;
@@ -52,9 +48,9 @@
             border-radius: 0.25rem;
             transition: all 0.2s ease-in-out;
         }
-        .btn:hover:not(:disabled) { background-color: #000000; color: #ffffff; box-shadow: 0 0 5px #ffffff; }
-        .btn-secondary { background-color: transparent; color: #ffffff; border: 1px solid #ffffff; border-radius: 0.25rem; }
-        .btn-secondary:hover { background-color: #ffffff; color: #000000; }
+        .btn:hover:not(:disabled) { background-color: #000000; color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
+        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; }
+        .btn-secondary:hover { background-color: var(--color-accent); color: #000000; }
         .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
         .input-field, .select-field {
             background-color: #1a1a1a;
@@ -82,10 +78,10 @@
         .text-price { color: var(--color-price); font-weight: bold; }
         .text-dim { color: var(--color-dim); }
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
-        #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
-        #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
+        #dm-tools-btn, #logout-btn { background: none; border: none; color: var(--color-accent); font-size: 1.25rem; cursor: pointer; }
+        #dm-tools-btn:hover, #logout-btn:hover { color: var(--color-header); text-decoration: underline; }
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
-        #exit-mode-btn:hover { color: white; }
+        #exit-mode-btn:hover { color: var(--color-accent); }
         .subview-exit-btn {
             position: absolute;
             top: 0.5rem;
@@ -198,6 +194,17 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        function ensureButtonTypes(root = document) {
+            root.querySelectorAll('button').forEach(btn => {
+                if (!btn.getAttribute('type')) {
+                    btn.setAttribute('type', 'button');
+                }
+            });
+        }
+        const btnObserver = new MutationObserver(() => ensureButtonTypes());
+        btnObserver.observe(document.body, { childList: true, subtree: true });
+        ensureButtonTypes();
 
         const itemCatalog = {
           "blacksmith": { "name": "Blacksmith/Armory", "items": [ { "name": "Studded Leather", "price": 45 }, { "name": "Chain Shirt", "price": 50 }, { "name": "Scale Mail", "price": 50 }, { "name": "Breastplate", "price": 400 }, { "name": "Half Plate", "price": 750 }, { "name": "Ring Mail", "price": 30 }, { "name": "Chain Mail", "price": 75 }, { "name": "Splint", "price": 200 }, { "name": "Plate", "price": 1500 }, { "name": "Shield", "price": 10 }, { "name": "Dagger", "price": 2 }, { "name": "Handaxe", "price": 5 }, { "name": "Javelin", "price": 0.5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Mace", "price": 5 }, { "name": "Sickle", "price": 1 }, { "name": "Spear", "price": 1 }, { "name": "Battleaxe", "price": 10 }, { "name": "Flail", "price": 10 }, { "name": "Glaive", "price": 20 }, { "name": "Greataxe", "price": 30 }, { "name": "Greatsword", "price": 50 }, { "name": "Halberd", "price": 20 }, { "name": "Lance", "price": 10 }, { "name": "Longsword", "price": 15 }, { "name": "Maul", "price": 10 }, { "name": "Morningstar", "price": 15 }, { "name": "Pike", "price": 5 }, { "name": "Rapier", "price": 25 }, { "name": "Scimitar", "price": 25 }, { "name": "Shortsword", "price": 10 }, { "name": "Trident", "price": 5 }, { "name": "War Pick", "price": 5 }, { "name": "Warhammer", "price": 15 }, { "name": "Ball Bearings (bag of 1,000)", "price": 1 }, { "name": "Bell", "price": 1 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Crowbar", "price": 2 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Sledgehammer", "price": 2 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Manacles", "price": 2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Spikes, Iron", "price": 1 }, { "name": "Whetstone", "price": 0.01 }, { "name": "Carpenter's Tools", "price": 8 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Horn", "price": 3 } ] },
