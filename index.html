@@ -13,7 +13,7 @@
         :root {
             --color-text: #E6E6E6;
             --color-header: #00FF88; /* Neon Green */
-            --color-accent: #00E5FF; /* Cyan */
+            --color-accent: #FFFFFF; /* White */
             --color-price: #FFB454;  /* Amber */
             --color-dim: #6B7280;
             --color-border: #333333;
@@ -107,7 +107,7 @@
     <div id="toolbar" class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
-             <button id="dm-tools-btn">DM Tools</button>
+             <button id="dm-tools-btn" class="hidden">DM Tools</button>
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
              <button id="logout-btn" class="hidden">Logout</button>
         </div>
@@ -131,8 +131,7 @@
                     <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
                     <button id="login-key-btn" class="btn">Enter</button>
                 </div>
-                <p class="my-4 text-dim">-- OR --</p>
-                <button id="create-character-btn" class="btn w-full">Create New Character</button>
+                <button id="create-character-btn" class="link-style mt-4">Create New Character</button>
             </div>
         </div>
 
@@ -612,7 +611,7 @@
 
             controlsContainer.classList.remove('hidden');
 
-            const showDmTools = !state.isDM;
+            const showDmTools = state.isDM || !loggedIn;
             if (state.isDM || inShop) {
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
