@@ -28,7 +28,7 @@
         font-family: "VT323", monospace;
         background-color: #111111;
         color: var(--color-text);
-        font-size: 20px;
+        font-size: 22px;
         line-height: 1.6;
         overflow-x: hidden;
         padding-top: 5rem;
@@ -118,22 +118,14 @@
             ? `+${obj.mod}`
             : (obj.mod ?? "");
         return `<div class="flex flex-col items-center border border-white/50 p-1">
-                        <div class="text-xs text-item-name">${name.slice(0, 3).toUpperCase()}</div>
+                        <div class="text-sm text-item-name">${name.slice(0, 3).toUpperCase()}</div>
                         <div class="text-xl">${obj.score ?? "-"}</div>
                         <div class="text-dim text-sm">${mod ?? ""}</div>
                     </div>`;
       }
-
-      function statBox(label, value) {
-        return `<div class="flex flex-col items-center">
-                    <div class="text-xs text-item-name">${label}</div>
-                    <div class="text-xl">${value ?? "-"}</div>
-                </div>`;
-      }
-
       function saveBox(name, obj = {}) {
         return `<div class="flex flex-col items-center border border-white/50 p-1">
-                    <div class="text-xs text-item-name">${name.slice(0,3).toUpperCase()}</div>
+                    <div class="text-sm text-item-name">${name.slice(0,3).toUpperCase()}</div>
                     <div class="text-xl">${obj.save ?? "-"}</div>
                     <div class="text-dim text-sm">${obj.saveProf ? "*" : ""}</div>
                 </div>`;
@@ -173,12 +165,7 @@
         const imgSrc =
           data.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
         const hpValue = data.combat?.hp ? `${data.combat.hp.current ?? "-"}/${data.combat.hp.max ?? "-"}` : "-";
-        const statsRow = [
-          statBox('AC', data.combat?.ac),
-          statBox('INIT', data.combat?.initiative),
-          statBox('HP', hpValue),
-          statBox('SPD', data.combat?.speed)
-        ].join('');
+        const statsLine = `Armor Class: <span class="text-item-name">${data.combat?.ac ?? "-"}</span> | Initiative: <span class="text-item-name">${data.combat?.initiative ?? "-"}</span> | Hit Points: <span class="text-item-name">${hpValue}</span> | Speed: <span class="text-item-name">${data.combat?.speed ?? "-"}</span>`;
 
         document.getElementById("sheet-container").innerHTML = `
                 <div class="cli-window space-y-4">
@@ -187,7 +174,7 @@
                         <div class="flex-1 text-center md:text-left">
                             <h2 class="text-2xl text-header">${data.charname || "Unknown Adventurer"}</h2>
                             <p class="text-dim">${[data.classlevel, data.race, data.alignment].filter(Boolean).join(" | ")}</p>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">${statsRow}</div>
+                            <p class="mt-2 text-2xl">${statsLine}</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${abilities}</div>

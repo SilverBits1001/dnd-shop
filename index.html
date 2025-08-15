@@ -704,13 +704,10 @@
                     ${state.dmShops.length === 0
                         ? '<p class="text-dim">No shops.</p>'
                         : state.dmShops.map(s => `
-                            <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.active ? 'Active' : 'Inactive'})</span></span>
-                                <div class="flex gap-2">
-                                    <button class="btn dm-enter-shop-btn" data-shop-id="${s.id}">Open</button>
-                                    <button class="btn btn-secondary dm-toggle-shop-btn" data-shop-id="${s.id}">${s.active ? 'Deactivate' : 'Activate'}</button>
-                                    <button class="btn btn-secondary dm-delete-shop-btn" data-shop-id="${s.id}">Delete</button>
-                                </div>
+                            <div class="flex items-center mb-2 gap-2">
+                                <button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button>
+                                <input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}>
+                                <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button>
                             </div>
                         `).join('')}
                 </div>
@@ -721,7 +718,8 @@
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
             document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
-            document.querySelectorAll('.dm-toggle-shop-btn').forEach(btn => btn.addEventListener('click', handleDMToggleShop));
+            document.querySelectorAll('.dm-active-checkbox').forEach(cb => cb.addEventListener('change', handleDMActiveChange));
+
         }
 
         async function handleDMDeleteShop(e) {
@@ -732,11 +730,10 @@
             renderDMHub();
         }
 
-        async function handleDMToggleShop(e) {
+        async function handleDMActiveChange(e) {
             const shopId = e.target.dataset.shopId;
-            const shop = state.dmShops.find(s => s.id === shopId);
-            if (!shop) return;
-            await updateDoc(doc(db, 'shops', shopId), { active: !shop.active });
+            await updateDoc(doc(db, 'shops', shopId), { active: e.target.checked });
+
         }
         
         function getModifiedPrice(basePrice) {
