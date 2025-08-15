@@ -150,6 +150,7 @@
     <!-- New Key Modal (Moved outside app-container) -->
     <div id="new-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
         <div class="cli-window w-full max-w-md text-center">
+            <button id="new-key-modal-close" class="subview-exit-btn">ⓧ</button>
             <h2 class="text-2xl font-bold mb-4 text-header">> Your New Character Key!</h2>
             <p class="mb-4 text-dim">> This is your secret key. Write it down! It is the ONLY way to access your character again.</p>
             <div class="bg-gray-900 p-4 border-2 border-dashed border-header mb-6">
@@ -168,12 +169,12 @@
         </div>
     </div>
 
-    <!-- Character Keys Modal -->
+    <!-- Players Modal -->
     <div id="keys-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
         <div class="cli-window w-full max-w-md text-center">
             <button id="keys-modal-close" class="subview-exit-btn">ⓧ</button>
-            <h2 class="text-2xl font-bold mb-4 text-header">> All Character Keys</h2>
-            <div id="keys-list" class="space-y-2"></div>
+            <h2 class="text-2xl font-bold mb-4 text-header">> Manage Players</h2>
+            <div id="players-list" class="space-y-2"></div>
         </div>
     </div>
  
@@ -248,16 +249,23 @@
         const keysModal = document.getElementById('keys-modal');
         const inventoryModal = document.getElementById('inventory-modal');
 
+        function closeNewKeyModal() {
+            newKeyModal.classList.add('hidden');
+            if (state.characterKey) {
+                listenToPlayerData(state.characterKey);
+            }
+        }
+
         // --- Initialization ---
         function main() {
             // Auth
             document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
             document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
 
-            document.getElementById('key-modal-continue-btn').addEventListener('click', () => {
-                newKeyModal.classList.add('hidden');
-                if (state.characterKey) {
-                    listenToPlayerData(state.characterKey);
+            document.getElementById('key-modal-continue-btn').addEventListener('click', closeNewKeyModal);
+            newKeyModal.addEventListener('click', (e) => {
+                if (e.target === newKeyModal || e.target.id === 'new-key-modal-close') {
+                    closeNewKeyModal();
                 }
             });
 
@@ -444,23 +452,46 @@
             document.getElementById('exit-create-shop-btn').addEventListener('click', exitSubView);
         }
         
-        async function openKeysModal() {
+        async function openPlayersModal() {
             keysModal.classList.remove('hidden');
-            const keysList = document.getElementById('keys-list');
-            keysList.innerHTML = 'Loading...';
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = 'Loading...';
 
             try {
                 const querySnapshot = await getDocs(collection(db, "characters"));
-                keysList.innerHTML = querySnapshot.docs.map(doc => {
+                playersList.innerHTML = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-                    return `<p class="key-item cursor-pointer" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></p>`;
+                    return `<div class="flex items-center justify-between gap-2">
+                                <span class="key-item cursor-pointer flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></span>
+                                <button class="text-red-500 hover:text-red-400 delete-player-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Delete</button>
+                            </div>`;
                 }).join('');
                 document.querySelectorAll('.key-item').forEach(el => {
                     el.addEventListener('click', () => navigator.clipboard.writeText(el.dataset.key));
                 });
+                document.querySelectorAll('.delete-player-btn').forEach(btn => {
+                    btn.addEventListener('click', () => deletePlayer(btn.dataset.playerId, btn.dataset.playerName));
+                });
             } catch (error) {
-                keysList.innerHTML = `<p class="text-red-500">Could not load keys.</p>`;
-                console.error("Error fetching keys:", error);
+                playersList.innerHTML = `<p class="text-red-500">Could not load players.</p>`;
+                console.error("Error fetching players:", error);
+            }
+        }
+
+        async function deletePlayer(playerId, name) {
+            if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(db, 'characters', playerId));
+                const shopsSnapshot = await getDocs(collection(db, 'shops'));
+                for (const shopDoc of shopsSnapshot.docs) {
+                    const shopData = shopDoc.data();
+                    if (shopData.carts && shopData.carts[playerId]) {
+                        await updateDoc(shopDoc.ref, { [`carts.${playerId}`]: deleteField() });
+                    }
+                }
+                openPlayersModal();
+            } catch (error) {
+                console.error('Error deleting player:', error);
             }
         }
 
@@ -702,7 +733,7 @@
                     <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
                     <div class="space-y-2">
                         <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
-                        <button id="dm-view-keys-btn" class="btn w-full">View Character Keys</button>
+                        <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
                     </div>
                 </div>
                 <div class="mt-8 cli-window max-w-md mx-auto">
@@ -719,7 +750,7 @@
                 </div>
             `;
             document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
-            document.getElementById('dm-view-keys-btn').addEventListener('click', openKeysModal);
+            document.getElementById('dm-manage-players-btn').addEventListener('click', openPlayersModal);
             document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
