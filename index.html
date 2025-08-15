@@ -79,6 +79,7 @@
             @media (min-width: 1024px) {
                 .ascii-title { font-size: 1.6rem; }
             }
+
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-item-name { color: var(--color-accent); }
         .text-price { color: var(--color-price); font-weight: bold; }
@@ -86,6 +87,7 @@
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
         #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
+
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
         #exit-mode-btn:hover { color: white; }
         .subview-exit-btn {
@@ -122,6 +124,7 @@
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
         <!-- Auth View -->
         <div id="auth-view">
+
              <div class="ascii-title">
 ██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
@@ -233,6 +236,7 @@
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
 
+
         // --- Initialization ---
         function main() {
             // Auth
@@ -255,6 +259,7 @@
                     keysModal.classList.add('hidden');
                 }
             });
+
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
@@ -390,6 +395,7 @@
             }
         }
 
+
         function handleGenerateShop() {
             const shopKey = document.getElementById('shop-type-select').value;
             const shopSize = document.getElementById('shop-size-select').value;
@@ -478,6 +484,7 @@
                 priceModifier: 0,
                 active: true,
             };
+
 
             state.shopData = initialShopData;
 
@@ -572,6 +579,7 @@
             }
         }
 
+
         function renderCharacterHub() {
             const player = state.playerData;
             if (!player) {
@@ -640,6 +648,7 @@
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
         }
+
         
         function getModifiedPrice(basePrice) {
             const modifier = state.shopData?.priceModifier || 0;
@@ -652,6 +661,7 @@
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p><p class="mb-1">> Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div><div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div></div>
+
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
