@@ -1,16 +1,76 @@
 {
-  "name": "Sigon Talandriel",
-  "classlevel": "Wizard 2",
-  "race": "High Elf",
-  "alignment": "Chaotic Neutral",
-  "gold": 15,
-  "image": "https://example.com/portrait.jpg",
+  "charname": "Name",
+  "avatarUrl": "https://picsum.photos/200/300",
+  "classlevel": "Class 0",
+  "background": "Background",
+  "playername": "Player Name",
+  "race": "Race",
+  "alignment": "Alignment",
+  "experiencepoints": 0,
+
+  "inspiration": false,
+  "proficiencybonus": "+0",
+
   "abilities": {
-    "Strength": { "score": 13, "mod": 1 },
-    "Dexterity": { "score": 15, "mod": 2 },
-    "Constitution": { "score": 12, "mod": 1 },
-    "Intelligence": { "score": 15, "mod": 2 },
-    "Wisdom": { "score": 12, "mod": 1 },
-    "Charisma": { "score": 11, "mod": 0 }
-  }
+    "Strength": { "score": 0, "mod": 0, "save": "+0", "saveProf": false },
+    "Dexterity": { "score": 0, "mod": 0, "save": "+0", "saveProf": false },
+    "Constitution": { "score": 0, "mod": 0, "save": "+0", "saveProf": false },
+    "Wisdom": { "score": 0, "mod": 0, "save": "+0", "saveProf": false },
+    "Intelligence": { "score": 0, "mod": 0, "save": "+0", "saveProf": false },
+    "Charisma": { "score": 0, "mod": 0, "save": "+0", "saveProf": false }
+  },
+
+  "skills": {
+    "Acrobatics": { "bonus": "+0", "prof": false },
+    "Animal Handling": { "bonus": "+0", "prof": false },
+    "Arcana": { "bonus": "+0", "prof": false },
+    "Athletics": { "bonus": "+0", "prof": false },
+    "Deception": { "bonus": "+0", "prof": false },
+    "History": { "bonus": "+0", "prof": false },
+    "Insight": { "bonus": "+0", "prof": false },
+    "Intimidation": { "bonus": "+0", "prof": false },
+    "Investigation": { "bonus": "+0", "prof": false },
+    "Medicine": { "bonus": "+0", "prof": false },
+    "Nature": { "bonus": "+0", "prof": false },
+    "Perception": { "bonus": "+0", "prof": false },
+    "Performance": { "bonus": "+0", "prof": false },
+    "Persuasion": { "bonus": "+0", "prof": false },
+    "Religion": { "bonus": "+0", "prof": false },
+    "Sleight of Hand": { "bonus": "+0", "prof": false },
+    "Stealth": { "bonus": "+0", "prof": false },
+    "Survival": { "bonus": "+0", "prof": false }
+  },
+
+  "passiveperception": 0,
+  "otherprofs": "Languages/Tools",
+
+  "combat": {
+    "ac": 0,
+    "initiative": "+0",
+    "speed": 0,
+    "hp": { "max": 0, "current": 0, "temp": 0 },
+    "hitdice": { "total": "0d0", "remaining": "0d0" },
+    "deathSaves": { "successes": 0, "failures": 0 }
+  },
+
+  "attacks": [
+    { "name": "Attack 1", "atkBonus": "+0", "damage": "0" },
+    { "name": "Attack 2", "atkBonus": "+0", "damage": "0" },
+    { "name": "Attack 3", "atkBonus": "+0", "damage": "0" }
+  ],
+  "attacksNotes": "",
+
+  "equipment": {
+    "money": { "cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0 },
+    "list": "Item list"
+  },
+
+  "flavor": {
+    "personality": "Personality",
+    "ideals": "Ideals",
+    "bonds": "Bonds",
+    "flaws": "Flaws"
+  },
+
+  "features": "Features & Traits"
 }
