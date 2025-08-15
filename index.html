@@ -362,15 +362,6 @@
             render();
         }
 
-        function enterDMHub() {
-            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
-            state.isDM = true;
-            state.inShop = false;
-            state.shopId = null;
-            state.shopData = null;
-            render();
-        }
-
 
         // --- Core App Logic ---
         function exitSubView() {
@@ -458,14 +449,6 @@
             const description = personalities[Math.floor(Math.random() * personalities.length)];
             const gold = Math.floor(Math.random() * 1501) + 500;
             return { name, description, gold };
-        }
-
-        function generateShopName() {
-            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
-            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
-            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-            const noun = nouns[Math.floor(Math.random() * nouns.length)];
-            return `The ${adj} ${noun}`;
         }
 
         function generateShopName() {
@@ -954,6 +937,7 @@
     </script>
 </body>
 </html>
+
 
 
 
