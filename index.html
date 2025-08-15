@@ -187,7 +187,7 @@ z<!DOCTYPE html>
  
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, getDoc, runTransaction, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, getDoc, runTransaction, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -224,6 +224,7 @@ z<!DOCTYPE html>
             playerData: null,
             shopId: null,
             shopData: null,
+            activeShops: [],
         };
 
         // DOM Elements
@@ -278,7 +279,7 @@ z<!DOCTYPE html>
             if (savedKey) {
                 loginWithKey(savedKey);
             }
-
+            listenToActiveShops();
             render();
         }
 
@@ -332,6 +333,16 @@ z<!DOCTYPE html>
                     logout();
                 }
                 render();
+            });
+        }
+
+        let activeShopsUnsubscribe = null;
+        function listenToActiveShops() {
+            if (activeShopsUnsubscribe) activeShopsUnsubscribe();
+            const q = query(collection(db, 'shops'), where('active', '==', true));
+            activeShopsUnsubscribe = onSnapshot(q, (snapshot) => {
+                state.activeShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (!state.inShop && !state.isDM) render();
             });
         }
 
@@ -466,6 +477,7 @@ z<!DOCTYPE html>
                 inventory: finalInventory,
                 carts: {},
                 priceModifier: 0,
+                active: true,
             };
 
             state.shopData = initialShopData;
@@ -481,17 +493,15 @@ z<!DOCTYPE html>
             }
         }
         
-        async function handlePlayerJoinAttempt() {
-            const shopId = document.getElementById('hub-join-shop-id-input').value.trim().toUpperCase();
-            if (shopId.length !== 6) { alert("Please enter a valid 6-character Shop ID."); return; }
+        async function joinShop(shopId) {
             const shopDocRef = doc(db, 'shops', shopId);
             const docSnap = await getDoc(shopDocRef);
-            if (docSnap.exists()) {
+            if (docSnap.exists() && docSnap.data().active) {
                 state.shopId = shopId;
                 state.inShop = true;
                 listenToShopChanges(shopId);
             } else {
-                alert("Shop ID not found.");
+                alert("Shop not found or inactive.");
             }
         }
 
@@ -589,14 +599,20 @@ z<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="mt-8 cli-window max-w-md mx-auto">
-                     <h2 class="text-2xl mb-4 text-header">> Enter a Shop</h2>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="hub-join-shop-id-input" class="input-field flex-grow" placeholder="ENTER SHOP ID" maxlength="6">
-                        <button id="hub-join-shop-btn" class="btn">Enter</button>
-                    </div>
+                    <h2 class="text-2xl mb-4 text-header">> Active Shops</h2>
+                    ${state.activeShops.length === 0
+                        ? '<p class="text-dim">No active shops.</p>'
+                        : state.activeShops.map(s => `
+                            <div class="flex justify-between items-center mb-2">
+                                <span><span class="text-item-name">${s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
+                                <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
+                            </div>
+                        `).join('')}
                 </div>
             `;
-            document.getElementById('hub-join-shop-btn').addEventListener('click', handlePlayerJoinAttempt);
+            document.querySelectorAll('.join-shop-btn').forEach(btn => {
+                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+            });
         }
         
         function getModifiedPrice(basePrice) {
@@ -609,7 +625,7 @@ z<!DOCTYPE html>
             const { shopkeeper, inventory, carts, shopType, priceModifier } = state.shopData;
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div></div>
+                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div><div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div></div>
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
@@ -732,6 +748,9 @@ z<!DOCTYPE html>
                 priceModifierSlider.addEventListener('input', () => priceModifierLabel.textContent = `${priceModifierSlider.value}%`);
                 priceModifierSlider.addEventListener('change', () => updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(priceModifierSlider.value, 10) }));
             }
+            document.getElementById('toggle-active-btn')?.addEventListener('click', () => {
+                updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active });
+            });
         }
         function attachPlayerListeners() { 
             document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
