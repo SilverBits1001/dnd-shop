@@ -1,4 +1,4 @@
-z<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -67,11 +67,17 @@ z<!DOCTYPE html>
                 font-family: monospace;
                 white-space: pre;
                 text-align: center;
-                font-size: clamp(0.8rem, 2.5vw, 1.5rem);
-                line-height: 1;
+                line-height: 1.2;
                 margin-bottom: 1rem;
                 color: var(--color-header);
                 text-shadow: var(--shadow-glow) var(--color-header);
+                font-size: 0.9rem;
+            }
+            @media (min-width: 640px) {
+                .ascii-title { font-size: 1.2rem; }
+            }
+            @media (min-width: 1024px) {
+                .ascii-title { font-size: 1.6rem; }
             }
 
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
@@ -81,21 +87,7 @@ z<!DOCTYPE html>
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
         #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
-        #dm-tools-dropdown { position: absolute; top: 100%; }
-        .dropdown-link {
-            background: none;
-            border: none;
-            color: var(--color-text);
-            cursor: pointer;
-            text-align: left;
-            width: 100%;
-            padding: 0.5rem;
-            font-size: 1.1rem;
-        }
-        .dropdown-link:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: var(--color-accent);
-        }
+
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
         #exit-mode-btn:hover { color: white; }
         .subview-exit-btn {
@@ -124,10 +116,6 @@ z<!DOCTYPE html>
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
              <button id="dm-tools-btn">DM Tools</button>
-             <div id="dm-tools-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-black cli-window">
-                 <button id="create-new-shop-btn" class="dropdown-link mb-2">> Create New Shop</button>
-                 <button id="view-keys-btn" class="dropdown-link">> View Character Keys</button>
-             </div>
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
              <button id="logout-btn" class="hidden">Logout</button>
         </div>
@@ -136,6 +124,7 @@ z<!DOCTYPE html>
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
         <!-- Auth View -->
         <div id="auth-view">
+
              <div class="ascii-title">
 ██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
@@ -158,6 +147,8 @@ z<!DOCTYPE html>
 
         <!-- Character Hub View -->
         <div id="character-hub-view" class="hidden"></div>
+        <!-- DM Hub View -->
+        <div id="dm-hub-view" class="hidden"></div>
         <!-- Create Shop View -->
         <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
         <!-- DM View -->
@@ -233,23 +224,18 @@ z<!DOCTYPE html>
         const allViews = document.querySelectorAll('#app-container > div');
         const authView = document.getElementById('auth-view');
         const characterHubView = document.getElementById('character-hub-view');
+        const dmHubView = document.getElementById('dm-hub-view');
         const createShopView = document.getElementById('create-shop-view');
         const dmView = document.getElementById('dm-view');
         const playerView = document.getElementById('player-view');
         const toolbarTitle = document.getElementById('toolbar-title');
         const controlsContainer = document.getElementById('controls-container');
         const dmToolsBtn = document.getElementById('dm-tools-btn');
-        const dmToolsDropdown = document.getElementById('dm-tools-dropdown');
-        const createNewShopBtn = document.getElementById('create-new-shop-btn');
-        const viewKeysBtn = document.getElementById('view-keys-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const exitModeBtn = document.getElementById('exit-mode-btn');
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
 
-        function toggleDmTools() {
-            dmToolsDropdown.classList.toggle('hidden');
-        }
 
         // --- Initialization ---
         function main() {
@@ -265,9 +251,7 @@ z<!DOCTYPE html>
             });
 
             // DM
-            dmToolsBtn.addEventListener('click', toggleDmTools);
-            createNewShopBtn.addEventListener('click', showCreateShopView);
-            viewKeysBtn.addEventListener('click', openKeysModal);
+            dmToolsBtn.addEventListener('click', enterDMHub);
             logoutBtn.addEventListener('click', logout);
             exitModeBtn.addEventListener('click', exitCurrentMode);
             keysModal.addEventListener('click', (e) => {
@@ -275,6 +259,7 @@ z<!DOCTYPE html>
                     keysModal.classList.add('hidden');
                 }
             });
+
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
@@ -356,6 +341,15 @@ z<!DOCTYPE html>
             exitCurrentMode();
         }
 
+        function enterDMHub() {
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = true;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
+            render();
+        }
+
         // --- Core App Logic ---
         function exitSubView() {
             createShopView.classList.add('hidden');
@@ -363,9 +357,9 @@ z<!DOCTYPE html>
         }
 
         function showCreateShopView() {
-            dmToolsDropdown.classList.add('hidden');
             authView.classList.add('hidden');
             characterHubView.classList.add('hidden');
+            dmHubView.classList.add('hidden');
             createShopView.classList.remove('hidden');
             createShopView.innerHTML = `
                 <div class="cli-window">
@@ -382,7 +376,6 @@ z<!DOCTYPE html>
         }
         
         async function openKeysModal() {
-            dmToolsDropdown.classList.add('hidden');
             keysModal.classList.remove('hidden');
             const keysList = document.getElementById('keys-list');
             keysList.innerHTML = 'Loading...';
@@ -401,6 +394,7 @@ z<!DOCTYPE html>
                 console.error("Error fetching keys:", error);
             }
         }
+
 
         function handleGenerateShop() {
             const shopKey = document.getElementById('shop-type-select').value;
@@ -445,6 +439,14 @@ z<!DOCTYPE html>
             return { name, description, gold };
         }
 
+        function generateShopName() {
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            return `The ${adj} ${noun}`;
+        }
+
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             state.inShop = true;
@@ -466,14 +468,15 @@ z<!DOCTYPE html>
             }
 
             const finalInventory = randomInventory.map(item => ({
-                ...item, 
+                ...item,
                 quantity: Math.floor(Math.random() * 5) + 1,
                 id: `item-${Math.random().toString(36).substr(2, 9)}`
             }));
-            
+
             state.shopId = Math.random().toString(36).substring(2, 8).toUpperCase();
             const newSessionRef = doc(db, 'shops', state.shopId);
             const initialShopData = {
+                shopName: generateShopName(),
                 shopType: shopTemplate.name,
                 shopkeeper: generateShopkeeper(),
                 inventory: finalInventory,
@@ -481,6 +484,7 @@ z<!DOCTYPE html>
                 priceModifier: 0,
                 active: true,
             };
+
 
             state.shopData = initialShopData;
 
@@ -534,23 +538,18 @@ z<!DOCTYPE html>
             allViews.forEach(v => v.classList.add('hidden'));
 
             controlsContainer.classList.remove('hidden');
-            dmToolsDropdown.classList.add('hidden');
 
-            dmToolsBtn.removeEventListener('click', toggleDmTools);
-
-            const showDmTools = !loggedIn || state.isDM;
-            if (inShop) {
+            const showDmTools = !state.isDM;
+            if (state.isDM || inShop) {
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
-                toolbarTitle.textContent = state.isDM ? '> DM Mode' : '> Player Mode';
+                toolbarTitle.textContent = state.isDM ? (inShop ? '> DM Mode' : '> DM Hub') : '> Player Mode';
             } else {
                 exitModeBtn.classList.add('hidden');
                 toolbarTitle.classList.add('hidden');
             }
             if (showDmTools) {
                 dmToolsBtn.classList.remove('hidden');
-                dmToolsBtn.textContent = "DM Tools";
-                dmToolsBtn.addEventListener('click', toggleDmTools);
             } else {
                 dmToolsBtn.classList.add('hidden');
             }
@@ -564,10 +563,14 @@ z<!DOCTYPE html>
             if (!loggedIn && !state.isDM) {
                 authView.classList.remove('hidden');
             } else if (!inShop) {
-                characterHubView.classList.remove('hidden');
-                renderCharacterHub();
+                if (state.isDM) {
+                    dmHubView.classList.remove('hidden');
+                    renderDMHub();
+                } else {
+                    characterHubView.classList.remove('hidden');
+                    renderCharacterHub();
+                }
             } else if (state.isDM) {
-
                 dmView.classList.remove('hidden');
                 renderDMView();
             } else {
@@ -575,6 +578,7 @@ z<!DOCTYPE html>
                 renderPlayerView();
             }
         }
+
 
         function renderCharacterHub() {
             const player = state.playerData;
@@ -606,7 +610,7 @@ z<!DOCTYPE html>
                         ? '<p class="text-dim">No active shops.</p>'
                         : state.activeShops.map(s => `
                             <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
+                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
                                 <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
                             </div>
                         `).join('')}
@@ -616,6 +620,35 @@ z<!DOCTYPE html>
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
         }
+
+        function renderDMHub() {
+            dmHubView.innerHTML = `
+                <div class="cli-window max-w-md mx-auto">
+                    <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
+                    <div class="space-y-2">
+                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
+                        <button id="dm-view-keys-btn" class="btn w-full">View Character Keys</button>
+                    </div>
+                </div>
+                <div class="mt-8 cli-window max-w-md mx-auto">
+                    <h2 class="text-2xl mb-4 text-header">> Active Shops</h2>
+                    ${state.activeShops.length === 0
+                        ? '<p class="text-dim">No active shops.</p>'
+                        : state.activeShops.map(s => `
+                            <div class="flex justify-between items-center mb-2">
+                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.id})</span></span>
+                                <button class="btn dm-enter-shop-btn" data-shop-id="${s.id}">Open</button>
+                            </div>
+                        `).join('')}
+                </div>
+            `;
+            document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
+            document.getElementById('dm-view-keys-btn').addEventListener('click', openKeysModal);
+            document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
+                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+            });
+        }
+
         
         function getModifiedPrice(basePrice) {
             const modifier = state.shopData?.priceModifier || 0;
@@ -624,10 +657,11 @@ z<!DOCTYPE html>
         }
 
         function renderDMView() {
-            const { shopkeeper, inventory, carts, shopType, priceModifier } = state.shopData;
+            const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
             dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div><div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div></div>
+                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> DM Controls</h2><p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p><p class="mb-1">> Type: ${shopType}</p><p class="mb-2">> Shop ID:</p><div class="flex gap-2"><input type="text" readonly value="${state.shopId}" id="session-id-input" class="input-field flex-grow"><button id="copy-id-btn" class="btn btn-secondary">Copy</button></div><div class="mt-4"><label for="price-modifier" class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label><input type="range" id="price-modifier" min="-50" max="100" value="${priceModifier}" class="w-full"></div><div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div></div>
+
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
                 <div class="lg:col-span-1 flex flex-col gap-6">
@@ -642,12 +676,12 @@ z<!DOCTYPE html>
 
 
         function renderPlayerView() {
-            const { shopkeeper, inventory, carts, shopType } = state.shopData;
+            const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
             const playerCart = carts[state.characterKey] || { items: [] };
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-2">
-                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopType}</h1><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+                    <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopName}</h1><p class="text-xl text-dim">(${shopType})</p><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
                 <div class="lg:col-span-1">
