@@ -161,6 +161,15 @@
         </div>
     </div>
 
+    <!-- Inventory Modal -->
+    <div id="inventory-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+        <div class="cli-window w-full max-w-md text-center">
+            <button id="inventory-modal-close" class="subview-exit-btn">ⓧ</button>
+            <h2 class="text-2xl font-bold mb-4 text-header">> Edit Inventory</h2>
+            <div id="inventory-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        </div>
+    </div>
+
     <!-- Character Keys Modal -->
     <div id="keys-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
         <div class="cli-window w-full max-w-md text-center">
@@ -210,6 +219,7 @@
             shopId: null,
             shopData: null,
             activeShops: [],
+            dmShops: [],
         };
 
         // DOM Elements
@@ -227,6 +237,7 @@
         const exitModeBtn = document.getElementById('exit-mode-btn');
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
+        const inventoryModal = document.getElementById('inventory-modal');
 
         // --- Initialization ---
         function main() {
@@ -250,6 +261,11 @@
                     keysModal.classList.add('hidden');
                 }
             });
+            inventoryModal.addEventListener('click', (e) => {
+                if (e.target === inventoryModal || e.target.id === 'inventory-modal-close') {
+                    closeInventoryModal();
+                }
+            });
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
@@ -265,21 +281,42 @@
                 acc[item.name] = (acc[item.name] || 0) + 1;
                 return acc;
             }, {});
-            const itemName = prompt('Enter the item name to remove:');
-            if (!itemName) return;
-            const available = summary[itemName];
-            if (!available) { alert('Item not found.'); return; }
-            const qty = parseInt(prompt(`Remove how many? (1-${available})`), 10);
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = Object.keys(summary).length === 0
+                ? '<p class="text-dim">Empty.</p>'
+                : Object.entries(summary).map(([name, count]) => `
+                    <div class="flex justify-between items-center">
+                        <span><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></span>
+                        <div class="flex items-center gap-2">
+                            <input type="number" min="1" max="${count}" value="1" class="input-field w-16" data-name="${name}">
+                            <button class="text-red-500 hover:text-red-400 inv-remove-btn" data-name="${name}">[X]</button>
+                        </div>
+                    </div>
+                `).join('');
+            inventoryModal.classList.remove('hidden');
+            document.querySelectorAll('.inv-remove-btn').forEach(btn => btn.addEventListener('click', handlePlayerInventoryRemove));
+        }
+
+        function handlePlayerInventoryRemove(e) {
+            const name = e.target.dataset.name;
+            const input = document.querySelector(`input[data-name="${name}"]`);
+            const qty = parseInt(input.value, 10);
+            const available = state.playerData.inventory.filter(it => it.name === name).length;
             if (!qty || qty <= 0 || qty > available) return;
-            if (!confirm(`Remove ${qty} ${itemName}? This cannot be undone.`)) return;
+            if (!confirm(`Remove ${qty} ${name}?`)) return;
             let remaining = qty;
             const newInv = state.playerData.inventory.filter(it => {
-                if (it.name === itemName && remaining > 0) { remaining--; return false; }
+                if (it.name === name && remaining > 0) { remaining--; return false; }
                 return true;
             });
             state.playerData.inventory = newInv;
             updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
+            closeInventoryModal();
             renderCharacterHub();
+        }
+
+        function closeInventoryModal() {
+            inventoryModal.classList.add('hidden');
         }
 
         // --- Auth & Character Functions ---
@@ -336,12 +373,21 @@
         }
 
         let activeShopsUnsubscribe = null;
+        let dmShopsUnsubscribe = null;
         function listenToActiveShops() {
             if (activeShopsUnsubscribe) activeShopsUnsubscribe();
             const q = query(collection(db, 'shops'), where('active', '==', true));
             activeShopsUnsubscribe = onSnapshot(q, (snapshot) => {
                 state.activeShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (!state.inShop && !state.isDM) render();
+            });
+        }
+
+        function listenToDMShops() {
+            if (dmShopsUnsubscribe) dmShopsUnsubscribe();
+            dmShopsUnsubscribe = onSnapshot(collection(db, 'shops'), (snapshot) => {
+                state.dmShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (state.isDM && !state.inShop) render();
             });
         }
 
@@ -359,6 +405,7 @@
             state.inShop = false;
             state.shopId = null;
             state.shopData = null;
+            listenToDMShops();
             render();
         }
 
@@ -417,10 +464,12 @@
 
         function exitCurrentMode() {
             if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            if (dmShopsUnsubscribe) { dmShopsUnsubscribe(); dmShopsUnsubscribe = null; }
             state.isDM = false;
             state.inShop = false;
             state.shopId = null;
             state.shopData = null;
+            state.dmShops = [];
             render();
         }
 
@@ -647,14 +696,15 @@
                     </div>
                 </div>
                 <div class="mt-8 cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> Active Shops</h2>
-                    ${state.activeShops.length === 0
-                        ? '<p class="text-dim">No active shops.</p>'
-                        : state.activeShops.map(s => `
+                    <h2 class="text-2xl mb-4 text-header">> Your Shops</h2>
+                    ${state.dmShops.length === 0
+                        ? '<p class="text-dim">No shops.</p>'
+                        : state.dmShops.map(s => `
                             <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopName || s.shopType}</span></span>
+                                <span><span class="text-item-name">${s.shopName || s.shopType}</span> <span class="text-dim">(${s.active ? 'Active' : 'Inactive'})</span></span>
                                 <div class="flex gap-2">
                                     <button class="btn dm-enter-shop-btn" data-shop-id="${s.id}">Open</button>
+                                    <button class="btn btn-secondary dm-toggle-shop-btn" data-shop-id="${s.id}">${s.active ? 'Deactivate' : 'Activate'}</button>
                                     <button class="btn btn-secondary dm-delete-shop-btn" data-shop-id="${s.id}">Delete</button>
                                 </div>
                             </div>
@@ -667,14 +717,22 @@
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
             document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
+            document.querySelectorAll('.dm-toggle-shop-btn').forEach(btn => btn.addEventListener('click', handleDMToggleShop));
         }
 
         async function handleDMDeleteShop(e) {
             const shopId = e.target.dataset.shopId;
             if (!confirm('Delete this shop? This cannot be undone.')) return;
             await deleteDoc(doc(db, 'shops', shopId));
-            state.activeShops = state.activeShops.filter(s => s.id !== shopId);
+            state.dmShops = state.dmShops.filter(s => s.id !== shopId);
             renderDMHub();
+        }
+
+        async function handleDMToggleShop(e) {
+            const shopId = e.target.dataset.shopId;
+            const shop = state.dmShops.find(s => s.id === shopId);
+            if (!shop) return;
+            await updateDoc(doc(db, 'shops', shopId), { active: !shop.active });
         }
         
         function getModifiedPrice(basePrice) {
