@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -79,6 +80,7 @@
             @media (min-width: 1024px) {
                 .ascii-title { font-size: 1.6rem; }
             }
+
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-item-name { color: var(--color-accent); }
         .text-price { color: var(--color-price); font-weight: bold; }
@@ -86,6 +88,7 @@
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
         #dm-tools-btn, #logout-btn { background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover, #logout-btn:hover { text-decoration: underline; }
+
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
         #exit-mode-btn:hover { color: white; }
         .subview-exit-btn {
@@ -122,6 +125,7 @@
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
         <!-- Auth View -->
         <div id="auth-view">
+
              <div class="ascii-title">
 ██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
@@ -148,6 +152,7 @@
         <div id="dm-hub-view" class="hidden"></div>
         <!-- Create Shop View -->
         <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
+
         <!-- DM View -->
         <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
@@ -178,6 +183,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -233,6 +239,7 @@
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
 
+
         // --- Initialization ---
         function main() {
             // Auth
@@ -286,6 +293,7 @@
             updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
             renderCharacterHub();
         }
+
 
         // --- Auth & Character Functions ---
         async function handleKeyLogin() {
@@ -367,6 +375,15 @@
             render();
         }
 
+        function enterDMHub() {
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+            state.isDM = true;
+            state.inShop = false;
+            state.shopId = null;
+            state.shopData = null;
+            render();
+        }
+
         // --- Core App Logic ---
         function exitSubView() {
             createShopView.classList.add('hidden');
@@ -378,6 +395,7 @@
             characterHubView.classList.add('hidden');
             dmHubView.classList.add('hidden');
             createShopView.classList.remove('hidden');
+
             createShopView.innerHTML = `
                 <div class="cli-window">
                     <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
@@ -411,6 +429,7 @@
                 console.error("Error fetching keys:", error);
             }
         }
+
 
         function handleGenerateShop() {
             const shopKey = document.getElementById('shop-type-select').value;
@@ -463,6 +482,14 @@
             return `The ${adj} ${noun}`;
         }
 
+        function generateShopName() {
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            return `The ${adj} ${noun}`;
+        }
+
         async function createSession(shopKey, shopSize) {
             state.isDM = true;
             state.inShop = true;
@@ -500,6 +527,7 @@
                 priceModifier: 0,
                 active: true,
             };
+
 
             state.shopData = initialShopData;
 
@@ -594,6 +622,8 @@
             }
         }
 
+
+
         function renderCharacterHub() {
             const player = state.playerData;
             if (!player) {
@@ -676,6 +706,7 @@
             state.activeShops = state.activeShops.filter(s => s.id !== shopId);
             renderDMHub();
         }
+
         
         function getModifiedPrice(basePrice) {
             const modifier = state.shopData?.priceModifier || 0;
@@ -732,11 +763,13 @@
 
         function renderPlayerView() {
             const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
+
             const playerCart = carts[state.characterKey] || { items: [] };
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
             playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
                 <div class="lg:col-span-2">
                     <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopName}</h1><p class="text-xl text-dim">(${shopType})</p><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
+
                     <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
                 <div class="lg:col-span-1">
@@ -860,6 +893,7 @@
                 }
             });
         }
+
         function attachPlayerListeners() { 
             document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const card = e.target.closest('.item-card');
