@@ -97,28 +97,9 @@
       <h1 class="text-2xl text-header">Character Sheet</h1>
       <button id="logout-btn" class="btn-secondary">Logout</button>
     </div>
-    <main id="sheet-container" class="space-y-6"></main>
+    <main id="sheet-container" class="space-y-6 py-8 my-8 max-w-4xl mx-auto"></main>
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import {
-        getFirestore,
-        doc,
-        getDoc,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-      const firebaseConfig = {
-        apiKey: "AIzaSyCwFPAjqfOC1cqTjbpqTu-xk7DrK44NPvU",
-        authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
-        projectId: "dnd-shop-app-c4f86",
-        storageBucket: "dnd-shop-app-c4f86.firebasestorage.app",
-        messagingSenderId: "42798381853",
-        appId: "1:42798381853:web:856301cb1ca5ce5ce071da",
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-
+    <script>
       document.getElementById("back-btn").addEventListener("click", () => {
         window.location.href = "index.html";
       });
@@ -132,10 +113,10 @@
           typeof obj.mod === "number" && obj.mod >= 0
             ? `+${obj.mod}`
             : (obj.mod ?? "");
-        return `<div class="flex flex-col items-center border border-white/50 p-2">
-                        <div class="text-sm text-item-name">${name.slice(0, 3).toUpperCase()}</div>
-                        <div class="text-2xl">${obj.score ?? "-"}</div>
-                        <div class="text-dim">${mod ?? ""}</div>
+        return `<div class="flex flex-col items-center border border-white/50 p-1">
+                        <div class="text-xs text-item-name">${name.slice(0, 3).toUpperCase()}</div>
+                        <div class="text-xl">${obj.score ?? "-"}</div>
+                        <div class="text-dim text-sm">${mod ?? ""}</div>
                     </div>`;
       }
 
@@ -163,30 +144,29 @@
               `<div>${n}: <span class="text-item-name">${o.bonus ?? "-"}</span>${o.prof ? " *" : ""}</div>`,
           )
           .join("");
-        const inv = (data.inventory || [])
-          .map((i) => `<li><span class="text-item-name">${i.name}</span></li>`)
+        const attacks = (data.attacks || [])
+          .map(
+            (a) =>
+              `<li><span class="text-item-name">${a.name}</span> ${a.atkBonus || ""} ${a.damage || ""}</li>`,
+          )
           .join("");
-        const equipmentList = data.equipment?.list
-          ? `<p class="mt-2 whitespace-pre-line">${data.equipment.list}</p>`
-          : "";
         const money = data.equipment?.money
           ? `CP:${data.equipment.money.cp || 0} SP:${data.equipment.money.sp || 0} EP:${data.equipment.money.ep || 0} GP:${data.equipment.money.gp || 0} PP:${data.equipment.money.pp || 0}`
           : "";
 
         const imgSrc =
-          data.image || "https://via.placeholder.com/300x300?text=Character";
+          data.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
 
         document.getElementById("sheet-container").innerHTML = `
                 <div class="cli-window">
-                    <h2 class="text-2xl text-header mb-1 text-center">${data.name || "Unknown Adventurer"}</h2>
+                    <h2 class="text-2xl text-header mb-1 text-center">${data.charname || "Unknown Adventurer"}</h2>
                     <p class="text-center text-dim mb-4">
                         ${[data.classlevel, data.race, data.alignment].filter(Boolean).join(" | ")}
                     </p>
                     <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
-                        <img src="${imgSrc}" alt="${data.name || "Character"} image" class="w-full md:w-1/2 max-w-xs object-cover border border-white/50" />
-                        <div class="grid grid-cols-2 gap-2 w-full md:w-1/2">${abilities}</div>
+                        <img src="${imgSrc}" alt="${data.charname || "Character"} image" class="w-full md:w-1/2 aspect-square object-cover border border-white/50 max-w-[15rem] max-h-[15rem] md:max-w-[20rem] md:max-h-[20rem]" />
+                        <div class="grid grid-cols-3 gap-2 w-full md:w-1/2">${abilities}</div>
                     </div>
-                    ${data.gold ? `<p class="text-price text-center mt-4">${data.gold} GP</p>` : ""}
                 </div>
                 <div class="cli-window">
                     <h3 class="text-2xl text-header mb-4">> Combat</h3>
@@ -198,18 +178,31 @@
                     </div>
                 </div>
                 <details class="cli-window">
-                    <summary class="text-2xl text-header cursor-pointer">> Skills & Saves</summary>
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <summary class="text-2xl text-header cursor-pointer">> Saving Throws</summary>
+                    <div class="mt-4 space-y-1">
                         ${saves || '<p class="text-dim">No save data.</p>'}
-                        ${skills || ""}
                     </div>
+                </details>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Skills</summary>
+                    <div class="mt-4 space-y-1">
+                        ${skills || '<p class="text-dim">No skill data.</p>'}
+                        ${data.passiveperception ? `<div>Passive Perception: <span class="text-item-name">${data.passiveperception}</span></div>` : ""}
+                        ${data.otherprofs ? `<div>Other Profs: <span class="text-item-name">${data.otherprofs}</span></div>` : ""}
+                    </div>
+                </details>
+                <details class="cli-window">
+                    <summary class="text-2xl text-header cursor-pointer">> Attacks</summary>
+                    <ul class="mt-4 list-disc pl-5">
+                        ${attacks || '<li class="text-dim">No attacks.</li>'}
+                    </ul>
+                    ${data.attacksNotes ? `<p class="mt-2">${data.attacksNotes}</p>` : ""}
                 </details>
                 <details class="cli-window">
                     <summary class="text-2xl text-header cursor-pointer">> Equipment</summary>
                     <div class="mt-4">
                         ${money ? `<p>> ${money}</p>` : ""}
-                        ${inv ? `<ul class="list-disc pl-5 mt-2">${inv}</ul>` : '<p class="text-dim mt-2">No equipment.</p>'}
-                        ${equipmentList}
+                        ${data.equipment?.list ? `<p class="mt-2 whitespace-pre-line">${data.equipment.list}</p>` : ''}
                     </div>
                 </details>
                 <details class="cli-window">
@@ -226,15 +219,14 @@
       }
 
       async function loadCharacter() {
-        const key = localStorage.getItem("dndShopCharacterKey");
-        if (!key) {
-          window.location.href = "index.html";
-          return;
-        }
-        const docSnap = await getDoc(doc(db, "characters", key));
-        if (docSnap.exists()) {
-          renderCharacterSheet(docSnap.data());
-        } else {
+        const params = new URLSearchParams(window.location.search);
+        const key = params.get("char") || "sample-character";
+        try {
+          const res = await fetch(`${key}.json`);
+          if (!res.ok) throw new Error("Character not found");
+          const data = await res.json();
+          renderCharacterSheet(data);
+        } catch (e) {
           document.getElementById("sheet-container").innerHTML =
             '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
         }
