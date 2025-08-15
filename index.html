@@ -12,17 +12,17 @@
     <style>
         :root {
             --color-text: #E0E0E0;
-            --color-header: #00FF00; /* Bright Green */
-            --color-accent: #00FFFF; /* Cyan */
+            --color-header: #33FF99; /* Softer Green */
+            --color-accent: #33FFFF; /* Soft Cyan */
             --color-price: #FFD700;  /* Gold */
-            --color-dim: #a0a0a0;
-            --color-border: #cccccc;
+            --color-dim: #BBBBBB;
+            --color-border: #555555;
             --shadow-glow: 0 0 7px;
         }
         html { scroll-behavior: smooth; }
         body {
             font-family: 'VT323', monospace;
-            background-color: #000000;
+            background-color: #111111;
             color: var(--color-text);
             font-size: 20px;
             line-height: 1.6;
@@ -30,10 +30,11 @@
             padding-top: 5rem; /* Space for the fixed navbar */
         }
         .cli-window {
-            border: 2px solid var(--color-border);
+            border: 1px solid var(--color-border);
+            border-radius: 0.375rem;
             padding: 1rem;
-            background-color: rgba(10, 10, 10, 0.4);
-            box-shadow: 0 0 10px rgba(204, 204, 204, 0.3);
+            background-color: rgba(20, 20, 20, 0.9);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
             opacity: 0;
             transform: translateY(20px);
             animation: fadeIn 0.5s forwards;
@@ -48,22 +49,24 @@
             text-shadow: none;
             cursor: pointer;
             border: none;
+            border-radius: 0.25rem;
             transition: all 0.2s ease-in-out;
         }
         .btn:hover:not(:disabled) { background-color: #000000; color: #ffffff; box-shadow: 0 0 5px #ffffff; }
-        .btn-secondary { background-color: transparent; color: #ffffff; border: 1px solid #ffffff; }
+        .btn-secondary { background-color: transparent; color: #ffffff; border: 1px solid #ffffff; border-radius: 0.25rem; }
         .btn-secondary:hover { background-color: #ffffff; color: #000000; }
         .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
         .input-field, .select-field {
-            background-color: #111;
-            border: 1px solid #ffffff;
+            background-color: #1a1a1a;
+            border: 1px solid var(--color-border);
             color: #ffffff;
             padding: 0.75rem;
             width: 100%;
             font-family: 'VT323', monospace;
             text-transform: uppercase;
+            border-radius: 0.25rem;
         }
-        .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px #ffffff; }
+        .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
             .ascii-title {
                 font-family: monospace;
                 white-space: pre;
@@ -531,6 +534,7 @@
 
             const finalInventory = randomInventory.map(item => ({
                 ...item,
+                details: item.details || '',
                 quantity: Math.floor(Math.random() * 5) + 1,
                 id: `item-${Math.random().toString(36).substr(2, 9)}`
             }));
@@ -743,8 +747,8 @@
 
         function renderDMView() {
             const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
-            dmView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
-                <div class="lg:col-span-1 flex flex-col gap-6">
+            dmView.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-lg">
+                <div class="md:col-span-1 flex flex-col gap-6">
                     <div class="cli-window">
                         <h2 class="text-2xl mb-4 text-header">> DM Controls</h2>
                         <p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p>
@@ -765,13 +769,14 @@
                     </div>
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
                 </div>
-                <div class="lg:col-span-1 flex flex-col gap-6">
+                <div class="md:col-span-1 flex flex-col gap-6">
                     <div class="cli-window">
                         <h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3>
-                        <div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3 space-y-2" data-index="${index}"><div class="flex justify-between items-center"><span class="text-item-name">${item.name}</span><button class="text-red-500 hover:text-red-400 dm-remove-item-btn" data-index="${index}">[X]</button></div><div class="flex items-center gap-2"><label class="text-dim">Qty:</label><input type="number" min="0" class="input-field dm-qty-input w-16" data-index="${index}" value="${item.quantity}"><label class="text-dim">Price:</label><input type="number" min="0" step="0.01" class="input-field dm-price-input w-24" data-index="${index}" value="${item.price}"></div></div>`).join('')}</div>
+                        <div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3 space-y-2" data-index="${index}"><div class="flex justify-between items-center"><span class="text-item-name">${item.name}</span><button class="text-red-500 hover:text-red-400 dm-remove-item-btn" data-index="${index}">[X]</button></div><textarea class="input-field dm-details-input w-full" data-index="${index}" placeholder="Details">${item.details||''}</textarea><div class="flex items-center gap-2"><label class="text-dim">Qty:</label><input type="number" min="0" class="input-field dm-qty-input w-16" data-index="${index}" value="${item.quantity}"><label class="text-dim">Price:</label><input type="number" min="0" step="0.01" class="input-field dm-price-input w-24" data-index="${index}" value="${item.price}"></div></div>`).join('')}</div>
                         <div class="mt-4">
                             <h4 class="text-xl mb-2 text-header">> Add Custom Item</h4>
                             <input id="custom-item-name" class="input-field mb-2" placeholder="Item Name">
+                            <textarea id="custom-item-details" class="input-field mb-2" placeholder="Details"></textarea>
                             <div class="flex gap-2 mb-2">
                                 <input id="custom-item-price" type="number" class="input-field flex-1" placeholder="Price">
                                 <input id="custom-item-qty" type="number" class="input-field flex-1" placeholder="Qty">
@@ -780,7 +785,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="lg:col-span-1 flex flex-col gap-6">
+                <div class="md:col-span-1 flex flex-col gap-6">
                     <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><div class="grid grid-cols-2 gap-2 mt-3"><button class="btn checkout-btn" data-player-id="${playerId}">Checkout</button><button class="btn btn-secondary clear-cart-btn" data-player-id="${playerId}">Clear Cart</button></div>` : `<p class="text-dim">Cart is empty.</p><div class="mt-3"><button class="btn btn-secondary clear-cart-btn w-full" data-player-id="${playerId}">Remove Cart</button></div>`}</div>`).join('')}</div></div>
                 </div>
             </div>`;
@@ -792,13 +797,13 @@
             const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
             const playerCart = carts[state.characterKey] || { items: [] };
             const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
-            playerView.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-lg">
-                <div class="lg:col-span-2">
+            playerView.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-lg">
+                <div class="md:col-span-2">
                     <div class="cli-window mb-6"><h1 class="text-3xl text-header">${shopName}</h1><p class="text-xl text-dim">(${shopType})</p><p class="text-xl">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-xl text-dim">> ${shopkeeper.description||'...'}</p></div>
 
-                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p><p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
+                    <div class="cli-window"><h2 class="text-2xl mb-4 text-header">> Items for Sale</h2><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${inventory.map(item=>`<div class="item-card ${item.quantity === 0 ? 'sold-out' : ''} border border-white/50 p-3 flex flex-col justify-between" data-item-id="${item.id}"><p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p>${item.details?`<p class="text-sm text-dim">${item.details}</p>`:''}<p class="text-price">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p><div class="mt-auto pt-2 flex justify-end items-center gap-2">${item.quantity > 0 ? `<button class="btn add-to-cart-btn" data-item-id="${item.id}">Add</button>`: ''}</div></div>`).join('')}</div></div>
                 </div>
-                <div class="lg:col-span-1">
+                <div class="md:col-span-1">
                     <div class="cli-window sticky top-24"><h2 class="text-2xl mb-4 text-header">> ${state.playerData.name}'s Purse</h2><p class="text-2xl text-price">${state.playerData.gold} GP</p><hr class="border-white/50 my-4"><h2 class="text-2xl mb-4 text-header">> Your Cart</h2><div id="player-cart-list" class="space-y-2 mb-4 min-h-[50px]">${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`<div class="flex justify-between items-center"><span>- <span class="text-item-name">${item.name}</span></span><button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button></div>`).join('')}</div><hr class="border-white/50 my-4"><p class="text-xl text-right">> Total: <span class="text-price">${cartTotal} GP</span></p></div>
                 </div>
             </div>`;
@@ -856,8 +861,8 @@
                     newInventory[invIndex] = { ...item, quantity: item.quantity - 1 };
 
                     const playerCart = shopData.carts[state.characterKey] || { playerName: state.playerData.name, items: [] };
-                    const { id, name, price } = item;
-                    const newCartItems = [...playerCart.items, { id, name, price }];
+                    const { id, name, price, details } = item;
+                    const newCartItems = [...playerCart.items, { id, name, price, details }];
 
                     transaction.update(shopRef, {
                         inventory: newInventory,
@@ -925,9 +930,9 @@
 
         function handleInventoryUpdate(e) {
             const index = parseInt(e.target.dataset.index, 10);
-            const field = e.target.classList.contains('dm-qty-input') ? 'quantity' : 'price';
-            let value = field === 'price' ? parseFloat(e.target.value) : parseInt(e.target.value, 10);
-            if (isNaN(value) || value < 0) return;
+            const field = e.target.classList.contains('dm-qty-input') ? 'quantity' : e.target.classList.contains('dm-price-input') ? 'price' : 'details';
+            let value = field === 'price' ? parseFloat(e.target.value) : field === 'quantity' ? parseInt(e.target.value, 10) : e.target.value;
+            if (field !== 'details' && (isNaN(value) || value < 0)) return;
             const newInventory = [...state.shopData.inventory];
             newInventory[index] = { ...newInventory[index], [field]: value };
             state.shopData.inventory = newInventory;
@@ -945,17 +950,20 @@
 
         function handleAddCustomItem() {
             const nameInput = document.getElementById('custom-item-name');
+            const detailsInput = document.getElementById('custom-item-details');
             const priceInput = document.getElementById('custom-item-price');
             const qtyInput = document.getElementById('custom-item-qty');
             const name = nameInput.value.trim();
+            const details = detailsInput.value.trim();
             const price = parseFloat(priceInput.value);
             const qty = parseInt(qtyInput.value, 10);
             if (!name || isNaN(price) || isNaN(qty) || qty < 0 || price < 0) return;
-            const newItem = { id: `item-${Math.random().toString(36).substr(2,9)}`, name, price, quantity: qty };
+            const newItem = { id: `item-${Math.random().toString(36).substr(2,9)}`, name, price, quantity: qty, details };
             const newInventory = [...state.shopData.inventory, newItem];
             state.shopData.inventory = newInventory;
             updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
             nameInput.value = '';
+            detailsInput.value = '';
             priceInput.value = '';
             qtyInput.value = '';
             renderDMView();
@@ -965,7 +973,7 @@
             document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
             document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
             document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
-            document.querySelectorAll('.dm-qty-input, .dm-price-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
+            document.querySelectorAll('.dm-qty-input, .dm-price-input, .dm-details-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
             document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
             document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => { updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(e.target.dataset.value, 10) }); }));
             document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
