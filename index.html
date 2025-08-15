@@ -375,14 +375,6 @@
             render();
         }
 
-        function enterDMHub() {
-            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
-            state.isDM = true;
-            state.inShop = false;
-            state.shopId = null;
-            state.shopData = null;
-            render();
-        }
 
         // --- Core App Logic ---
         function exitSubView() {
@@ -916,6 +908,7 @@
     </script>
 </body>
 </html>
+
 
 
 
