@@ -33,6 +33,7 @@
             color: var(--color-text);
             font-size: 20px;
             line-height: 1.6;
+            padding-top: 5rem; /* space for fixed nav */
         }
 
         /* Custom styles for the new layout */
@@ -101,11 +102,15 @@
         }
         .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
         .slot-expended { background-color: transparent; box-shadow: none; }
+        .cast-btn { background-color: var(--color-bg); white-space: nowrap; }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
-    <a href="index.html" class="fixed top-4 right-4 text-header hover:text-accent"><i data-lucide="x" class="w-6 h-6"></i></a>
+    <!-- Top Navigation -->
+    <div class="fixed top-0 left-0 right-0 h-16 bg-black/80 backdrop-blur-sm border-b border-border z-50 flex items-center justify-end px-4">
+        <a href="index.html" class="text-header hover:text-accent"><i data-lucide="x" class="w-6 h-6"></i></a>
+    </div>
 
     <!-- Main Container -->
     <div class="max-w-7xl mx-auto relative">
@@ -248,6 +253,12 @@
 
     <script>
         // Load character data from sessionStorage or sample file
+        let inspiration = false;
+        const inspirationEl = document.getElementById('inspiration');
+        inspirationEl.addEventListener('click', () => {
+            inspiration = !inspiration;
+            inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+        });
         const playerDataString = sessionStorage.getItem('currentPlayer');
         function renderCharacter(sheet, player) {
             document.getElementById('char-avatar').src = sheet.avatarUrl || 'https://i.imgur.com/zLRhJXx.png';
@@ -259,7 +270,8 @@
             document.getElementById('stat-speed').textContent = sheet.combat?.speed ? `${sheet.combat.speed}ft` : '';
             document.getElementById('stat-init').textContent = sheet.combat?.initiative ?? '';
             document.getElementById('proficiency-bonus').textContent = sheet.proficiencybonus ?? '';
-            document.getElementById('inspiration').textContent = sheet.inspiration ? 'Yes' : 'No';
+            inspiration = !!sheet.inspiration;
+            inspirationEl.textContent = inspiration ? 'Yes' : 'No';
 
             const abbrMap = { Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' };
             const abilitiesContainer = document.getElementById('abilities-container');
@@ -354,7 +366,7 @@
                 }
                 container.innerHTML += `
                     <div class="flex items-center justify-start gap-4">
-                        <span class="text-accent w-20">Level ${level}</span>
+                        <span class="text-accent w-20">Lvl ${level}</span>
                         <div class="slot-bar">${slotsHtml}</div>
                     </div>
                 `;
@@ -373,10 +385,12 @@
         }
 
         function preparedSpellRow(spell) {
+            const buttons = spell.level > 0 ? `<div class="flex gap-1">${renderCastButtons(spell.level)}</div>` : '';
+            const justify = buttons ? 'justify-between' : 'justify-start';
             return `
-                <div class="flex justify-between items-center py-1 border-b border-border">
+                <div class="flex ${justify} items-center py-1 border-b border-border">
                     <span class="text-accent">${spell.name}</span>
-                    <div class="flex gap-1">${renderCastButtons(spell.level)}</div>
+                    ${buttons}
                 </div>
             `;
         }
