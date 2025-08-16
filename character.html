@@ -1,280 +1,285 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Character Sheet</title>
+    <title>Character Sheet Redesign</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for the retro theme -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+    <!-- Lucide Icons for modern iconography -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-      :root {
-        --color-text: #e6e6e6;
-        --color-header: #00ff88;
-          --color-accent: #ffffff;
-        --color-price: #ffb454;
-        --color-dim: #6b7280;
-        --color-border: #333333;
-        --shadow-glow: 0 0 8px;
-      }
-      html {
-        scroll-behavior: smooth;
-      }
-      body {
-        font-family: "VT323", monospace;
-        background-color: #0a0a0a;
-        color: var(--color-text);
-        font-size: 22px;
-        line-height: 1.6;
-        overflow-x: hidden;
-        padding-top: 5rem;
-      }
-      .cli-window {
-        border: 1px solid var(--color-border);
-        border-radius: 0.375rem;
-        padding: 1rem;
-        background-color: rgba(20, 20, 20, 0.9);
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-        position: relative;
-      }
-      .btn {
-        display: inline-block;
-        padding: 0.75rem 1.25rem;
-        background-color: var(--color-accent);
-        color: #000000;
-        cursor: pointer;
-        border: none;
-        border-radius: 0.25rem;
-        transition: all 0.2s ease-in-out;
-      }
-      .btn:hover:not(:disabled) {
-        background-color: #000000;
-        color: var(--color-accent);
-        box-shadow: 0 0 5px var(--color-accent);
-      }
-      .btn-secondary {
-        background-color: transparent;
-        color: var(--color-accent);
-        border: 1px solid var(--color-accent);
-        border-radius: 0.25rem;
-      }
-      .btn-secondary:hover {
-        background-color: var(--color-accent);
-        color: #000000;
-      }
-      .text-header {
-        color: var(--color-header);
-        text-shadow: var(--shadow-glow) var(--color-header);
-      }
-      .text-item-name {
-        color: var(--color-accent);
-      }
-      .text-price {
-        color: var(--color-price);
-        font-weight: bold;
-      }
-      .text-dim {
-        color: var(--color-dim);
-      }
-      #toolbar {
-        transition: transform 0.3s ease;
-      }
-      #toolbar.hide {
-        transform: translateY(-100%);
-      }
+        /* Reusing your original theme colors for consistency */
+        :root {
+            --color-text: #E6E6E6;
+            --color-header: #00FF88;
+            --color-accent: #FFFFFF;
+            --color-price: #FFB454;
+            --color-dim: #6B7280;
+            --color-border: #333333;
+            --shadow-glow: 0 0 8px;
+            --color-bg: #0A0A0A;
+            --window-bg: rgba(20, 20, 20, 0.85);
+        }
+
+        /* Base body styles */
+        body {
+            font-family: "VT323", monospace;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-size: 20px;
+            line-height: 1.6;
+        }
+
+        /* Custom styles for the new layout */
+        .text-header {
+            color: var(--color-header);
+            text-shadow: var(--shadow-glow) var(--color-header);
+        }
+        .text-accent { color: var(--color-accent); }
+        .text-price { color: var(--color-price); }
+        .text-dim { color: var(--color-dim); }
+
+        /* Card styling for content blocks */
+        .content-card {
+            background-color: rgba(10, 10, 10, 0.5);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        /* Tab styling */
+        .tab-button {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            border-bottom: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            color: var(--color-dim);
+            border-radius: 0.375rem 0.375rem 0 0;
+        }
+        .tab-button.active {
+            background-color: var(--window-bg);
+            color: var(--color-header);
+            border-color: var(--color-header);
+            box-shadow: 0 -2px 5px rgba(0, 255, 136, 0.2);
+        }
+        .tab-button:not(.active):hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--color-accent);
+        }
+        .tab-content {
+            display: none;
+            background-color: var(--window-bg);
+            border: 1px solid var(--color-header);
+            padding: 1.5rem;
+            border-radius: 0 0.375rem 0.375rem 0.375rem;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Custom scrollbar for better theme integration */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
     </style>
-  </head>
-  <body class="p-4 sm:p-6 lg:p-8">
-    <div
-      id="toolbar"
-      class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20"
-    >
-      <button id="back-btn" type="button" class="btn btn-secondary">Back</button>
-      <h1 class="text-2xl text-header">Character Sheet</h1>
-      <button id="logout-btn" type="button" class="btn-secondary">Logout</button>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Sticky Header Section: Character Overview -->
+        <header class="sticky top-0 z-10 bg-black/80 backdrop-blur-sm p-4 rounded-b-lg mb-6 border-x border-b border-border">
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <!-- Avatar and Name -->
+                <div class="flex items-center gap-4 flex-1">
+                    <img src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-16 h-16 object-cover rounded-full border-2 border-header">
+                    <div>
+                        <h1 class="text-3xl text-header">Elara Meadowlight</h1>
+                        <p class="text-lg text-dim">Level 5 Wizard</p>
+                    </div>
+                </div>
+                <!-- Core Stats -->
+                <div class="grid grid-cols-4 gap-3 text-center text-lg w-full sm:w-auto">
+                    <div class="content-card !p-2">
+                        <span class="text-dim text-sm">HP</span>
+                        <span class="text-2xl text-accent">28/35</span>
+                    </div>
+                    <div class="content-card !p-2">
+                        <span class="text-dim text-sm">AC</span>
+                        <span class="text-2xl text-accent">13</span>
+                    </div>
+                    <div class="content-card !p-2">
+                        <span class="text-dim text-sm">Speed</span>
+                        <span class="text-2xl text-accent">30ft</span>
+                    </div>
+                    <div class="content-card !p-2">
+                        <span class="text-dim text-sm">Init</span>
+                        <span class="text-2xl text-accent">+2</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="flex items-end -mb-px">
+            <button class="tab-button active" data-tab="core">
+                <i data-lucide="shield" class="inline-block w-4 h-4 mr-1"></i> Core
+            </button>
+            <button class="tab-button" data-tab="combat">
+                <i data-lucide="swords" class="inline-block w-4 h-4 mr-1"></i> Combat
+            </button>
+            <button class="tab-button" data-tab="inventory">
+                <i data-lucide="backpack" class="inline-block w-4 h-4 mr-1"></i> Inventory
+            </button>
+            <button class="tab-button" data-tab="info">
+                <i data-lucide="user-round" class="inline-block w-4 h-4 mr-1"></i> Info
+            </button>
+        </nav>
+
+        <!-- Tab Content Panels -->
+        <main>
+            <!-- Core Tab -->
+            <div id="core" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Ability Scores -->
+                    <div class="md:col-span-1 space-y-3">
+                        <h2 class="text-2xl text-header mb-2">> Abilities</h2>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <!-- Sample Ability Scores -->
+                            <div class="content-card !p-2"><div class="text-sm text-accent">STR</div><div class="text-2xl">10</div><div class="text-dim">+0</div></div>
+                            <div class="content-card !p-2"><div class="text-sm text-accent">DEX</div><div class="text-2xl">14</div><div class="text-dim">+2</div></div>
+                            <div class="content-card !p-2"><div class="text-sm text-accent">CON</div><div class="text-2xl">12</div><div class="text-dim">+1</div></div>
+                            <div class="content-card !p-2"><div class="text-sm text-accent">INT</div><div class="text-2xl">18</div><div class="text-dim">+4</div></div>
+                            <div class="content-card !p-2"><div class="text-sm text-accent">WIS</div><div class="text-2xl">15</div><div class="text-dim">+2</div></div>
+                            <div class="content-card !p-2"><div class="text-sm text-accent">CHA</div><div class="text-2xl">13</div><div class="text-dim">+1</div></div>
+                        </div>
+                        <div class="pt-4">
+                            <p>> Proficiency: <span class="text-accent">+3</span></p>
+                            <p>> Inspiration: <span class="text-accent">Yes</span></p>
+                        </div>
+                    </div>
+                    <!-- Skills -->
+                    <div class="md:col-span-2">
+                        <h2 class="text-2xl text-header mb-2">> Skills</h2>
+                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2">
+                            <!-- Sample Skills -->
+                            <p>Acrobatics <span class="text-accent">+2</span></p>
+                            <p>Arcana <span class="text-accent text-header">+7*</span></p>
+                            <p>Athletics <span class="text-accent">+0</span></p>
+                            <p>History <span class="text-accent text-header">+7*</span></p>
+                            <p>Insight <span class="text-accent">+2</span></p>
+                            <p>Investigation <span class="text-accent">+4</span></p>
+                            <p>Medicine <span class="text-accent">+2</span></p>
+                            <p>Perception <span class="text-accent">+2</span></p>
+                            <p class="text-dim">...and more</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Combat Tab -->
+            <div id="combat" class="tab-content">
+                <h2 class="text-2xl text-header mb-4">> Attacks & Spellcasting</h2>
+                <div class="content-card space-y-2">
+                    <div class="grid grid-cols-3 gap-4 font-bold">
+                        <p class="text-accent">Attack</p>
+                        <p class="text-accent">Bonus</p>
+                        <p class="text-accent">Damage/Type</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 border-t border-border pt-2">
+                        <p>Dagger</p>
+                        <p>+5</p>
+                        <p>1d4+2 Piercing</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 border-t border-border pt-2">
+                        <p>Fire Bolt</p>
+                        <p>+7</p>
+                        <p>2d10 Fire</p>
+                    </div>
+                </div>
+                <p class="text-dim mt-4">See Spell Management page for full spell list and slots.</p>
+            </div>
+            <!-- Inventory Tab -->
+            <div id="inventory" class="tab-content">
+                <h2 class="text-2xl text-header mb-4">> Equipment</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2">
+                        <div class="content-card min-h-48">
+                            <p class="whitespace-pre-line">
+Component Pouch
+Spellbook
+Dagger x2
+Traveler's Clothes
+Backpack with:
+- Bedroll
+- 5 days Rations
+- Waterskin
+- 50ft Rope
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl text-accent mb-2">Money</h3>
+                        <div class="content-card space-y-1">
+                            <p>GP: <span class="text-price">125</span></p>
+                            <p>SP: <span class="text-price">10</span></p>
+                            <p>CP: <span class="text-price">50</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Info Tab -->
+            <div id="info" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl text-header mb-2">> Personality</h2>
+                        <div class="content-card space-y-2">
+                            <p><span class="text-accent">Traits:</span> I use polysyllabic words to sound more intelligent.</p>
+                            <p><span class="text-accent">Ideals:</span> Knowledge. The path to power and self-improvement is through knowledge.</p>
+                            <p><span class="text-accent">Bonds:</span> I have an ancient text that holds terrible secrets that must not fall into the wrong hands.</p>
+                            <p><span class="text-accent">Flaws:</span> I am easily distracted by the promise of information.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl text-header mb-2">> Features & Traits</h2>
+                        <div class="content-card space-y-2">
+                            <p><span class="text-accent">Arcane Recovery:</span> Once per day when you finish a short rest, you can recover spent spell slots.</p>
+                            <p><span class="text-accent">Darkvision:</span> Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-    <main id="sheet-container" class="space-y-6 py-8 my-8 max-w-4xl mx-auto"></main>
 
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Tab switching logic
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
-        authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
-        projectId: "dnd-shop-app-c4f86",
-        storageBucket: "dnd-shop-app-c4f86.appspot.com",
-        messagingSenderId: "480358969004",
-        appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
-        measurementId: "G-DWLMWMZTZ3"
-      };
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Deactivate all buttons and content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      document.getElementById("back-btn").addEventListener("click", () => {
-        window.location.href = "index.html";
-      });
-      document.getElementById("logout-btn").addEventListener("click", () => {
-        localStorage.removeItem("dndShopCharacterKey");
-        window.location.href = "index.html";
-      });
-
-      function abilityBox(name, obj = {}) {
-        const mod =
-          typeof obj.mod === "number" && obj.mod >= 0
-            ? `+${obj.mod}`
-            : (obj.mod ?? "");
-        return `<div class="flex flex-col items-center border border-white/50 p-1">
-                        <div class="text-sm text-item-name">${name.slice(0, 3).toUpperCase()}</div>
-                        <div class="text-xl">${obj.score ?? "-"}</div>
-                        <div class="text-dim text-sm">${mod ?? ""}</div>
-                    </div>`;
-      }
-function saveBox(name, obj = {}) {
-        return `<div class="flex flex-col items-center border border-white/50 p-1">
-                    <div class="text-sm text-item-name">${name.slice(0,3).toUpperCase()}</div>
-                    <div class="text-xl">${obj.save ?? "-"}</div>
-                    <div class="text-dim text-sm">${obj.saveProf ? "*" : ""}</div>
-                </div>`;
-}
-
-function statBox(label, value) {
-  return `<div class="flex flex-col items-center border border-white/50 p-2 rounded">`
-        + `<div class="text-sm text-dim">${label}</div>`
-        + `<div class="text-xl text-item-name">${value ?? "-"}</div>`
-        + `</div>`;
-}
-
-function collapsibleSection(title, content, open = false) {
-  return `<details class="border border-white/20 rounded-xl" ${open ? "open" : ""}>`
-        + `<summary class="text-sm text-header py-2 px-3 uppercase tracking-widest cursor-pointer select-none">&gt; ${title}</summary>`
-        + `<div class="p-3 border-t border-white/20">${content}</div>`
-        + `</details>`;
-}
-
-        function renderCharacterSheet(data) {
-          const abilityOrder = [
-            "Strength",
-            "Dexterity",
-            "Constitution",
-            "Intelligence",
-            "Wisdom",
-            "Charisma",
-          ];
-          const abilities = abilityOrder
-            .map((n) => abilityBox(n, data.abilities?.[n] || {}))
-            .join("");
-          const saveBoxes = abilityOrder
-            .map((n) => saveBox(n, data.abilities?.[n] || {}))
-            .join("");
-          const skills = Object.entries(data.skills || {})
-            .map(
-              ([n, o]) =>
-                `<div>${n}: <span class="text-item-name">${o.bonus ?? "-"}</span>${o.prof ? " *" : ""}</div>`,
-            )
-            .join("");
-          const attacks = (data.attacks || [])
-            .map(
-              (a) =>
-                `<li><span class="text-item-name">${a.name}</span> ${a.atkBonus || ""} ${a.damage || ""}</li>`,
-            )
-            .join("");
-          const money = data.equipment?.money
-            ? `CP:${data.equipment.money.cp || 0} SP:${data.equipment.money.sp || 0} EP:${data.equipment.money.ep || 0} GP:${data.equipment.money.gp || 0} PP:${data.equipment.money.pp || 0}`
-            : "";
-
-            const imgSrc = data.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
-            const hpValue = data.combat?.hp
-              ? `${data.combat.hp.current ?? "-"} / ${data.combat.hp.max ?? "-"}`
-              : "-";
-
-            const abilitiesSection = collapsibleSection("Abilities", `<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${abilities}</div>`, true);
-            const savesSection = collapsibleSection("Saving Throws", `<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${saveBoxes}</div>`);
-            const skillsSection = collapsibleSection("Skills", `<div class="space-y-1">${skills || '<p class="text-dim">No skill data.</p>'}${data.passiveperception ? `<p>Passive Perception: <span class=\"text-item-name\">${data.passiveperception}</span></p>` : ""}${data.otherprofs ? `<p>Other Profs: <span class=\"text-item-name\">${data.otherprofs}</span></p>` : ""}</div>`);
-            const combatSection = collapsibleSection(
-              "Combat",
-              `<p>Hit Dice: <span class=\"text-item-name\">${data.combat?.hitdice?.remaining ?? "-"}</span></p><p>Death Saves: <span class=\"text-item-name\">${data.combat?.deathSaves ? `S:${data.combat.deathSaves.successes} F:${data.combat.deathSaves.failures}` : "-"}</span></p>`
-            );
-            const attacksSection = collapsibleSection("Attacks &amp; Spellcasting", `<ul class=\"list-disc pl-4 space-y-1\">${attacks || '<li class=\"text-dim\">No attacks.</li>'}</ul>${data.attacksNotes ? `<p class=\"mt-2\">${data.attacksNotes}</p>` : ""}`);
-            const equipmentSection = collapsibleSection("Equipment", `${money ? `<p>${money}</p>` : ""}${data.equipment?.list ? `<p class=\"mt-2 whitespace-pre-line\">${data.equipment.list}</p>` : ""}`);
-
-          document.getElementById("sheet-container").innerHTML = `
-          <div class="max-w-6xl mx-auto px-4">
-            <div class="flex items-center gap-2 text-sm text-header mb-4">
-              <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(0,255,136,0.8)]"></span>
-              <span class="tracking-widest">charsheet$</span>
-              <span class="text-dim">cat ./dnd/character.json</span>
-            </div>
-            <div class="rounded-2xl border border-white/20 p-4 bg-black/40">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="flex justify-center md:justify-start">
-                  <img src="${imgSrc}" alt="${data.charname || "Character"} image" class="w-full max-w-xs aspect-square object-cover border border-white/50 rounded-lg" />
-                </div>
-                <div class="md:col-span-2 flex flex-col justify-center text-center md:text-left space-y-2">
-                  <h2 class="text-3xl text-header">${data.charname || "Unknown Adventurer"}</h2>
-                  <p class="text-dim">${[data.classlevel, data.race, data.alignment].filter(Boolean).join(" | ")}</p>
-                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                    ${statBox("AC", data.combat?.ac)}
-                    ${statBox("Initiative", data.combat?.initiative)}
-                    ${statBox("HP", hpValue)}
-                    ${statBox("Speed", data.combat?.speed)}
-                  </div>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <div class="space-y-4">
-                  ${abilitiesSection}
-                  ${savesSection}
-                  ${skillsSection}
-                </div>
-                <div class="space-y-4">
-                  ${combatSection}
-                  ${attacksSection}
-                  ${equipmentSection}
-                </div>
-              </div>
-            </div>
-          </div>`;
-        }
-
-      async function loadCharacter() {
-        const params = new URLSearchParams(window.location.search);
-        const key = params.get("char") || localStorage.getItem("dndShopCharacterKey") || "sample-character";
-        try {
-          const snap = await getDoc(doc(db, "characters", key));
-          if (snap.exists() && snap.data().sheet) {
-            renderCharacterSheet(snap.data().sheet);
-            return;
-          }
-          const res = await fetch(`${key}.json`);
-          if (!res.ok) throw new Error("Character not found");
-          const data = await res.json();
-          renderCharacterSheet(data);
-        } catch (e) {
-          document.getElementById("sheet-container").innerHTML =
-            '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
-        }
-      }
-
-      loadCharacter();
-    const toolbar = document.getElementById("toolbar");
-    let touchStartY = 0;
-    window.addEventListener("touchstart", (e) => {
-      touchStartY = e.touches[0].clientY;
-    });
-    window.addEventListener("touchmove", (e) => {
-      const currentY = e.touches[0].clientY;
-      if (touchStartY - currentY > 50) {
-        toolbar.classList.add("hide");
-      } else if (currentY - touchStartY > 50) {
-        toolbar.classList.remove("hide");
-      }
-    });
+                // Activate the clicked button and corresponding content
+                button.classList.add('active');
+                const tabId = button.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
     </script>
-  </body>
+</body>
 </html>
