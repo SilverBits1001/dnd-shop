@@ -258,7 +258,23 @@
         </main>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase setup
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "480358969004",
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+          measurementId: "G-DWLMWMZTZ3"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         // Load character data from sessionStorage or sample file
         let inspiration = false;
         const inspirationEl = document.getElementById('inspiration');
@@ -267,6 +283,8 @@
             inspirationEl.textContent = inspiration ? 'Yes' : 'No';
         });
         const playerDataString = sessionStorage.getItem('currentPlayer');
+        const characterKey = sessionStorage.getItem('currentPlayerKey');
+        let playerData = null;
         function renderCharacter(sheet, player) {
             document.getElementById('char-avatar').src = sheet.avatarUrl || 'https://i.imgur.com/zLRhJXx.png';
             document.getElementById('char-name').textContent = player?.name || sheet.charname || '';
@@ -319,7 +337,7 @@
 
         if (playerDataString) {
             try {
-                const playerData = JSON.parse(playerDataString);
+                playerData = JSON.parse(playerDataString);
                 const sheet = playerData.sheet || {};
                 renderCharacter(sheet, playerData);
             } catch {
@@ -353,7 +371,7 @@
                 { name: 'Magic Missile', level: 1 },
                 { name: 'Shield', level: 1 }
             ],
-            spellSlots: {
+            spellSlots: (playerData && playerData.spellSlots) || {
                 1: { max: 4, expended: 0 },
                 2: { max: 3, expended: 0 },
                 3: { max: 2, expended: 0 },
@@ -361,13 +379,17 @@
             }
         };
 
-        const savedSlots = localStorage.getItem('spellSlots');
-        if (savedSlots) {
-            try { state.spellSlots = JSON.parse(savedSlots); } catch {}
-        }
-
-        function saveSpellSlots() {
-            localStorage.setItem('spellSlots', JSON.stringify(state.spellSlots));
+        async function saveSpellSlots() {
+            if (!characterKey) return;
+            try {
+                await updateDoc(doc(db, 'characters', characterKey), { spellSlots: state.spellSlots });
+                if (playerData) {
+                    playerData.spellSlots = state.spellSlots;
+                    sessionStorage.setItem('currentPlayer', JSON.stringify(playerData));
+                }
+            } catch (err) {
+                console.error('Error saving spell slots:', err);
+            }
         }
 
         function renderSpellSlots() {
@@ -470,7 +492,19 @@
 
         renderPreparedSpells();
         renderSpellSlots();
-        saveSpellSlots();
+
+        // Listen for remote updates
+        if (characterKey) {
+            const playerDocRef = doc(db, 'characters', characterKey);
+            onSnapshot(playerDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    playerData = docSnap.data();
+                    state.spellSlots = playerData.spellSlots || state.spellSlots;
+                    renderCharacter(playerData.sheet || {}, playerData);
+                    renderSpellSlots();
+                }
+            });
+        }
     </script>
 </body>
 </html>

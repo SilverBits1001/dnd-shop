@@ -968,6 +968,7 @@
             lucide.createIcons();
             document.getElementById('open-full-sheet-btn')?.addEventListener('click', () => {
                 sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
+                sessionStorage.setItem('currentPlayerKey', state.characterKey);
             });
             document.querySelectorAll('.join-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
@@ -1034,7 +1035,7 @@ async function handleDMActiveChange(e) {
             const spellState = {
                 knownSpells: [],
                 preparedSpells: ["Magic Missile", "Shield"],
-                spellSlots: {
+                spellSlots: state.playerData.spellSlots || {
                     '1': { max: 4, expended: 0 },
                     '2': { max: 3, expended: 0 },
                     '3': { max: 2, expended: 0 },
@@ -1042,13 +1043,13 @@ async function handleDMActiveChange(e) {
                 },
             };
 
-            const savedSlots = localStorage.getItem('spellSlots');
-            if (savedSlots) {
-                try { spellState.spellSlots = JSON.parse(savedSlots); } catch {}
-            }
-
-            function saveSpellSlots() {
-                localStorage.setItem('spellSlots', JSON.stringify(spellState.spellSlots));
+            async function saveSpellSlots() {
+                try {
+                    await updateDoc(doc(db, 'characters', state.characterKey), { spellSlots: spellState.spellSlots });
+                    if (state.playerData) state.playerData.spellSlots = spellState.spellSlots;
+                } catch (err) {
+                    console.error('Error saving spell slots:', err);
+                }
             }
 
             const API_BASE = "https://www.dnd5eapi.co/api";
@@ -1308,10 +1309,7 @@ async function handleDMActiveChange(e) {
             });
 
             window.addEventListener('pageshow', () => {
-                const savedSlots = localStorage.getItem('spellSlots');
-                if (savedSlots) {
-                    try { spellState.spellSlots = JSON.parse(savedSlots); } catch {}
-                }
+                spellState.spellSlots = state.playerData.spellSlots || spellState.spellSlots;
                 renderSpellSlots();
                 renderPreparedSpells();
             });
