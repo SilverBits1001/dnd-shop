@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spell Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -122,7 +123,7 @@
     <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
-             <button id="exit-mode-btn" onclick="history.back()">C</button>
+             <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="log-out" class="w-6 h-6"></i></button>
         </div>
     </div>
 
@@ -175,6 +176,7 @@
     </main>
 
     <script type="module">
+        lucide.createIcons();
         // --- STATE MANAGEMENT (SAMPLE DATA) ---
         let state = {
             knownSpells: [], // Array of spell objects from API

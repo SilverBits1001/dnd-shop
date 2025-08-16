@@ -151,7 +151,7 @@
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
              <button id="dm-tools-btn" class="hidden">DM Tools</button>
-             <button id="exit-mode-btn" class="hidden">C</button>
+             <button id="exit-mode-btn" class="hidden"><i data-lucide="log-out" class="w-6 h-6"></i></button>
              <button id="logout-btn" class="hidden">Logout</button>
         </div>
     </div>
@@ -1042,6 +1042,15 @@ async function handleDMActiveChange(e) {
                 },
             };
 
+            const savedSlots = localStorage.getItem('spellSlots');
+            if (savedSlots) {
+                try { spellState.spellSlots = JSON.parse(savedSlots); } catch {}
+            }
+
+            function saveSpellSlots() {
+                localStorage.setItem('spellSlots', JSON.stringify(spellState.spellSlots));
+            }
+
             const API_BASE = "https://www.dnd5eapi.co/api";
 
             async function searchSpellsAPI(query) {
@@ -1082,6 +1091,7 @@ async function handleDMActiveChange(e) {
                 renderPreparedSpells();
                 renderSpellbook();
                 renderSpellSlots();
+                saveSpellSlots();
             }
 
             function renderSpellSlots() {
@@ -1238,6 +1248,7 @@ async function handleDMActiveChange(e) {
                 const levelStr = String(spellLevelToUse);
                 if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
                     spellState.spellSlots[levelStr].expended++;
+                    saveSpellSlots();
                     renderAll();
                 } else {
                     const originalText = button.textContent;
@@ -1262,6 +1273,7 @@ async function handleDMActiveChange(e) {
                 } else {
                     levelData.expended = maxSlots - (index + 1);
                 }
+                saveSpellSlots();
                 renderSpellSlots();
             }
 
@@ -1269,6 +1281,7 @@ async function handleDMActiveChange(e) {
                 for (const level in spellState.spellSlots) {
                     spellState.spellSlots[level].expended = 0;
                 }
+                saveSpellSlots();
                 renderSpellSlots();
                 renderPreparedSpells();
             }
