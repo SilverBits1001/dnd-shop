@@ -54,8 +54,10 @@
             transition: all 0.2s ease-in-out;
         }
         .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
-        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; }
+        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
         .btn-secondary:hover { background-color: var(--color-accent); color: var(--btn-text); }
+        .cast-btn { background-color: var(--color-bg); }
+        .cast-btn:active { background-color: var(--color-accent); color: var(--btn-text); }
         .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
         .input-field, .select-field {
             background-color: var(--input-bg);
@@ -878,7 +880,7 @@
                                     <summary class="text-2xl text-header cursor-pointer">&gt; Spell Search</summary>
                                     <div class="mt-4">
                                         <div class="flex gap-2 mb-4">
-                                            <input type="text" id="search-input" class="input-field" placeholder="SEARCH DND5EAPI...">
+                                            <input type="text" id="search-input" class="input-field" placeholder="Search Spells">
                                             <button id="search-btn" class="btn">Go</button>
                                         </div>
                                         <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
@@ -887,8 +889,9 @@
                             </div>
                         </div>
                     </details>
-                    <div class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
-                        <h3 class="text-2xl text-header mb-4">> Shops</h3>
+                    <details class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
+                        <summary class="text-2xl text-header cursor-pointer">> Shops</summary>
+                        <div class="mt-4">
                         ${state.activeShops.length === 0
                             ? '<p class="text-dim">No active shops.</p>'
                             : state.activeShops.map(s => `
@@ -897,7 +900,8 @@
                                     <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
                                 </div>
                             `).join('')}
-                    </div>
+                        </div>
+                    </details>
                 </div>
             `;
             document.querySelectorAll('.join-shop-btn').forEach(btn => {
@@ -983,7 +987,9 @@ async function handleDMActiveChange(e) {
                     const response = await fetch(`${API_BASE}/spells?name=${query}`);
                     if (!response.ok) throw new Error('Network response was not ok.');
                     const data = await response.json();
-                    renderSearchResults(data.results);
+                    const detailPromises = data.results.map(r => getSpellDetails(r.index));
+                    const detailed = (await Promise.all(detailPromises)).filter(Boolean);
+                    renderSearchResults(detailed);
                 } catch (error) {
                     console.error('API Search Error:', error);
                     resultsContainer.innerHTML = `<p class="text-price">> Error fetching spells.</p>`;
@@ -1041,14 +1047,22 @@ async function handleDMActiveChange(e) {
             function renderPreparedSpells() {
                 const container = module.querySelector('#prepared-spells-container');
                 container.innerHTML = '';
-                if (spellState.preparedSpells.length === 0) {
+                const cantrips = spellState.knownSpells.filter(s => s.level === 0);
+                const prepared = spellState.preparedSpells
+                    .map(name => spellState.knownSpells.find(s => s.name === name && s.level > 0))
+                    .filter(Boolean);
+                if (cantrips.length === 0 && prepared.length === 0) {
                     container.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
                     return;
                 }
-                spellState.preparedSpells.forEach(spellName => {
-                    const spell = spellState.knownSpells.find(s => s.name === spellName);
-                    if (spell) container.innerHTML += createSpellCard(spell, 'prepared');
-                });
+                if (cantrips.length) {
+                    container.innerHTML += '<h3 class="text-xl text-header">> Cantrips</h3>';
+                    cantrips.forEach(spell => { container.innerHTML += createSpellCard(spell, 'prepared'); });
+                }
+                if (prepared.length) {
+                    container.innerHTML += '<h3 class="text-xl text-header mt-4">> Spells</h3>';
+                    prepared.forEach(spell => { container.innerHTML += createSpellCard(spell, 'prepared'); });
+                }
             }
 
             function renderSpellbook() {
@@ -1058,8 +1072,18 @@ async function handleDMActiveChange(e) {
                     container.innerHTML = '<p class="text-dim">> Your spellbook is empty. Learn spells from the search panel.</p>';
                     return;
                 }
+                const grouped = {};
                 spellState.knownSpells.forEach(spell => {
-                    container.innerHTML += createSpellCard(spell, 'spellbook');
+                    const lvl = spell.level || 0;
+                    if (!grouped[lvl]) grouped[lvl] = [];
+                    grouped[lvl].push(spell);
+                });
+                Object.keys(grouped).sort((a,b)=>a-b).forEach(level => {
+                    const heading = level === '0' ? 'Cantrips' : `Level ${level}`;
+                    container.innerHTML += `<h3 class="text-xl text-header mt-2">> ${heading}</h3>`;
+                    grouped[level].forEach(spell => {
+                        container.innerHTML += createSpellCard(spell, 'spellbook');
+                    });
                 });
             }
 
@@ -1085,16 +1109,20 @@ async function handleDMActiveChange(e) {
                     buttonHtml = `<button class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
                 } else if (type === 'prepared') {
                     if (spell.level > 0) {
-                        let castButtons = `<button class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+                        let castButtons = '';
+                        const baseLevelStr = String(spell.level);
+                        if (spellState.spellSlots[baseLevelStr] && spellState.spellSlots[baseLevelStr].expended < spellState.spellSlots[baseLevelStr].max) {
+                            castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+                        }
                         for (let i = spell.level + 1; i <= 9; i++) {
                             const levelStr = String(i);
                             if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
                                 castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
                             }
                         }
-                        buttonHtml = `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>`;
+                        buttonHtml = castButtons ? `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>` : `<p class="text-dim text-right">> No Slots</p>`;
                     } else {
-                        buttonHtml = `<p class="text-dim text-right">> Cantrip</p>`;
+                        buttonHtml = `<div class="flex justify-end"><button class="btn-secondary cast-btn" data-cast-level="0">Cast</button></div>`;
                     }
                 }
                 return `
@@ -1144,6 +1172,7 @@ async function handleDMActiveChange(e) {
                 const button = e.target;
                 const spellLevelToUse = parseInt(button.dataset.castLevel, 10);
                 if (isNaN(spellLevelToUse)) return;
+                if (spellLevelToUse === 0) return;
                 const levelStr = String(spellLevelToUse);
                 if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
                     spellState.spellSlots[levelStr].expended++;
