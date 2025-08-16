@@ -151,7 +151,7 @@
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
              <button id="dm-tools-btn" class="hidden">DM Tools</button>
-             <button id="exit-mode-btn" class="hidden">ⓧ</button>
+             <button id="exit-mode-btn" class="hidden">C</button>
              <button id="logout-btn" class="hidden">Logout</button>
         </div>
     </div>
@@ -1185,8 +1185,6 @@ async function handleDMActiveChange(e) {
                             }
                         }
                         buttonHtml = castButtons ? `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>` : `<p class="text-dim text-right">> No Slots</p>`;
-                    } else {
-                        buttonHtml = `<div class="flex justify-end"><button class="btn-secondary cast-btn" data-cast-level="0">Cast</button></div>`;
                     }
                 }
                 return `
@@ -1538,6 +1536,8 @@ function getModifiedPrice(basePrice) {
             document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => {
                 const value = parseInt(e.target.dataset.value, 10);
                 const newVal = state.shopData.priceModifier === value ? 0 : value;
+                state.shopData.priceModifier = newVal;
+                render();
                 updateDoc(doc(db, 'shops', state.shopId), { priceModifier: newVal });
             }));
             document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
