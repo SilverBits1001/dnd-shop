@@ -881,14 +881,14 @@
                                             <input type="text" id="search-input" class="input-field" placeholder="SEARCH DND5EAPI...">
                                             <button id="search-btn" class="btn">Go</button>
                                         </div>
-                                        <div id="search-results-container" class="space-y-2 h-[50vh] lg:h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
+                                        <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
                                     </div>
                                 </details>
                             </div>
                         </div>
                     </details>
                     <div class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
-                        <h3 class="text-2xl text-header mb-4">> Active Shops</h3>
+                        <h3 class="text-2xl text-header mb-4">> Shops</h3>
                         ${state.activeShops.length === 0
                             ? '<p class="text-dim">No active shops.</p>'
                             : state.activeShops.map(s => `
@@ -967,7 +967,7 @@ async function handleDMActiveChange(e) {
                 knownSpells: [],
                 preparedSpells: ["Magic Missile", "Shield"],
                 spellSlots: {
-                    '1': { max: 4, expended: 1 },
+                    '1': { max: 4, expended: 0 },
                     '2': { max: 3, expended: 0 },
                     '3': { max: 2, expended: 0 },
                     '4': { max: 1, expended: 0 },
@@ -1092,7 +1092,7 @@ async function handleDMActiveChange(e) {
                                 castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
                             }
                         }
-                        buttonHtml = `<div class="flex gap-1 flex-wrap justify-end">${castButtons}</div>`;
+                        buttonHtml = `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>`;
                     } else {
                         buttonHtml = `<p class="text-dim text-right">> Cantrip</p>`;
                     }
