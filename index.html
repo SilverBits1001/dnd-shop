@@ -63,16 +63,24 @@
             border-radius: 0.25rem;
         }
         .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
-            .ascii-title {
-                font-family: monospace;
-                white-space: pre;
-                text-align: center;
-                line-height: 1.2;
-                margin-bottom: 1rem;
-                color: var(--color-header);
-                text-shadow: var(--shadow-glow) var(--color-header);
-                font-size: clamp(0.6rem, 4vw, 1.6rem);
-            }
+        .ascii-wrap { /* Centers the block and provides a measuring container */
+            display: grid;
+            place-items: center;
+            padding: .5rem;
+        }
+        .ascii-title {
+            font-family: 'VT323', monospace;
+            white-space: pre;           /* Preserve spacing and line breaks */
+            color: var(--color-header);
+            text-shadow: var(--shadow-glow) var(--color-header);
+            margin: 0 auto 1rem;        /* Center the block and add spacing below */
+            max-width: 100%;            /* Never overflow container */
+            overflow: hidden;           /* Avoid stray scrollbars on tiny screens */
+            display: block;             /* Needed for margin auto centering */
+        }
+        @media (max-width: 480px) {
+            .ascii-wrap { padding-top: .25rem; }
+        }
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-item-name { color: var(--color-accent); }
         .text-price { color: var(--color-price); font-weight: bold; }
@@ -116,14 +124,15 @@
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
         <!-- Auth View -->
         <div id="auth-view">
-             <div class="ascii-title">
+            <div class="ascii-wrap">
+<pre class="ascii-title" data-max-font="40" data-min-font="10" id="ascii-logo">
 ██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
 ██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
 ██║  ██║██╔██╗ ██║██║  ██║    ███████║██║   ██║██████╔╝
 ██║  ██║██║╚██╗██║██║  ██║    ██╔══██║██║   ██║██╔══██╗
 ██████╔╝██║ ╚████║██████╔╝    ██║  ██║╚██████╔╝██████╔╝
 ╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
-                                                       
+</pre>
             </div>
             <div id="login-container" class="max-w-md mx-auto mb-8 cli-window text-center">
                 <h2 class="text-2xl mb-4 text-header">> Welcome, Adventurer!</h2>
@@ -177,7 +186,48 @@
             <div id="players-list" class="space-y-2"></div>
         </div>
     </div>
- 
+
+    <script>
+      // Fit ASCII to its container by adjusting font-size based on the widest line
+      (function fitAsciiAll(){
+        const blocks = Array.from(document.querySelectorAll('.ascii-title'));
+        function longestLineCols(str){
+          const lines = str.replace(/\t/g, '    ').split(/\r?\n/);
+          let max = 0; for (const l of lines) max = Math.max(max, l.length);
+          return Math.max(1, max);
+        }
+        function fit(pre){
+          const container = pre.parentElement || document.body;
+          const styles = getComputedStyle(container);
+          const pad = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+          const available = Math.max(0, container.clientWidth - pad);
+          const cols = longestLineCols(pre.textContent);
+          const minPx = parseFloat(pre.dataset.minFont || '10');
+          const maxPx = parseFloat(pre.dataset.maxFont || '40');
+          const size = Math.max(minPx, Math.min(maxPx, available / cols));
+          pre.style.fontSize = size + 'px';
+          pre.style.marginLeft = 'auto';
+          pre.style.marginRight = 'auto';
+        }
+        function fitAll(){ blocks.forEach(fit); }
+        // Initial fit
+        fitAll();
+        // Re-fit on resize/orientation changes
+        let rAF; window.addEventListener('resize', ()=>{ cancelAnimationFrame(rAF); rAF=requestAnimationFrame(fitAll); });
+        window.addEventListener('orientationchange', fitAll, { passive: true });
+        // Observe each container for size changes
+        const observers = new WeakMap();
+        blocks.forEach(pre => {
+          const c = pre.parentElement || document.body;
+          if (!observers.has(c)){
+            const ro = new ResizeObserver(() => fitAll());
+            ro.observe(c);
+            observers.set(c, ro);
+          }
+        });
+      })();
+    </script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
