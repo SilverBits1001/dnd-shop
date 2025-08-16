@@ -1258,7 +1258,7 @@ async function handleDMActiveChange(e) {
                 if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
                     spellState.spellSlots[levelStr].expended++;
                     saveSpellSlots();
-                    renderAll();
+                    renderSpellSlots();
                 } else {
                     const originalText = button.textContent;
                     button.textContent = "No Slots!";
