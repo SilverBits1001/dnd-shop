@@ -187,6 +187,16 @@
         </div>
     </div>
 
+    <!-- Update Character Sheet Modal -->
+    <div id="update-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+        <div class="cli-window w-full max-w-md text-center">
+            <button id="update-sheet-modal-close" class="subview-exit-btn">ⓧ</button>
+            <h2 class="text-2xl font-bold mb-4 text-header">> Update Character Sheet</h2>
+            <textarea id="sheet-json-textarea" class="w-full h-48 p-2 text-black"></textarea>
+            <button id="save-sheet-btn" class="btn w-full mt-4">Save</button>
+        </div>
+    </div>
+
     <script>
       // Fit ASCII to its container by adjusting font-size based on the widest line
       (function fitAsciiAll(){
@@ -270,6 +280,7 @@
 
         let shopUnsubscribe = null;
         let playerUnsubscribe = null;
+        let updateSheetPlayerId = null;
 
         let state = {
             isDM: false,
@@ -298,6 +309,8 @@
         const newKeyModal = document.getElementById('new-key-modal');
         const keysModal = document.getElementById('keys-modal');
         const inventoryModal = document.getElementById('inventory-modal');
+        const updateSheetModal = document.getElementById('update-sheet-modal');
+        const sheetJsonTextarea = document.getElementById('sheet-json-textarea');
 
         function closeNewKeyModal() {
             newKeyModal.classList.add('hidden');
@@ -333,6 +346,12 @@
                     closeInventoryModal();
                 }
             });
+            updateSheetModal.addEventListener('click', (e) => {
+                if (e.target === updateSheetModal || e.target.id === 'update-sheet-modal-close') {
+                    closeUpdateSheetModal();
+                }
+            });
+            document.getElementById('save-sheet-btn').addEventListener('click', handleSaveSheet);
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
@@ -513,8 +532,9 @@
                 const querySnapshot = await getDocs(collection(db, "characters"));
                 playersList.innerHTML = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-                    return `<div class="flex items-center justify-between gap-2">
+                    return `<div class="flex flex-wrap items-center justify-between gap-2">
                                 <span class="key-item cursor-pointer flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></span>
+                                <button class="btn-secondary text-xs update-sheet-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Update</button>
                                 <button class="text-red-500 hover:text-red-400 delete-player-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Delete</button>
                             </div>`;
                 }).join('');
@@ -523,6 +543,9 @@
                 });
                 document.querySelectorAll('.delete-player-btn').forEach(btn => {
                     btn.addEventListener('click', () => deletePlayer(btn.dataset.playerId, btn.dataset.playerName));
+                });
+                document.querySelectorAll('.update-sheet-btn').forEach(btn => {
+                    btn.addEventListener('click', () => openUpdateSheetModal(btn.dataset.playerId));
                 });
             } catch (error) {
                 playersList.innerHTML = `<p class="text-red-500">Could not load players.</p>`;
@@ -544,6 +567,43 @@
                 openPlayersModal();
             } catch (error) {
                 console.error('Error deleting player:', error);
+            }
+        }
+
+        async function openUpdateSheetModal(playerId) {
+            updateSheetPlayerId = playerId;
+            sheetJsonTextarea.value = '';
+            try {
+                const docSnap = await getDoc(doc(db, 'characters', playerId));
+                if (docSnap.exists()) {
+                    sheetJsonTextarea.value = JSON.stringify(docSnap.data().sheet || {}, null, 2);
+                }
+            } catch (err) {
+                console.error('Error loading sheet:', err);
+            }
+            updateSheetModal.classList.remove('hidden');
+        }
+
+        function closeUpdateSheetModal() {
+            updateSheetModal.classList.add('hidden');
+            updateSheetPlayerId = null;
+        }
+
+        async function handleSaveSheet() {
+            if (!updateSheetPlayerId) return;
+            let data;
+            try {
+                data = JSON.parse(sheetJsonTextarea.value);
+            } catch {
+                alert('Invalid JSON');
+                return;
+            }
+            try {
+                await updateDoc(doc(db, 'characters', updateSheetPlayerId), { sheet: data });
+                closeUpdateSheetModal();
+            } catch (err) {
+                console.error('Error updating sheet:', err);
+                alert('Could not update sheet.');
             }
         }
 
@@ -746,13 +806,19 @@
                 acc[item.name] = (acc[item.name] || 0) + 1;
                 return acc;
             }, {});
+            const classLevel = player.sheet?.classlevel || '';
 
             characterHubView.innerHTML = `
-                <div class="cli-window mb-6">
-                    <h2 class="text-2xl text-header mb-2">> ${player.name}</h2>
-                    <p class="text-dim">Key: <span class="text-header">${state.characterKey}</span></p>
-                    <p class="text-2xl text-price mt-2">${player.gold} GP</p>
-                </div>
+                <details class="cli-window mb-6">
+                    <summary class="flex flex-col sm:flex-row sm:items-center sm:justify-between cursor-pointer">
+                        <span class="text-2xl text-header">${player.name}</span>
+                        <span class="text-dim">${classLevel}</span>
+                    </summary>
+                    <div class="mt-2">
+                        <p class="text-dim">Key: <span id="player-key" class="text-header">${state.characterKey}</span></p>
+                        <p class="text-2xl text-price mt-2">${player.gold} GP</p>
+                    </div>
+                </details>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div class="cli-window flex flex-col">
                         <h3 class="text-2xl text-header mb-4">> Character Sheet</h3>
@@ -788,6 +854,7 @@
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
             document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
+            document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
         }
 
         function renderDMHub() {
@@ -853,7 +920,7 @@
                         <div class="mt-4">
                             <label class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label>
                             <div class="grid grid-cols-3 gap-2">
-                                ${[-50,-25,-15,15,25,50].map(v => `<button class="btn btn-secondary price-mod-btn" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
+                                ${[-50,-25,-15,15,25,50].map(v => `<button class="${priceModifier===v?'btn':'btn btn-secondary'} price-mod-btn" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
                             </div>
                         </div>
                         <div class="mt-4">
@@ -1072,7 +1139,11 @@
             document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
             document.querySelectorAll('.dm-qty-input, .dm-price-input, .dm-details-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
             document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
-            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => { updateDoc(doc(db, 'shops', state.shopId), { priceModifier: parseInt(e.target.dataset.value, 10) }); }));
+            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const value = parseInt(e.target.dataset.value, 10);
+                const newVal = state.shopData.priceModifier === value ? 0 : value;
+                updateDoc(doc(db, 'shops', state.shopId), { priceModifier: newVal });
+            }));
             document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
             document.getElementById('add-custom-item-btn')?.addEventListener('click', handleAddCustomItem);
             document.getElementById('delete-shop-btn')?.addEventListener('click', async () => {
