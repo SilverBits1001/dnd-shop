@@ -113,7 +113,7 @@
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
-    <div id="toolbar" class="fixed top-0 left-0 right-0 bg-black p-4 z-50 flex justify-between items-center h-20">
+    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
              <button id="dm-tools-btn" class="hidden">DM Tools</button>
@@ -759,7 +759,7 @@
 
             controlsContainer.classList.remove('hidden');
 
-            const showDmTools = state.isDM || !loggedIn;
+            const showDmTools = !state.isDM;
             if (state.isDM || inShop) {
                 exitModeBtn.classList.remove('hidden');
                 toolbarTitle.classList.remove('hidden');
@@ -822,7 +822,6 @@
                     </summary>
                     <div class="mt-2">
                         <p class="text-dim">Key: <span id="player-key" class="text-header">${state.characterKey}</span></p>
-                        <p class="text-2xl text-price mt-2">${player.gold} GP</p>
                     </div>
                 </details>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -830,11 +829,14 @@
                         <h3 class="text-2xl text-header mb-4">> Character Sheet</h3>
                         <a href="character.html" class="btn mt-auto w-full">Open</a>
                     </div>
-                    <div class="cli-window flex flex-col">
-                        <h3 class="text-2xl text-header mb-4">> Inventory</h3>
-                        <div class="space-y-2 flex-1 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
-                        <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit</button>
-                    </div>
+                    <details id="inventory-details" class="cli-window flex flex-col">
+                        <summary class="text-2xl text-header cursor-pointer">&gt; Inventory</summary>
+                        <div class="mt-2">
+                            <p class="text-2xl text-price mb-4">${player.gold} GP</p>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
+                            <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit</button>
+                        </div>
+                    </details>
                     <div class="cli-window flex flex-col">
                         <h3 class="text-2xl text-header mb-4">> Spell Management</h3>
                         <p class="text-dim flex-1">Feature coming soon.</p>
@@ -857,6 +859,10 @@
             });
             document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
             document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
+            const invDetails = document.getElementById('inventory-details');
+            if (window.innerWidth >= 768) {
+                invDetails.setAttribute('open', '');
+            }
         }
 
         function renderDMHub() {
