@@ -235,28 +235,35 @@
             renderSpellSlots();
         }
 
+        function updateSlotsForLevel(level) {
+            const { max, expended } = state.spellSlots[level];
+            const container = document.getElementById('spell-slots-container');
+            const slots = container.querySelectorAll(`.slot[data-level="${level}"]`);
+            slots.forEach((slot, i) => {
+                const isAvailable = i < (max - expended);
+                slot.classList.toggle('slot-available', isAvailable);
+                slot.classList.toggle('slot-expended', !isAvailable);
+            });
+        }
+
         function renderSpellSlots() {
             const container = document.getElementById('spell-slots-container');
-            container.innerHTML = '';
-            if (Object.keys(state.spellSlots).length === 0) {
-                 container.innerHTML = '<p class="text-dim">> No spell slots.</p>';
-                 return;
-            }
-            for (const level in state.spellSlots) {
-                const levelData = state.spellSlots[level];
-                let slotsHtml = '';
-                for (let i = 0; i < levelData.max; i++) {
-                    // Right-to-left logic: A slot is available if its index is less than the number of available slots.
-                    const isAvailable = i < (levelData.max - levelData.expended);
-                    const slotClass = isAvailable ? 'slot-available' : 'slot-expended';
-                    slotsHtml += `<div class="slot-segment ${slotClass} slot" data-level="${level}" data-index="${i}"></div>`;
+            if (!container.innerHTML) {
+                let html = '';
+                for (const level in state.spellSlots) {
+                    html += `<div class="flex items-center justify-start gap-4" data-level-bar="${level}">`;
+                    html += `<span class="text-item-name w-20">Level ${level}</span><div class="slot-bar">`;
+                    const { max } = state.spellSlots[level];
+                    for (let i = 0; i < max; i++) {
+                        html += `<div class="slot-segment slot" data-level="${level}" data-index="${i}"></div>`;
+                    }
+                    html += `</div></div>`;
                 }
-                container.innerHTML += `
-                    <div class="flex items-center justify-start gap-4">
-                        <span class="text-item-name w-20">Level ${level}</span>
-                        <div class="slot-bar">${slotsHtml}</div>
-                    </div>
-                `;
+                container.innerHTML = html;
+            }
+
+            for (const level in state.spellSlots) {
+                updateSlotsForLevel(level);
             }
         }
 
@@ -398,7 +405,7 @@
             const levelStr = String(spellLevelToUse);
             if (state.spellSlots[levelStr] && state.spellSlots[levelStr].expended < state.spellSlots[levelStr].max) {
                 state.spellSlots[levelStr].expended++;
-                renderSpellSlots();
+                updateSlotsForLevel(levelStr);
             } else {
                 const originalText = button.textContent;
                 button.textContent = "No Slots!";
@@ -417,7 +424,7 @@
             const levelData = state.spellSlots[level];
             const maxSlots = levelData.max;
             const currentAvailable = maxSlots - levelData.expended;
-            
+
             // Right-to-left toggle logic
             if (currentAvailable === index + 1) {
                 // Clicking the rightmost available slot, expend it
@@ -426,14 +433,14 @@
                 // Clicking an expended slot or a non-rightmost available one, set the boundary
                 levelData.expended = maxSlots - (index + 1);
             }
-            renderSpellSlots();
+            updateSlotsForLevel(level);
         }
-        
+
         function handleLongRest() {
             for (const level in state.spellSlots) {
                 state.spellSlots[level].expended = 0;
+                updateSlotsForLevel(level);
             }
-            renderSpellSlots();
             renderPreparedSpells(); // Rerender to show all cast buttons again
         }
 
