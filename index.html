@@ -115,6 +115,17 @@
         @keyframes glow-success { 0% { box-shadow: 0 0 0px var(--color-header); } 50% { box-shadow: 0 0 15px var(--color-header); } 100% { box-shadow: 0 0 0px var(--color-header); } }
         .glow-once { animation: glow-success 0.7s ease-out; }
     </style>
+    <style>
+        summary::marker { content: ''; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
+        .slot-bar { display: flex; }
+        .slot-segment { width: 1.75rem; height: 1.25rem; transform: skew(-20deg); margin-right: 4px; cursor: pointer; border: 2px solid var(--color-header); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
+        .slot-expended { background-color: transparent; box-shadow: none; }
+    </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8 cli-theme">
 
@@ -842,11 +853,40 @@
                             <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit</button>
                         </div>
                     </details>
-                    <div class="cli-window flex flex-col">
-                        <h3 class="text-2xl text-header mb-4">> Spell Management</h3>
-                        <p class="text-dim flex-1">Manage your spellbook and slots.</p>
-                        <a href="spells.html" class="btn btn-secondary w-full mt-4">Open</a>
-                    </div>
+                    <details id="spell-management-details" class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
+                        <summary class="text-2xl text-header cursor-pointer">&gt; Spell Management</summary>
+                        <div class="mt-4 space-y-4">
+                            <div class="flex justify-end">
+                                <button id="long-rest-btn" class="btn">Long Rest</button>
+                            </div>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div class="lg:col-span-1 space-y-6">
+                                    <div class="cli-window">
+                                        <h2 class="text-2xl text-header mb-4">&gt; Prepared Spells</h2>
+                                        <div id="prepared-spells-container" class="space-y-2 max-h-[40vh] md:max-h-[300px] overflow-y-auto custom-scrollbar pr-2"></div>
+                                    </div>
+                                    <div class="cli-window">
+                                        <h2 class="text-2xl text-header mb-4">&gt; Spell Slots</h2>
+                                        <div id="spell-slots-container" class="space-y-3"></div>
+                                    </div>
+                                </div>
+                                <details class="lg:col-span-1 cli-window">
+                                    <summary class="text-2xl text-header cursor-pointer">&gt; Spellbook</summary>
+                                    <div id="spellbook-container" class="space-y-2 h-[50vh] lg:h-[600px] overflow-y-auto custom-scrollbar pr-2 mt-4"></div>
+                                </details>
+                                <details class="lg:col-span-1 cli-window">
+                                    <summary class="text-2xl text-header cursor-pointer">&gt; Spell Search</summary>
+                                    <div class="mt-4">
+                                        <div class="flex gap-2 mb-4">
+                                            <input type="text" id="search-input" class="input-field" placeholder="SEARCH DND5EAPI...">
+                                            <button id="search-btn" class="btn">Go</button>
+                                        </div>
+                                        <div id="search-results-container" class="space-y-2 h-[50vh] lg:h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </details>
                     <div class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
                         <h3 class="text-2xl text-header mb-4">> Active Shops</h3>
                         ${state.activeShops.length === 0
@@ -869,6 +909,7 @@
             if (window.innerWidth >= 768) {
                 invDetails.setAttribute('open', '');
             }
+            initializeSpellManagement();
         }
 
         function renderDMHub() {
@@ -911,17 +952,265 @@
             renderDMHub();
         }
 
-        async function handleDMActiveChange(e) {
-            const shopId = e.target.dataset.shopId;
-            await updateDoc(doc(db, 'shops', shopId), { active: e.target.checked });
+async function handleDMActiveChange(e) {
+    const shopId = e.target.dataset.shopId;
+    await updateDoc(doc(db, 'shops', shopId), { active: e.target.checked });
 
+}
+
+        function initializeSpellManagement() {
+            const module = document.getElementById('spell-management-details');
+            if (!module || module.dataset.initialized) return;
+            module.dataset.initialized = 'true';
+
+            const spellState = {
+                knownSpells: [],
+                preparedSpells: ["Magic Missile", "Shield"],
+                spellSlots: {
+                    '1': { max: 4, expended: 1 },
+                    '2': { max: 3, expended: 0 },
+                    '3': { max: 2, expended: 0 },
+                    '4': { max: 1, expended: 0 },
+                },
+            };
+
+            const API_BASE = "https://www.dnd5eapi.co/api";
+
+            async function searchSpellsAPI(query) {
+                const resultsContainer = module.querySelector('#search-results-container');
+                resultsContainer.innerHTML = `<p class="text-dim">> Searching...</p>`;
+                try {
+                    const response = await fetch(`${API_BASE}/spells?name=${query}`);
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    const data = await response.json();
+                    renderSearchResults(data.results);
+                } catch (error) {
+                    console.error('API Search Error:', error);
+                    resultsContainer.innerHTML = `<p class="text-price">> Error fetching spells.</p>`;
+                }
+            }
+
+            async function getSpellDetails(spellIndex) {
+                try {
+                    const response = await fetch(`${API_BASE}/spells/${spellIndex}`);
+                    if (!response.ok) throw new Error('Could not fetch spell details.');
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Detail Error:', error);
+                    return null;
+                }
+            }
+
+            async function loadInitialSpells() {
+                const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
+                const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
+                spellState.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+                renderAll();
+            }
+
+            function renderAll() {
+                renderPreparedSpells();
+                renderSpellbook();
+                renderSpellSlots();
+            }
+
+            function renderSpellSlots() {
+                const container = module.querySelector('#spell-slots-container');
+                container.innerHTML = '';
+                if (Object.keys(spellState.spellSlots).length === 0) {
+                    container.innerHTML = '<p class="text-dim">> No spell slots.</p>';
+                    return;
+                }
+                for (const level in spellState.spellSlots) {
+                    const levelData = spellState.spellSlots[level];
+                    let slotsHtml = '';
+                    for (let i = 0; i < levelData.max; i++) {
+                        const isAvailable = i < (levelData.max - levelData.expended);
+                        const slotClass = isAvailable ? 'slot-available' : 'slot-expended';
+                        slotsHtml += `<div class="slot-segment ${slotClass} slot" data-level="${level}" data-index="${i}"></div>`;
+                    }
+                    container.innerHTML += `
+                        <div class="flex items-center justify-start gap-4">
+                            <span class="text-item-name w-20">Level ${level}</span>
+                            <div class="slot-bar">${slotsHtml}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            function renderPreparedSpells() {
+                const container = module.querySelector('#prepared-spells-container');
+                container.innerHTML = '';
+                if (spellState.preparedSpells.length === 0) {
+                    container.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
+                    return;
+                }
+                spellState.preparedSpells.forEach(spellName => {
+                    const spell = spellState.knownSpells.find(s => s.name === spellName);
+                    if (spell) container.innerHTML += createSpellCard(spell, 'prepared');
+                });
+            }
+
+            function renderSpellbook() {
+                const container = module.querySelector('#spellbook-container');
+                container.innerHTML = '';
+                if (spellState.knownSpells.length === 0) {
+                    container.innerHTML = '<p class="text-dim">> Your spellbook is empty. Learn spells from the search panel.</p>';
+                    return;
+                }
+                spellState.knownSpells.forEach(spell => {
+                    container.innerHTML += createSpellCard(spell, 'spellbook');
+                });
+            }
+
+            function renderSearchResults(results) {
+                const container = module.querySelector('#search-results-container');
+                container.innerHTML = '';
+                if (results.length === 0) {
+                    container.innerHTML = '<p class="text-dim">> No spells found.</p>';
+                    return;
+                }
+                results.forEach(spell => {
+                    container.innerHTML += createSpellCard(spell, 'search');
+                });
+            }
+
+            function createSpellCard(spell, type) {
+                const isKnown = spellState.knownSpells.some(s => s.index === spell.index);
+                const isPrepared = spellState.preparedSpells.includes(spell.name);
+                let buttonHtml = '';
+                if (type === 'search') {
+                    buttonHtml = isKnown ? `<p class="text-dim text-right">> Known</p>` : `<button class="btn-secondary learn-btn" data-spell-index="${spell.index}">Learn</button>`;
+                } else if (type === 'spellbook') {
+                    buttonHtml = `<button class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
+                } else if (type === 'prepared') {
+                    if (spell.level > 0) {
+                        let castButtons = `<button class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+                        for (let i = spell.level + 1; i <= 9; i++) {
+                            const levelStr = String(i);
+                            if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
+                                castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+                            }
+                        }
+                        buttonHtml = `<div class="flex gap-1 flex-wrap justify-end">${castButtons}</div>`;
+                    } else {
+                        buttonHtml = `<p class="text-dim text-right">> Cantrip</p>`;
+                    }
+                }
+                return `
+                    <div class="py-2 border-b border-border spell-card">
+                        <div class="flex justify-between items-center">
+                            <span class="text-item-name cursor-pointer spell-name">${spell.name}</span>
+                            <div class="flex-shrink-0 ml-2">${buttonHtml}</div>
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-border text-sm hidden spell-card-content">
+                            ${spell.level !== undefined ? `<p class="text-dim">> Level ${spell.level} ${spell.school?.name || ''}</p>` : ''}
+                            ${spell.casting_time ? `<p>> Casting Time: ${spell.casting_time}</p>` : ''}
+                            ${spell.range ? `<p>> Range: ${spell.range}</p>` : ''}
+                            ${spell.duration ? `<p>> Duration: ${spell.duration}</p>` : ''}
+                            ${spell.desc ? `<p class="mt-2 whitespace-pre-wrap">${Array.isArray(spell.desc) ? spell.desc.join('\n') : spell.desc}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            async function handleLearnSpell(e) {
+                const spellIndex = e.target.dataset.spellIndex;
+                if (!spellIndex) return;
+                const isAlreadyKnown = spellState.knownSpells.some(s => s.index === spellIndex);
+                if (isAlreadyKnown) return;
+                const spellDetails = await getSpellDetails(spellIndex);
+                if (spellDetails) {
+                    spellState.knownSpells.push(spellDetails);
+                    renderSpellbook();
+                    const query = module.querySelector('#search-input').value.trim();
+                    if (query) searchSpellsAPI(query);
+                }
+            }
+
+            function handlePrepareSpell(e) {
+                const spellName = e.target.dataset.spellName;
+                if (!spellName) return;
+                const prepIndex = spellState.preparedSpells.indexOf(spellName);
+                if (prepIndex > -1) {
+                    spellState.preparedSpells.splice(prepIndex, 1);
+                } else {
+                    spellState.preparedSpells.push(spellName);
+                }
+                renderAll();
+            }
+
+            function handleCastSpell(e) {
+                const button = e.target;
+                const spellLevelToUse = parseInt(button.dataset.castLevel, 10);
+                if (isNaN(spellLevelToUse)) return;
+                const levelStr = String(spellLevelToUse);
+                if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
+                    spellState.spellSlots[levelStr].expended++;
+                    renderAll();
+                } else {
+                    const originalText = button.textContent;
+                    button.textContent = "No Slots!";
+                    button.disabled = true;
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                }
+            }
+
+            function handleSlotClick(e) {
+                if (!e.target.classList.contains('slot')) return;
+                const level = e.target.dataset.level;
+                const index = parseInt(e.target.dataset.index, 10);
+                const levelData = spellState.spellSlots[level];
+                const maxSlots = levelData.max;
+                const currentAvailable = maxSlots - levelData.expended;
+                if (currentAvailable === index + 1) {
+                    levelData.expended = maxSlots - index;
+                } else {
+                    levelData.expended = maxSlots - (index + 1);
+                }
+                renderSpellSlots();
+            }
+
+            function handleLongRest() {
+                for (const level in spellState.spellSlots) {
+                    spellState.spellSlots[level].expended = 0;
+                }
+                renderSpellSlots();
+                renderPreparedSpells();
+            }
+
+            function handleToggleSpellDetails(e) {
+                const content = e.target.closest('.spell-card')?.querySelector('.spell-card-content');
+                if (content) content.classList.toggle('hidden');
+            }
+
+            function handleSearch() {
+                const query = module.querySelector('#search-input').value.trim();
+                if (query) searchSpellsAPI(query);
+            }
+
+            module.querySelector('#search-btn').addEventListener('click', handleSearch);
+            module.querySelector('#search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(); });
+            module.querySelector('#long-rest-btn').addEventListener('click', handleLongRest);
+            module.querySelector('#spell-slots-container').addEventListener('click', handleSlotClick);
+            module.addEventListener('click', e => {
+                if (e.target.classList.contains('learn-btn')) handleLearnSpell(e);
+                if (e.target.classList.contains('prepare-btn')) handlePrepareSpell(e);
+                if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
+                if (e.target.classList.contains('spell-name')) handleToggleSpellDetails(e);
+            });
+
+            loadInitialSpells();
         }
-        
-        function getModifiedPrice(basePrice) {
-            const modifier = state.shopData?.priceModifier || 0;
-            const modified = basePrice * (1 + modifier / 100);
-            return Math.round(modified * 100) / 100;
-        }
+
+function getModifiedPrice(basePrice) {
+    const modifier = state.shopData?.priceModifier || 0;
+    const modified = basePrice * (1 + modifier / 100);
+    return Math.round(modified * 100) / 100;
+}
 
         function renderDMView() {
             const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
