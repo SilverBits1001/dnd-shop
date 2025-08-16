@@ -115,7 +115,7 @@
     <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
-             <button id="exit-mode-btn" onclick="history.back()">C</button>
+             <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
         </div>
     </div>
 
@@ -123,7 +123,7 @@
     <div class="max-w-7xl mx-auto relative mt-8 pt-8">
 
         <!-- Character Overview -->
-        <header class="bg-black/80 backdrop-blur-sm p-4 rounded-b-lg mb-6 border-x border-b border-border">
+        <header class="bg-black/80 backdrop-blur-sm p-4 rounded-lg mb-6 border border-border">
             <div class="flex flex-col sm:flex-row items-center gap-4">
                 <!-- Avatar and Name -->
                 <div class="flex items-center gap-4 flex-1">
@@ -361,6 +361,15 @@
             }
         };
 
+        const savedSlots = localStorage.getItem('spellSlots');
+        if (savedSlots) {
+            try { state.spellSlots = JSON.parse(savedSlots); } catch {}
+        }
+
+        function saveSpellSlots() {
+            localStorage.setItem('spellSlots', JSON.stringify(state.spellSlots));
+        }
+
         function renderSpellSlots() {
             const container = document.getElementById('spell-slots-container');
             container.innerHTML = '';
@@ -368,8 +377,8 @@
                 const { max, expended } = state.spellSlots[level];
                 let slotsHtml = '';
                 for (let i = 0; i < max; i++) {
-                    const isExpended = i < expended;
-                    slotsHtml += `<div class="slot-segment ${isExpended ? 'slot-expended' : 'slot-available'}" data-level="${level}" data-index="${i}"></div>`;
+                    const isAvailable = i < (max - expended);
+                    slotsHtml += `<div class="slot-segment ${isAvailable ? 'slot-available' : 'slot-expended'}" data-level="${level}" data-index="${i}"></div>`;
                 }
                 container.innerHTML += `
                     <div class="flex items-center justify-start gap-4">
@@ -426,6 +435,7 @@
             const slot = state.spellSlots[level];
             if (!slot || slot.expended >= slot.max) return;
             slot.expended++;
+            saveSpellSlots();
             renderSpellSlots();
         }
 
@@ -435,16 +445,20 @@
             const index = Number(e.target.dataset.index);
             const slot = state.spellSlots[level];
             if (!slot) return;
-            if (index < slot.expended) {
-                slot.expended--;
-            } else if (slot.expended < slot.max) {
-                slot.expended++;
+            const maxSlots = slot.max;
+            const currentAvailable = maxSlots - slot.expended;
+            if (currentAvailable === index + 1) {
+                slot.expended = maxSlots - index;
+            } else {
+                slot.expended = maxSlots - (index + 1);
             }
+            saveSpellSlots();
             renderSpellSlots();
         }
 
         function handleLongRest() {
             Object.values(state.spellSlots).forEach(s => s.expended = 0);
+            saveSpellSlots();
             renderSpellSlots();
         }
 
@@ -456,6 +470,7 @@
 
         renderPreparedSpells();
         renderSpellSlots();
+        saveSpellSlots();
     </script>
 </body>
 </html>
