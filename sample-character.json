@@ -63,14 +63,5 @@
   "equipment": {
     "money": { "cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0 },
     "list": "Item list"
-  },
-
-  "flavor": {
-    "personality": "Personality",
-    "ideals": "Ideals",
-    "bonds": "Bonds",
-    "flaws": "Flaws"
-  },
-
-  "features": "Features & Traits"
+  }
 }

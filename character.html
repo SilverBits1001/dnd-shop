@@ -80,6 +80,12 @@
       .text-dim {
         color: var(--color-dim);
       }
+      #toolbar {
+        transition: transform 0.3s ease;
+      }
+      #toolbar.hide {
+        transform: translateY(-100%);
+      }
     </style>
   </head>
   <body class="p-4 sm:p-6 lg:p-8">
@@ -174,18 +180,13 @@ function collapsibleSection(title, content, open = false) {
 
             const abilitiesSection = collapsibleSection("Abilities", `<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${abilities}</div>`, true);
             const savesSection = collapsibleSection("Saving Throws", `<div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${saveBoxes}</div>`);
-            const skillsSection = collapsibleSection("Skills", `<div class="space-y-1">${skills || '<p class="text-dim">No skill data.</p>'}${data.passiveperception ? `<p>Passive Perception: <span class="text-item-name">${data.passiveperception}</span></p>` : ""}${data.otherprofs ? `<p>Other Profs: <span class="text-item-name">${data.otherprofs}</span></p>` : ""}</div>`);
+            const skillsSection = collapsibleSection("Skills", `<div class="space-y-1">${skills || '<p class="text-dim">No skill data.</p>'}${data.passiveperception ? `<p>Passive Perception: <span class=\"text-item-name\">${data.passiveperception}</span></p>` : ""}${data.otherprofs ? `<p>Other Profs: <span class=\"text-item-name\">${data.otherprofs}</span></p>` : ""}</div>`);
             const combatSection = collapsibleSection(
               "Combat",
-              `<p>Hit Dice: <span class="text-item-name">${data.combat?.hitdice?.remaining ?? "-"}</span></p><p>Death Saves: <span class="text-item-name">${data.combat?.deathSaves ? `S:${data.combat.deathSaves.successes} F:${data.combat.deathSaves.failures}` : "-"}</span></p>`
+              `<p>Hit Dice: <span class=\"text-item-name\">${data.combat?.hitdice?.remaining ?? "-"}</span></p><p>Death Saves: <span class=\"text-item-name\">${data.combat?.deathSaves ? `S:${data.combat.deathSaves.successes} F:${data.combat.deathSaves.failures}` : "-"}</span></p>`
             );
-            const attacksSection = collapsibleSection("Attacks &amp; Spellcasting", `<ul class="list-disc pl-4 space-y-1">${attacks || '<li class="text-dim">No attacks.</li>'}</ul>${data.attacksNotes ? `<p class="mt-2">${data.attacksNotes}</p>` : ""}`);
-            const equipmentSection = collapsibleSection("Equipment", `${money ? `<p>${money}</p>` : ""}${data.equipment?.list ? `<p class="mt-2 whitespace-pre-line">${data.equipment.list}</p>` : ""}`);
-            const personalitySection = collapsibleSection("Personality", `<p>${data.flavor?.personality || "-"}</p>`);
-            const idealsSection = collapsibleSection("Ideals", `<p>${data.flavor?.ideals || "-"}</p>`);
-            const bondsSection = collapsibleSection("Bonds", `<p>${data.flavor?.bonds || "-"}</p>`);
-            const flawsSection = collapsibleSection("Flaws", `<p>${data.flavor?.flaws || "-"}</p>`);
-            const featuresSection = collapsibleSection("Features &amp; Traits", `<p class="whitespace-pre-line">${data.features || "-"}</p>`);
+            const attacksSection = collapsibleSection("Attacks &amp; Spellcasting", `<ul class=\"list-disc pl-4 space-y-1\">${attacks || '<li class=\"text-dim\">No attacks.</li>'}</ul>${data.attacksNotes ? `<p class=\"mt-2\">${data.attacksNotes}</p>` : ""}`);
+            const equipmentSection = collapsibleSection("Equipment", `${money ? `<p>${money}</p>` : ""}${data.equipment?.list ? `<p class=\"mt-2 whitespace-pre-line\">${data.equipment.list}</p>` : ""}`);
 
           document.getElementById("sheet-container").innerHTML = `
           <div class="max-w-6xl mx-auto px-4">
@@ -210,7 +211,7 @@ function collapsibleSection(title, content, open = false) {
                   </div>
                 </div>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <div class="space-y-4">
                   ${abilitiesSection}
                   ${savesSection}
@@ -220,13 +221,6 @@ function collapsibleSection(title, content, open = false) {
                   ${combatSection}
                   ${attacksSection}
                   ${equipmentSection}
-                </div>
-                <div class="space-y-4">
-                  ${personalitySection}
-                  ${idealsSection}
-                  ${bondsSection}
-                  ${flawsSection}
-                  ${featuresSection}
                 </div>
               </div>
             </div>
@@ -241,13 +235,26 @@ function collapsibleSection(title, content, open = false) {
           if (!res.ok) throw new Error("Character not found");
           const data = await res.json();
           renderCharacterSheet(data);
-        } catch (e) {
-          document.getElementById("sheet-container").innerHTML =
-            '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
-        }
+      } catch (e) {
+        document.getElementById("sheet-container").innerHTML =
+          '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
       }
+    }
 
-      loadCharacter();
+    loadCharacter();
+    const toolbar = document.getElementById("toolbar");
+    let touchStartY = 0;
+    window.addEventListener("touchstart", (e) => {
+      touchStartY = e.touches[0].clientY;
+    });
+    window.addEventListener("touchmove", (e) => {
+      const currentY = e.touches[0].clientY;
+      if (touchStartY - currentY > 50) {
+        toolbar.classList.add("hide");
+      } else if (currentY - touchStartY > 50) {
+        toolbar.classList.remove("hide");
+      }
+    });
     </script>
   </body>
 </html>
