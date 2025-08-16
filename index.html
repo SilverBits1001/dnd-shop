@@ -388,10 +388,10 @@
             });
             document.getElementById('save-sheet-btn').addEventListener('click', handleSaveSheet);
 
-            // Check for saved key
+            // Check for saved key and pre-fill login field
             const savedKey = localStorage.getItem('dndShopCharacterKey');
             if (savedKey) {
-                loginWithKey(savedKey);
+                document.getElementById('character-key-input').value = savedKey;
             }
             listenToActiveShops();
             render();
@@ -793,13 +793,17 @@
 
             controlsContainer.classList.remove('hidden');
 
-            const showDmTools = !state.isDM;
+            const showDmTools = !state.isDM && !loggedIn;
             if (state.isDM || inShop) {
                 exitModeBtn.classList.remove('hidden');
-                toolbarTitle.classList.remove('hidden');
-                toolbarTitle.textContent = state.isDM ? (inShop ? '> DM Mode' : '> DM Hub') : '> Player Mode';
             } else {
                 exitModeBtn.classList.add('hidden');
+            }
+
+            if (state.isDM) {
+                toolbarTitle.classList.remove('hidden');
+                toolbarTitle.textContent = inShop ? '> DM Mode' : '> DM Hub';
+            } else {
                 toolbarTitle.classList.add('hidden');
             }
             if (showDmTools) {
@@ -808,7 +812,7 @@
                 dmToolsBtn.classList.add('hidden');
             }
 
-            if (loggedIn) {
+            if (loggedIn && !inShop && !state.isDM) {
                 logoutBtn.classList.remove('hidden');
             } else {
                 logoutBtn.classList.add('hidden');
@@ -978,21 +982,24 @@
                 <div class="cli-window max-w-md mx-auto">
                     <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
                     <div class="space-y-2">
-                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
                         <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
                     </div>
                 </div>
                 <div class="mt-8 cli-window max-w-md mx-auto">
                     <h2 class="text-2xl mb-4 text-header">> Your Shops</h2>
-                    ${state.dmShops.length === 0
-                        ? '<p class="text-dim">No shops.</p>'
-                        : state.dmShops.map(s => `
-                            <div class="flex items-center mb-2 gap-2">
-                                <button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button>
-                                <input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}>
-                                <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button>
-                            </div>
-                        `).join('')}
+                    <div class="space-y-2">
+                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
+                        <div class="border-t border-border my-2"></div>
+                        ${state.dmShops.length === 0
+                            ? '<p class="text-dim">No shops.</p>'
+                            : state.dmShops.map(s => `
+                                <div class="flex items-center mb-2 gap-2">
+                                    <button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button>
+                                    <input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}>
+                                    <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button>
+                                </div>
+                            `).join('')}
+                    </div>
                 </div>
             `;
             document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
