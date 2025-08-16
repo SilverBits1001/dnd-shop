@@ -100,7 +100,22 @@
     <main id="sheet-container" class="space-y-6 py-8 my-8 max-w-4xl mx-auto"></main>
 
 
-    <script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+        authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+        projectId: "dnd-shop-app-c4f86",
+        storageBucket: "dnd-shop-app-c4f86.appspot.com",
+        messagingSenderId: "480358969004",
+        appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+        measurementId: "G-DWLMWMZTZ3"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
       document.getElementById("back-btn").addEventListener("click", () => {
         window.location.href = "index.html";
       });
@@ -229,19 +244,24 @@ function collapsibleSection(title, content, open = false) {
 
       async function loadCharacter() {
         const params = new URLSearchParams(window.location.search);
-        const key = params.get("char") || "sample-character";
+        const key = params.get("char") || localStorage.getItem("dndShopCharacterKey") || "sample-character";
         try {
+          const snap = await getDoc(doc(db, "characters", key));
+          if (snap.exists() && snap.data().sheet) {
+            renderCharacterSheet(snap.data().sheet);
+            return;
+          }
           const res = await fetch(`${key}.json`);
           if (!res.ok) throw new Error("Character not found");
           const data = await res.json();
           renderCharacterSheet(data);
-      } catch (e) {
-        document.getElementById("sheet-container").innerHTML =
-          '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
+        } catch (e) {
+          document.getElementById("sheet-container").innerHTML =
+            '<div class="cli-window text-center"><p class="text-header">Character not found.</p></div>';
+        }
       }
-    }
 
-    loadCharacter();
+      loadCharacter();
     const toolbar = document.getElementById("toolbar");
     let touchStartY = 0;
     window.addEventListener("touchstart", (e) => {
