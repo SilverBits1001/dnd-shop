@@ -356,12 +356,14 @@
         }
 
         async function handleCreateCharacter() {
+            const name = prompt("Enter your character's name:");
+            if (!name || !name.trim()) { return; }
             const key = Math.random().toString(36).substring(2, 8).toUpperCase();
             const playerDocRef = doc(db, 'characters', key);
-            
+
             try {
                 await setDoc(playerDocRef, {
-                    name: "Adventurer",
+                    name: name.trim(),
                     gold: 50,
                     inventory: []
                 });
@@ -696,29 +698,40 @@
             }, {});
 
             characterHubView.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="cli-window">
-                        <h2 class="text-2xl text-header mb-2">> ${player.name}</h2>
-                        <p class="text-dim">Key: <span class="text-header">${state.characterKey}</span></p>
-                        <p class="text-2xl text-price mt-2">${player.gold} GP</p>
-                        <a href="character.html" class="btn mt-4 w-full">Character Sheet</a>
-                    </div>
-                    <div class="cli-window">
-                        <h3 class="text-2xl text-header mb-4">> Inventory</h3>
-                        <div class="space-y-2 max-h-60 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
-                        <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit Inventory</button>
-                    </div>
+                <div class="cli-window mb-6">
+                    <h2 class="text-2xl text-header mb-2">> ${player.name}</h2>
+                    <p class="text-dim">Key: <span class="text-header">${state.characterKey}</span></p>
+                    <p class="text-2xl text-price mt-2">${player.gold} GP</p>
                 </div>
-                <div class="mt-8 cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> Active Shops</h2>
-                    ${state.activeShops.length === 0
-                        ? '<p class="text-dim">No active shops.</p>'
-                        : state.activeShops.map(s => `
-                            <div class="flex justify-between items-center mb-2">
-                                <span><span class="text-item-name">${s.shopName || s.shopType}</span></span>
-                                <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
-                            </div>
-                        `).join('')}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="cli-window flex flex-col">
+                        <h3 class="text-2xl text-header mb-4">> Character Sheet</h3>
+                        <a href="character.html" class="btn mt-auto w-full">Open</a>
+                    </div>
+                    <div class="cli-window flex flex-col">
+                        <h3 class="text-2xl text-header mb-4">> Inventory</h3>
+                        <div class="space-y-2 flex-1 overflow-y-auto">${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>
+                        <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit</button>
+                    </div>
+                    <div class="cli-window flex flex-col">
+                        <h3 class="text-2xl text-header mb-4">> Prepared Spells</h3>
+                        <p class="text-dim flex-1">Feature coming soon.</p>
+                    </div>
+                    <div class="cli-window flex flex-col">
+                        <h3 class="text-2xl text-header mb-4">> Spell Slots</h3>
+                        <p class="text-dim flex-1">Feature coming soon.</p>
+                    </div>
+                    <div class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
+                        <h3 class="text-2xl text-header mb-4">> Active Shops</h3>
+                        ${state.activeShops.length === 0
+                            ? '<p class="text-dim">No active shops.</p>'
+                            : state.activeShops.map(s => `
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-item-name">${s.shopName || s.shopType}</span>
+                                    <button class="btn join-shop-btn" data-shop-id="${s.id}">Enter</button>
+                                </div>
+                            `).join('')}
+                    </div>
                 </div>
             `;
             document.querySelectorAll('.join-shop-btn').forEach(btn => {
