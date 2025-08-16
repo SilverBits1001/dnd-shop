@@ -1307,6 +1307,15 @@ async function handleDMActiveChange(e) {
                 if (e.target.classList.contains('spell-name')) handleToggleSpellDetails(e);
             });
 
+            window.addEventListener('pageshow', () => {
+                const savedSlots = localStorage.getItem('spellSlots');
+                if (savedSlots) {
+                    try { spellState.spellSlots = JSON.parse(savedSlots); } catch {}
+                }
+                renderSpellSlots();
+                renderPreparedSpells();
+            });
+
             loadInitialSpells();
         }
 
