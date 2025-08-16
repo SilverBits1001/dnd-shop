@@ -86,6 +86,7 @@
         .text-price { color: var(--color-price); font-weight: bold; }
         .text-dim { color: var(--color-dim); }
         .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
+        .player-login-btn { text-decoration: none; }
         #dm-tools-btn, #logout-btn { background: none; border: none; color: var(--color-accent); font-size: 1.25rem; cursor: pointer; }
         #dm-tools-btn:hover, #logout-btn:hover { color: var(--color-header); text-decoration: underline; }
         #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
@@ -811,12 +812,13 @@
                 return acc;
             }, {});
             const classLevel = player.sheet?.classlevel || '';
+            const formattedClassLevel = classLevel && !classLevel.toLowerCase().startsWith('lvl') ? `Lvl ${classLevel}` : classLevel;
 
             characterHubView.innerHTML = `
                 <details class="cli-window mb-6">
                     <summary class="flex flex-col sm:flex-row sm:items-center sm:justify-between cursor-pointer">
-                        <span class="text-2xl text-header">${player.name}</span>
-                        <span class="text-dim">${classLevel}</span>
+                        <span class="text-2xl text-header">&gt; ${player.name}</span>
+                        <span class="text-dim">${formattedClassLevel}</span>
                     </summary>
                     <div class="mt-2">
                         <p class="text-dim">Key: <span id="player-key" class="text-header">${state.characterKey}</span></p>
@@ -834,11 +836,7 @@
                         <button id="edit-inventory-btn" class="btn btn-secondary w-full mt-4">Edit</button>
                     </div>
                     <div class="cli-window flex flex-col">
-                        <h3 class="text-2xl text-header mb-4">> Prepared Spells</h3>
-                        <p class="text-dim flex-1">Feature coming soon.</p>
-                    </div>
-                    <div class="cli-window flex flex-col">
-                        <h3 class="text-2xl text-header mb-4">> Spell Slots</h3>
+                        <h3 class="text-2xl text-header mb-4">> Spell Management</h3>
                         <p class="text-dim flex-1">Feature coming soon.</p>
                     </div>
                     <div class="cli-window flex flex-col md:col-span-2 lg:col-span-3">
