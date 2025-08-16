@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spell Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-text: #E6E6E6;
+            --color-header: #00FF88;
+            --color-accent: #FFFFFF;
+            --color-price: #FFB454;
+            --color-dim: #6B7280;
+            --color-border: #333333;
+            --shadow-glow: 0 0 8px;
+            --color-bg: #0A0A0A;
+            --window-bg: rgba(20, 20, 20, 0.9);
+            --input-bg: #1a1a1a;
+            --input-text: #ffffff;
+            --btn-text: #000000;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'VT323', monospace;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-size: 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .cli-window {
+            border: 1px solid var(--color-border);
+            border-radius: 0.375rem;
+            padding: 1rem;
+            background-color: var(--window-bg);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: var(--color-accent);
+            color: var(--btn-text);
+            text-shadow: none;
+            cursor: pointer;
+            border: none;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+            border-radius: 0.25rem;
+            padding: 0.5rem 1rem;
+        }
+        .btn-secondary:hover { background-color: var(--color-accent); color: var(--btn-text); }
+        .input-field {
+            background-color: var(--input-bg);
+            border: 1px solid var(--color-border);
+            color: var(--input-text);
+            padding: 0.75rem;
+            width: 100%;
+            font-family: inherit;
+            text-transform: uppercase;
+            border-radius: 0.25rem;
+        }
+        .input-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
+        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
+        .text-item-name { color: var(--color-accent); }
+        .text-dim { color: var(--color-dim); }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
+        
+        summary::marker { content: ''; }
+
+        /* New Spell Slot Bar styles */
+        .slot-bar {
+            display: flex;
+        }
+        .slot-segment {
+            width: 1.75rem; /* 28px - Made longer */
+            height: 1.25rem; /* 20px */
+            transform: skew(-20deg);
+            margin-right: 4px; /* Added spacing */
+            cursor: pointer;
+            border: 2px solid var(--color-header);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .slot-available {
+            background-color: var(--color-header);
+            box-shadow: var(--shadow-glow) var(--color-header);
+        }
+        .slot-expended {
+            background-color: transparent;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <header class="max-w-7xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <h1 class="text-3xl text-header text-center sm:text-left">> Spell Management</h1>
+        <div class="flex gap-2 flex-wrap justify-center">
+            <button id="long-rest-btn" class="btn">Long Rest</button>
+            <a href="index.html" class="btn btn-secondary">Back to Hub</a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Column: Prepared Spells & Slots -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="cli-window">
+                <h2 class="text-2xl text-header mb-4">> Prepared Spells</h2>
+                <div id="prepared-spells-container" class="space-y-2 max-h-[40vh] md:max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                    <!-- Prepared spells will be dynamically inserted here -->
+                </div>
+            </div>
+            <div class="cli-window">
+                <h2 class="text-2xl text-header mb-4">> Spell Slots</h2>
+                <div id="spell-slots-container" class="space-y-3">
+                    <!-- Spell slots will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column: Spellbook -->
+        <details class="lg:col-span-1 cli-window">
+            <summary class="text-2xl text-header cursor-pointer">> Spellbook</summary>
+            <div id="spellbook-container" class="space-y-2 h-[50vh] lg:h-[600px] overflow-y-auto custom-scrollbar pr-2 mt-4">
+                <!-- Known spells will be dynamically inserted here -->
+            </div>
+        </details>
+
+        <!-- Right Column: Spell Search -->
+        <details class="lg:col-span-1 cli-window">
+            <summary class="text-2xl text-header cursor-pointer">> Spell Search</summary>
+            <div class="mt-4">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="search-input" class="input-field" placeholder="SEARCH DND5EAPI...">
+                    <button id="search-btn" class="btn">Go</button>
+                </div>
+                <div id="search-results-container" class="space-y-2 h-[50vh] lg:h-[520px] overflow-y-auto custom-scrollbar pr-2">
+                    <!-- API search results will be dynamically inserted here -->
+                </div>
+            </div>
+        </details>
+    </main>
+
+    <script type="module">
+        // --- STATE MANAGEMENT (SAMPLE DATA) ---
+        let state = {
+            knownSpells: [], // Array of spell objects from API
+            preparedSpells: ["Magic Missile", "Shield"], // Array of spell names (string)
+            spellSlots: {
+                '1': { max: 4, expended: 1 },
+                '2': { max: 3, expended: 0 },
+                '3': { max: 2, expended: 0 },
+                '4': { max: 1, expended: 0 },
+            },
+        };
+
+        // --- API FUNCTIONS ---
+        const API_BASE = "https://www.dnd5eapi.co/api";
+
+        async function searchSpellsAPI(query) {
+            const resultsContainer = document.getElementById('search-results-container');
+            resultsContainer.innerHTML = `<p class="text-dim">> Searching...</p>`;
+            try {
+                const response = await fetch(`${API_BASE}/spells?name=${query}`);
+                if (!response.ok) throw new Error('Network response was not ok.');
+                const data = await response.json();
+                renderSearchResults(data.results);
+            } catch (error) {
+                console.error("API Search Error:", error);
+                resultsContainer.innerHTML = `<p class="text-price">> Error fetching spells.</p>`;
+            }
+        }
+
+        async function getSpellDetails(spellIndex) {
+            try {
+                const response = await fetch(`${API_BASE}/spells/${spellIndex}`);
+                if (!response.ok) throw new Error('Could not fetch spell details.');
+                return await response.json();
+            } catch (error) {
+                console.error("API Detail Error:", error);
+                return null;
+            }
+        }
+        
+        // --- INITIAL DATA LOADING ---
+        async function loadInitialSpells() {
+            // Pre-load some spells into the spellbook for the example
+            const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
+            const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
+            state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+            renderAll();
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderAll() {
+            renderPreparedSpells();
+            renderSpellbook();
+            renderSpellSlots();
+        }
+
+        function renderSpellSlots() {
+            const container = document.getElementById('spell-slots-container');
+            container.innerHTML = '';
+            if (Object.keys(state.spellSlots).length === 0) {
+                 container.innerHTML = '<p class="text-dim">> No spell slots.</p>';
+                 return;
+            }
+            for (const level in state.spellSlots) {
+                const levelData = state.spellSlots[level];
+                let slotsHtml = '';
+                for (let i = 0; i < levelData.max; i++) {
+                    // Right-to-left logic: A slot is available if its index is less than the number of available slots.
+                    const isAvailable = i < (levelData.max - levelData.expended);
+                    const slotClass = isAvailable ? 'slot-available' : 'slot-expended';
+                    slotsHtml += `<div class="slot-segment ${slotClass} slot" data-level="${level}" data-index="${i}"></div>`;
+                }
+                container.innerHTML += `
+                    <div class="flex items-center justify-start gap-4">
+                        <span class="text-item-name w-20">Level ${level}</span>
+                        <div class="slot-bar">${slotsHtml}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderPreparedSpells() {
+            const container = document.getElementById('prepared-spells-container');
+            container.innerHTML = '';
+            if (state.preparedSpells.length === 0) {
+                container.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
+                return;
+            }
+            state.preparedSpells.forEach(spellName => {
+                const spell = state.knownSpells.find(s => s.name === spellName);
+                if (spell) container.innerHTML += createSpellCard(spell, 'prepared');
+            });
+        }
+
+        function renderSpellbook() {
+            const container = document.getElementById('spellbook-container');
+            container.innerHTML = '';
+            if (state.knownSpells.length === 0) {
+                container.innerHTML = '<p class="text-dim">> Your spellbook is empty. Learn spells from the search panel.</p>';
+                return;
+            }
+            state.knownSpells.forEach(spell => {
+                container.innerHTML += createSpellCard(spell, 'spellbook');
+            });
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('search-results-container');
+            container.innerHTML = '';
+            if (results.length === 0) {
+                container.innerHTML = '<p class="text-dim">> No spells found.</p>';
+                return;
+            }
+            results.forEach(spell => {
+                container.innerHTML += createSpellCard(spell, 'search');
+            });
+        }
+        
+        function createSpellCard(spell, type) {
+            const isKnown = state.knownSpells.some(s => s.index === spell.index);
+            const isPrepared = state.preparedSpells.includes(spell.name);
+            
+            let buttonHtml = '';
+            if (type === 'search') {
+                buttonHtml = isKnown
+                    ? `<p class="text-dim text-right">> Known</p>`
+                    : `<button class="btn-secondary learn-btn" data-spell-index="${spell.index}">Learn</button>`;
+            } else if (type === 'spellbook') {
+                buttonHtml = `<button class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
+            } else if (type === 'prepared') {
+                 if (spell.level > 0) {
+                    let castButtons = `<button class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+                    // Add upcasting buttons
+                    for (let i = spell.level + 1; i <= 9; i++) {
+                        const levelStr = String(i);
+                        if (state.spellSlots[levelStr] && state.spellSlots[levelStr].expended < state.spellSlots[levelStr].max) {
+                            castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+                        }
+                    }
+                    buttonHtml = `<div class="flex gap-1 flex-wrap justify-end">${castButtons}</div>`;
+                 } else {
+                     buttonHtml = `<p class="text-dim text-right">> Cantrip</p>`;
+                 }
+            }
+
+            return `
+                <div class="py-2 border-b border-border spell-card">
+                    <div class="flex justify-between items-center">
+                        <span class="text-item-name cursor-pointer spell-name">${spell.name}</span>
+                        <div class="flex-shrink-0 ml-2">${buttonHtml}</div>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-border text-sm hidden spell-card-content">
+                        ${spell.level !== undefined ? `<p class="text-dim">> Level ${spell.level} ${spell.school?.name || ''}</p>` : ''}
+                        ${spell.casting_time ? `<p>> Casting Time: ${spell.casting_time}</p>` : ''}
+                        ${spell.range ? `<p>> Range: ${spell.range}</p>` : ''}
+                        ${spell.duration ? `<p>> Duration: ${spell.duration}</p>` : ''}
+                        ${spell.desc ? `<p class="mt-2 whitespace-pre-wrap">${Array.isArray(spell.desc) ? spell.desc.join('\n') : spell.desc}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- EVENT HANDLERS ---
+        async function handleLearnSpell(e) {
+            const spellIndex = e.target.dataset.spellIndex;
+            if (!spellIndex) return;
+            const isAlreadyKnown = state.knownSpells.some(s => s.index === spellIndex);
+            if (isAlreadyKnown) return;
+            const spellDetails = await getSpellDetails(spellIndex);
+            if (spellDetails) {
+                state.knownSpells.push(spellDetails);
+                renderSpellbook();
+                const query = document.getElementById('search-input').value.trim();
+                if (query) searchSpellsAPI(query);
+            }
+        }
+        
+        function handlePrepareSpell(e) {
+            const spellName = e.target.dataset.spellName;
+            if (!spellName) return;
+            const prepIndex = state.preparedSpells.indexOf(spellName);
+            if (prepIndex > -1) {
+                state.preparedSpells.splice(prepIndex, 1);
+            } else {
+                state.preparedSpells.push(spellName);
+            }
+            renderAll();
+        }
+
+        function handleCastSpell(e) {
+            const button = e.target;
+            const spellLevelToUse = parseInt(button.dataset.castLevel, 10);
+            if (isNaN(spellLevelToUse)) return;
+
+            const levelStr = String(spellLevelToUse);
+            if (state.spellSlots[levelStr] && state.spellSlots[levelStr].expended < state.spellSlots[levelStr].max) {
+                state.spellSlots[levelStr].expended++;
+                renderAll(); // Rerender to update slots and cast buttons
+            } else {
+                const originalText = button.textContent;
+                button.textContent = "No Slots!";
+                button.disabled = true;
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+
+        function handleSlotClick(e) {
+            if (!e.target.classList.contains('slot')) return;
+            const level = e.target.dataset.level;
+            const index = parseInt(e.target.dataset.index, 10);
+            const levelData = state.spellSlots[level];
+            const maxSlots = levelData.max;
+            const currentAvailable = maxSlots - levelData.expended;
+            
+            // Right-to-left toggle logic
+            if (currentAvailable === index + 1) {
+                // Clicking the rightmost available slot, expend it
+                levelData.expended = maxSlots - index;
+            } else {
+                // Clicking an expended slot or a non-rightmost available one, set the boundary
+                levelData.expended = maxSlots - (index + 1);
+            }
+            renderSpellSlots();
+        }
+        
+        function handleLongRest() {
+            for (const level in state.spellSlots) {
+                state.spellSlots[level].expended = 0;
+            }
+            renderSpellSlots();
+            renderPreparedSpells(); // Rerender to show all cast buttons again
+        }
+
+        function handleToggleSpellDetails(e) {
+            const content = e.target.closest('.spell-card').querySelector('.spell-card-content');
+            if (content) {
+                content.classList.toggle('hidden');
+            }
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialSpells();
+
+            document.getElementById('search-btn').addEventListener('click', () => {
+                const query = document.getElementById('search-input').value.trim();
+                if (query) searchSpellsAPI(query);
+            });
+            document.getElementById('search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('search-btn').click();
+                }
+            });
+
+            document.getElementById('long-rest-btn').addEventListener('click', handleLongRest);
+            document.getElementById('spell-slots-container').addEventListener('click', handleSlotClick);
+
+            document.body.addEventListener('click', e => {
+                if (e.target.classList.contains('learn-btn')) handleLearnSpell(e);
+                if (e.target.classList.contains('prepare-btn')) handlePrepareSpell(e);
+                if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
+                if (e.target.classList.contains('spell-name')) handleToggleSpellDetails(e);
+            });
+        });
+    </script>
+</body>
+</html>
