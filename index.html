@@ -175,7 +175,6 @@
                     <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
                     <button id="login-key-btn" class="btn">Enter</button>
                 </div>
-                <button id="create-character-btn" class="link-style mt-4">Create New Character</button>
             </div>
         </div>
 
@@ -358,7 +357,6 @@
         function main() {
             // Auth
             document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
-            document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
 
             document.getElementById('key-modal-continue-btn').addEventListener('click', closeNewKeyModal);
             newKeyModal.addEventListener('click', (e) => {
@@ -917,7 +915,7 @@
                         <div class="flex items-center gap-3 mb-4">
                             <i data-lucide="sparkles" class="w-8 h-8 text-header"></i>
                             <h2 class="text-2xl text-header">&gt; Spellcasting</h2>
-                            <div class="ml-auto"><button id="long-rest-btn" class="btn">Long Rest</button></div>
+                            <div class="ml-auto"><button id="long-rest-btn" type="button" class="btn">Long Rest</button></div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4 flex-grow">
                             <div>
@@ -939,7 +937,7 @@
                                 <div class="mt-4">
                                     <div class="flex gap-2 mb-4">
                                         <input type="text" id="search-input" class="input-field" placeholder="Search Spells">
-                                        <button id="search-btn" class="btn">Go</button>
+                                        <button id="search-btn" type="button" class="btn">Go</button>
                                     </div>
                                     <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
                                 </div>
@@ -983,6 +981,7 @@
                 <div class="cli-window max-w-md mx-auto">
                     <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
                     <div class="space-y-2">
+                        <button id="dm-create-character-btn" type="button" class="btn w-full">Create New Character</button>
                         <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
                     </div>
                 </div>
@@ -1004,6 +1003,7 @@
                 </div>
             `;
             document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
+            document.getElementById('dm-create-character-btn').addEventListener('click', handleCreateCharacter);
             document.getElementById('dm-manage-players-btn').addEventListener('click', openPlayersModal);
             document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
@@ -1179,20 +1179,20 @@ async function handleDMActiveChange(e) {
                 const isPrepared = spellState.preparedSpells.includes(spell.name);
                 let buttonHtml = '';
                 if (type === 'search') {
-                    buttonHtml = isKnown ? `<p class="text-dim text-right">> Known</p>` : `<button class="btn-secondary learn-btn" data-spell-index="${spell.index}">Learn</button>`;
+                    buttonHtml = isKnown ? `<p class="text-dim text-right">> Known</p>` : `<button type="button" class="btn-secondary learn-btn" data-spell-index="${spell.index}">Learn</button>`;
                 } else if (type === 'spellbook') {
-                    buttonHtml = `<button class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
+                    buttonHtml = `<button type="button" class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
                 } else if (type === 'prepared') {
                     if (spell.level > 0) {
                         let castButtons = '';
                         const baseLevelStr = String(spell.level);
                         if (spellState.spellSlots[baseLevelStr] && spellState.spellSlots[baseLevelStr].expended < spellState.spellSlots[baseLevelStr].max) {
-                            castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+                            castButtons += `<button type="button" class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
                         }
                         for (let i = spell.level + 1; i <= 9; i++) {
                             const levelStr = String(i);
                             if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
-                                castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+                                castButtons += `<button type="button" class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
                             }
                         }
                         buttonHtml = castButtons ? `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>` : `<p class="text-dim text-right">> No Slots</p>`;
@@ -1242,6 +1242,7 @@ async function handleDMActiveChange(e) {
             }
 
             function handleCastSpell(e) {
+                e.preventDefault();
                 const button = e.target;
                 const spellLevelToUse = parseInt(button.dataset.castLevel, 10);
                 if (isNaN(spellLevelToUse)) return;
