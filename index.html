@@ -533,13 +533,17 @@
                 playersList.innerHTML = querySnapshot.docs.map(doc => {
                     const data = doc.data();
                     return `<div class="flex flex-wrap items-center justify-between gap-2">
-                                <span class="key-item cursor-pointer flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></span>
+                                <button class="player-login-btn link-style flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></button>
                                 <button class="btn-secondary text-xs update-sheet-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Update</button>
                                 <button class="text-red-500 hover:text-red-400 delete-player-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Delete</button>
                             </div>`;
                 }).join('');
-                document.querySelectorAll('.key-item').forEach(el => {
-                    el.addEventListener('click', () => navigator.clipboard.writeText(el.dataset.key));
+                document.querySelectorAll('.player-login-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        keysModal.classList.add('hidden');
+                        exitCurrentMode();
+                        loginWithKey(btn.dataset.key);
+                    });
                 });
                 document.querySelectorAll('.delete-player-btn').forEach(btn => {
                     btn.addEventListener('click', () => deletePlayer(btn.dataset.playerId, btn.dataset.playerName));
