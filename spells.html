@@ -398,7 +398,7 @@
             const levelStr = String(spellLevelToUse);
             if (state.spellSlots[levelStr] && state.spellSlots[levelStr].expended < state.spellSlots[levelStr].max) {
                 state.spellSlots[levelStr].expended++;
-                renderAll(); // Rerender to update slots and cast buttons
+                renderSpellSlots();
             } else {
                 const originalText = button.textContent;
                 button.textContent = "No Slots!";
