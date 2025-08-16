@@ -1094,14 +1094,9 @@ async function handleDMActiveChange(e) {
                 const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
                 const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
                 spellState.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
-                renderAll();
-            }
-
-            function renderAll() {
-                renderPreparedSpells();
                 renderSpellbook();
+                renderPreparedSpells();
                 renderSpellSlots();
-                saveSpellSlots();
             }
 
             function renderSpellSlots() {
@@ -1250,7 +1245,8 @@ async function handleDMActiveChange(e) {
                 } else {
                     spellState.preparedSpells.push(spellName);
                 }
-                renderAll();
+                renderPreparedSpells();
+                renderSpellbook();
             }
 
             function handleCastSpell(e) {
@@ -1264,6 +1260,7 @@ async function handleDMActiveChange(e) {
                     spellState.spellSlots[levelStr].expended++;
                     saveSpellSlots();
                     renderSpellSlots();
+                    renderPreparedSpells();
                 } else {
                     const originalText = button.textContent;
                     button.textContent = "No Slots!";
@@ -1289,6 +1286,7 @@ async function handleDMActiveChange(e) {
                 }
                 saveSpellSlots();
                 renderSpellSlots();
+                renderPreparedSpells();
             }
 
             function handleLongRest() {
@@ -1324,7 +1322,9 @@ async function handleDMActiveChange(e) {
             window.addEventListener('pageshow', () => {
                 const savedSlots2 = localStorage.getItem('spellSlots');
                 if (savedSlots2) { try { spellState.spellSlots = JSON.parse(savedSlots2); } catch {} }
-                renderAll();
+                renderSpellbook();
+                renderPreparedSpells();
+                renderSpellSlots();
             });
 
             loadInitialSpells();
