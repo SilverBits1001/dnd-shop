@@ -115,29 +115,29 @@
             <div class="flex flex-col sm:flex-row items-center gap-4">
                 <!-- Avatar and Name -->
                 <div class="flex items-center gap-4 flex-1">
-                    <img src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-24 h-24 object-cover rounded-full border-2 border-header">
+                    <img id="char-avatar" src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-24 h-24 object-cover rounded-full border-2 border-header">
                     <div>
-                        <h1 class="text-3xl text-header">Elara Meadowlight</h1>
-                        <p class="text-lg text-dim">Level 5 Wizard</p>
+                        <h1 id="char-name" class="text-3xl text-header">Elara Meadowlight</h1>
+                        <p id="char-classlevel" class="text-lg text-dim">Level 5 Wizard</p>
                     </div>
                 </div>
                 <!-- Core Stats -->
                 <div class="grid grid-cols-4 gap-3 text-center text-lg w-full sm:w-auto">
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">HP</span>
-                        <span class="text-2xl text-accent">28/35</span>
+                        <span id="stat-hp" class="text-2xl text-accent">28/35</span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">AC</span>
-                        <span class="text-2xl text-accent">13</span>
+                        <span id="stat-ac" class="text-2xl text-accent">13</span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Speed</span>
-                        <span class="text-2xl text-accent">30ft</span>
+                        <span id="stat-speed" class="text-2xl text-accent">30ft</span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Init</span>
-                        <span class="text-2xl text-accent">+2</span>
+                        <span id="stat-init" class="text-2xl text-accent">+2</span>
                     </div>
                 </div>
             </div>
@@ -167,43 +167,16 @@
                     <!-- Ability Scores -->
                     <div class="md:col-span-1 space-y-3">
                         <h2 class="text-2xl text-header mb-2">> Abilities</h2>
-                        <div class="grid grid-cols-3 gap-2 text-center">
-                            <!-- Sample Ability Scores -->
-                            <div class="content-card !p-2"><div class="text-sm text-accent">STR</div><div class="text-2xl">10</div><div class="text-dim">+0</div></div>
-                            <div class="content-card !p-2"><div class="text-sm text-accent">DEX</div><div class="text-2xl">14</div><div class="text-dim">+2</div></div>
-                            <div class="content-card !p-2"><div class="text-sm text-accent">CON</div><div class="text-2xl">12</div><div class="text-dim">+1</div></div>
-                            <div class="content-card !p-2"><div class="text-sm text-accent">INT</div><div class="text-2xl">18</div><div class="text-dim">+4</div></div>
-                            <div class="content-card !p-2"><div class="text-sm text-accent">WIS</div><div class="text-2xl">15</div><div class="text-dim">+2</div></div>
-                            <div class="content-card !p-2"><div class="text-sm text-accent">CHA</div><div class="text-2xl">13</div><div class="text-dim">+1</div></div>
-                        </div>
+                        <div id="abilities-container" class="grid grid-cols-3 gap-2 text-center"></div>
                         <div class="pt-4">
-                            <p>> Proficiency: <span class="text-accent">+3</span></p>
-                            <p>> Inspiration: <span class="text-accent">Yes</span></p>
+                            <p>> Proficiency: <span id="proficiency-bonus" class="text-accent">+3</span></p>
+                            <p>> Inspiration: <span id="inspiration" class="text-accent">Yes</span></p>
                         </div>
                     </div>
                     <!-- Skills -->
                     <div class="md:col-span-2">
                         <h2 class="text-2xl text-header mb-2">> Skills</h2>
-                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2">
-                            <p>Acrobatics <span class="text-accent">+2</span></p>
-                            <p>Animal Handling <span class="text-accent">+2</span></p>
-                            <p>Arcana <span class="text-accent text-header">+7*</span></p>
-                            <p>Athletics <span class="text-accent">+0</span></p>
-                            <p>Deception <span class="text-accent">+1</span></p>
-                            <p>History <span class="text-accent text-header">+7*</span></p>
-                            <p>Insight <span class="text-accent">+2</span></p>
-                            <p>Intimidation <span class="text-accent">+1</span></p>
-                            <p>Investigation <span class="text-accent">+4</span></p>
-                            <p>Medicine <span class="text-accent">+2</span></p>
-                            <p>Nature <span class="text-accent">+4</span></p>
-                            <p>Perception <span class="text-accent">+2</span></p>
-                            <p>Performance <span class="text-accent">+1</span></p>
-                            <p>Persuasion <span class="text-accent">+1</span></p>
-                            <p>Religion <span class="text-accent">+4</span></p>
-                            <p>Sleight of Hand <span class="text-accent">+2</span></p>
-                            <p>Stealth <span class="text-accent">+2</span></p>
-                            <p>Survival <span class="text-accent">+2</span></p>
-                        </div>
+                        <div id="skills-container" class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2"></div>
                     </div>
                 </div>
             </div>
@@ -216,16 +189,7 @@
                         <p class="text-accent">Bonus</p>
                         <p class="text-accent">Damage/Type</p>
                     </div>
-                    <div class="grid grid-cols-3 gap-4 border-t border-border pt-2">
-                        <p>Dagger</p>
-                        <p>+5</p>
-                        <p>1d4+2 Piercing</p>
-                    </div>
-                    <div class="grid grid-cols-3 gap-4 border-t border-border pt-2">
-                        <p>Fire Bolt</p>
-                        <p>+7</p>
-                        <p>2d10 Fire</p>
-                    </div>
+                    <div id="attacks-container"></div>
                 </div>
                 <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="content-card">
@@ -245,25 +209,15 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="md:col-span-2">
                         <div class="content-card min-h-48">
-                            <p class="whitespace-pre-line">
-Component Pouch
-Spellbook
-Dagger x2
-Traveler's Clothes
-Backpack with:
-- Bedroll
-- 5 days Rations
-- Waterskin
-- 50ft Rope
-                            </p>
+                            <p id="equipment-list" class="whitespace-pre-line"></p>
                         </div>
                     </div>
                     <div>
                         <h3 class="text-xl text-accent mb-2">Money</h3>
                         <div class="content-card space-y-1">
-                            <p>GP: <span class="text-price">125</span></p>
-                            <p>SP: <span class="text-price">10</span></p>
-                            <p>CP: <span class="text-price">50</span></p>
+                            <p>GP: <span id="money-gp" class="text-price">0</span></p>
+                            <p>SP: <span id="money-sp" class="text-price">0</span></p>
+                            <p>CP: <span id="money-cp" class="text-price">0</span></p>
                         </div>
                     </div>
                 </div>
@@ -293,6 +247,69 @@ Backpack with:
     </div>
 
     <script>
+        // Load character data from sessionStorage or sample file
+        const playerDataString = sessionStorage.getItem('currentPlayer');
+        function renderCharacter(sheet, player) {
+            document.getElementById('char-avatar').src = sheet.avatarUrl || 'https://i.imgur.com/zLRhJXx.png';
+            document.getElementById('char-name').textContent = player?.name || sheet.charname || '';
+            document.getElementById('char-classlevel').textContent = sheet.classlevel || '';
+            const hp = sheet.combat?.hp || {};
+            document.getElementById('stat-hp').textContent = `${hp.current ?? '-'}${hp.max !== undefined ? '/' + hp.max : ''}`;
+            document.getElementById('stat-ac').textContent = sheet.combat?.ac ?? '';
+            document.getElementById('stat-speed').textContent = sheet.combat?.speed ? `${sheet.combat.speed}ft` : '';
+            document.getElementById('stat-init').textContent = sheet.combat?.initiative ?? '';
+            document.getElementById('proficiency-bonus').textContent = sheet.proficiencybonus ?? '';
+            document.getElementById('inspiration').textContent = sheet.inspiration ? 'Yes' : 'No';
+
+            const abbrMap = { Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' };
+            const abilitiesContainer = document.getElementById('abilities-container');
+            abilitiesContainer.innerHTML = '';
+            if (sheet.abilities) {
+                for (const [name, info] of Object.entries(sheet.abilities)) {
+                    const abbr = abbrMap[name] || name.slice(0,3).toUpperCase();
+                    const mod = typeof info.mod === 'number' && info.mod >= 0 ? `+${info.mod}` : info.mod;
+                    abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${info.score ?? ''}</div><div class="text-dim">${mod ?? ''}</div></div>`;
+                }
+            }
+
+            const skillsContainer = document.getElementById('skills-container');
+            skillsContainer.innerHTML = '';
+            if (sheet.skills) {
+                for (const [name, info] of Object.entries(sheet.skills)) {
+                    const profClass = info.prof ? 'text-header' : '';
+                    const bonus = info.bonus ?? '';
+                    const mark = info.prof ? '*' : '';
+                    skillsContainer.innerHTML += `<p>${name} <span class="text-accent ${profClass}">${bonus}${mark}</span></p>`;
+                }
+            }
+
+            const attacksContainer = document.getElementById('attacks-container');
+            attacksContainer.innerHTML = '';
+            if (Array.isArray(sheet.attacks)) {
+                sheet.attacks.forEach(a => {
+                    attacksContainer.innerHTML += `<div class="grid grid-cols-3 gap-4 border-t border-border pt-2"><p>${a.name}</p><p>${a.atkBonus}</p><p>${a.damage}</p></div>`;
+                });
+            }
+
+            document.getElementById('equipment-list').textContent = sheet.equipment?.list || '';
+            const money = sheet.equipment?.money || {};
+            document.getElementById('money-gp').textContent = money.gp ?? 0;
+            document.getElementById('money-sp').textContent = money.sp ?? 0;
+            document.getElementById('money-cp').textContent = money.cp ?? 0;
+        }
+
+        if (playerDataString) {
+            try {
+                const playerData = JSON.parse(playerDataString);
+                const sheet = playerData.sheet || {};
+                renderCharacter(sheet, playerData);
+            } catch {
+                fetch('sample-character.json').then(r => r.json()).then(data => renderCharacter(data));
+            }
+        } else {
+            fetch('sample-character.json').then(r => r.json()).then(data => renderCharacter(data));
+        }
+
         // Initialize Lucide Icons
         lucide.createIcons();
 

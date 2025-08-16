@@ -892,7 +892,7 @@
                             <h2 class="text-2xl text-header">&gt; Character Sheet</h2>
                         </div>
                         <p class="text-dim mb-4 flex-grow">Review your full character details, including abilities, skills, and background.</p>
-                        <a href="character.html" class="btn mt-auto">Open Full Sheet</a>
+                        <a href="character.html" id="open-full-sheet-btn" class="btn mt-auto">Open Full Sheet</a>
                     </div>
 
                     <div class="dashboard-card lg:col-span-2" id="inventory-card">
@@ -962,6 +962,9 @@
                 </main>
             `;
             lucide.createIcons();
+            document.getElementById('open-full-sheet-btn')?.addEventListener('click', () => {
+                sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
+            });
             document.querySelectorAll('.join-shop-btn').forEach(btn => {
                 btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
             });
