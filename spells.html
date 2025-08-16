@@ -148,7 +148,7 @@
                     <input type="text" id="search-input" class="input-field" placeholder="SEARCH DND5EAPI...">
                     <button id="search-btn" class="btn">Go</button>
                 </div>
-                <div id="search-results-container" class="space-y-2 h-[50vh] lg:h-[520px] overflow-y-auto custom-scrollbar pr-2">
+                <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2">
                     <!-- API search results will be dynamically inserted here -->
                 </div>
             </div>
@@ -161,7 +161,7 @@
             knownSpells: [], // Array of spell objects from API
             preparedSpells: ["Magic Missile", "Shield"], // Array of spell names (string)
             spellSlots: {
-                '1': { max: 4, expended: 1 },
+                '1': { max: 4, expended: 0 },
                 '2': { max: 3, expended: 0 },
                 '3': { max: 2, expended: 0 },
                 '4': { max: 1, expended: 0 },
@@ -295,7 +295,7 @@
                             castButtons += `<button class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
                         }
                     }
-                    buttonHtml = `<div class="flex gap-1 flex-wrap justify-end">${castButtons}</div>`;
+                    buttonHtml = `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>`;
                  } else {
                      buttonHtml = `<p class="text-dim text-right">> Cantrip</p>`;
                  }
