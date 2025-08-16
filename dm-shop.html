@@ -103,7 +103,9 @@
     <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
-             <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="x" class="w-6 h-6"></i></button>
+             <button id="dm-tools-btn" class="hidden">DM Tools</button>
+             <button id="exit-mode-btn" class="hidden"><i data-lucide="log-out" class="w-6 h-6"></i></button>
+             <button id="logout-btn" class="hidden">Logout</button>
         </div>
     </div>
 
@@ -111,31 +113,29 @@
         <!-- This div will be populated by the renderDMView function -->
     </div>
 
-    <script>
-        let state = {
-            shopData: {
-                shopName: "The Rusty Anvil",
-                shopType: "Blacksmith/Armory",
-                shopkeeper: { name: "Borin", description: "A gruff but fair dwarf.", gold: 1250 },
-                inventory: [
-                    { id: 'item-1', name: 'Longsword', price: 15, quantity: 3, details: 'A standard, reliable blade.' },
-                    { id: 'item-2', name: 'Studded Leather', price: 45, quantity: 2, details: 'Flexible and protective.' },
-                    { id: 'item-3', name: 'Shield', price: 10, quantity: 5, details: '' },
-                ],
-                carts: {
-                    'PLAYER1': {
-                        playerName: 'Valerius',
-                        items: [{ name: 'Longsword', price: 15 }, { name: 'Shield', price: 10 }]
-                    },
-                    'PLAYER2': {
-                        playerName: 'Elara',
-                        items: []
-                    }
-                },
-                priceModifier: 15,
-                active: true,
-            }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "480358969004",
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+          measurementId: "G-DWLMWMZTZ3"
         };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const shopId = sessionStorage.getItem('currentShopId');
+        if (!shopId) {
+            window.location.href = 'index.html';
+        }
+
+        let state = { shopData: null };
 
         function getModifiedPrice(basePrice) {
             const modifier = state.shopData?.priceModifier || 0;
@@ -271,8 +271,33 @@
             attachDMListeners();
         }
 
+        function setupToolbar() {
+            const dmBtn = document.getElementById('dm-tools-btn');
+            const exitBtn = document.getElementById('exit-mode-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            dmBtn.classList.remove('hidden');
+            exitBtn.classList.remove('hidden');
+            logoutBtn.classList.remove('hidden');
+            dmBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
+            exitBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
+            logoutBtn.addEventListener('click', () => { localStorage.removeItem('dndShopCharacterKey'); window.location.href = 'index.html'; });
+        }
+
+        function listenToShopChanges(id) {
+            const shopDocRef = doc(db, 'shops', id);
+            onSnapshot(shopDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    state.shopData = docSnap.data();
+                    renderDMView();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            renderDMView();
+            setupToolbar();
+            listenToShopChanges(shopId);
         });
     </script>
 </body>

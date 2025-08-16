@@ -742,22 +742,27 @@
 
             try {
                 await setDoc(newSessionRef, initialShopData);
-                listenToShopChanges(state.shopId);
-                render();
+                sessionStorage.setItem('currentShopId', state.shopId);
+                window.location.href = 'dm-shop.html';
             } catch (error) {
                 console.error("Error creating session:", error);
                 alert("Error creating session.");
                 exitCurrentMode();
             }
         }
-        
+
         async function joinShop(shopId) {
             const shopDocRef = doc(db, 'shops', shopId);
             const docSnap = await getDoc(shopDocRef);
             if (docSnap.exists() && docSnap.data().active) {
-                state.shopId = shopId;
-                state.inShop = true;
-                listenToShopChanges(shopId);
+                if (state.isDM) {
+                    sessionStorage.setItem('currentShopId', shopId);
+                    window.location.href = 'dm-shop.html';
+                } else {
+                    state.shopId = shopId;
+                    state.inShop = true;
+                    listenToShopChanges(shopId);
+                }
             } else {
                 alert("Shop not found or inactive.");
             }
