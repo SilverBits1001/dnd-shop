@@ -34,51 +34,6 @@
             --btn-text: #000000;
             font-family: 'VT323', monospace;
         }
-        body.fantasy-theme {
-            --color-text: #3B2F2F;
-            --color-header: #8B4513;
-            --color-accent: #5C4033;
-            --color-price: #B8860B;
-            --color-dim: #7D6A55;
-            --color-border: #C0A080;
-            --shadow-glow: none;
-            --color-bg: #F5F5DC;
-            --window-bg: rgba(250, 240, 230, 0.9);
-            --input-bg: #FFF8DC;
-            --input-text: #3B2F2F;
-            --btn-text: #F5F5DC;
-            font-family: 'Cormorant Garamond', serif;
-        }
-        body.modern-theme {
-            --color-text: #1F2937;
-            --color-header: #111827;
-            --color-accent: #2563EB;
-            --color-price: #D97706;
-            --color-dim: #6B7280;
-            --color-border: #E5E7EB;
-            --shadow-glow: none;
-            --color-bg: #FFFFFF;
-            --window-bg: rgba(243, 244, 246, 0.9);
-            --input-bg: #F3F4F6;
-            --input-text: #1F2937;
-            --btn-text: #FFFFFF;
-            font-family: 'Inter', sans-serif;
-        }
-        body.arcane-theme {
-            --color-text: #EDE9FE;
-            --color-header: #A78BFA;
-            --color-accent: #C4B5FD;
-            --color-price: #F0ABFC;
-            --color-dim: #6B7280;
-            --color-border: #4C1D95;
-            --shadow-glow: 0 0 8px;
-            --color-bg: #1E1B4B;
-            --window-bg: rgba(31, 27, 75, 0.9);
-            --input-bg: #312E81;
-            --input-text: #EDE9FE;
-            --btn-text: #1E1B4B;
-            font-family: 'Raleway', sans-serif;
-        }
         .cli-window {
             border: 1px solid var(--color-border);
             border-radius: 0.375rem;
@@ -170,14 +125,6 @@
              <button id="exit-mode-btn" class="hidden">ⓧ</button>
              <button id="logout-btn" class="hidden">Logout</button>
         </div>
-    </div>
-
-    <button id="theme-btn" class="fixed bottom-4 left-4 z-50 btn-secondary">Theme</button>
-    <div id="theme-menu" class="hidden fixed bottom-16 left-4 z-50 cli-window flex flex-col gap-2">
-        <button data-theme="cli-theme" class="btn-secondary">CLI</button>
-        <button data-theme="fantasy-theme" class="btn-secondary">Fantasy</button>
-        <button data-theme="modern-theme" class="btn-secondary">Modern</button>
-        <button data-theme="arcane-theme" class="btn-secondary">Arcane</button>
     </div>
 
     <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
@@ -370,13 +317,6 @@
         const inventoryModal = document.getElementById('inventory-modal');
         const updateSheetModal = document.getElementById('update-sheet-modal');
         const sheetJsonTextarea = document.getElementById('sheet-json-textarea');
-        const themeBtn = document.getElementById('theme-btn');
-        const themeMenu = document.getElementById('theme-menu');
-
-        function setTheme(theme) {
-            document.body.classList.remove('cli-theme','fantasy-theme','modern-theme','arcane-theme');
-            document.body.classList.add(theme);
-        }
 
         function closeNewKeyModal() {
             newKeyModal.classList.add('hidden');
@@ -418,15 +358,6 @@
                 }
             });
             document.getElementById('save-sheet-btn').addEventListener('click', handleSaveSheet);
-
-            // Theme
-            themeBtn.addEventListener('click', () => themeMenu.classList.toggle('hidden'));
-            themeMenu.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    setTheme(btn.dataset.theme);
-                    themeMenu.classList.add('hidden');
-                });
-            });
 
             // Check for saved key
             const savedKey = localStorage.getItem('dndShopCharacterKey');
