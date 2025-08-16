@@ -89,19 +89,33 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
+        .slot-bar { display: flex; }
+        .slot-segment {
+            width: 1.75rem;
+            height: 1.25rem;
+            transform: skew(-20deg);
+            margin-right: 4px;
+            cursor: pointer;
+            border: 2px solid var(--color-header);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
+        .slot-expended { background-color: transparent; box-shadow: none; }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
-    <!-- Main Container -->
-    <div class="max-w-7xl mx-auto">
+    <a href="index.html" class="fixed top-4 right-4 text-header hover:text-accent"><i data-lucide="x" class="w-6 h-6"></i></a>
 
-        <!-- Sticky Header Section: Character Overview -->
-        <header class="sticky top-0 z-10 bg-black/80 backdrop-blur-sm p-4 rounded-b-lg mb-6 border-x border-b border-border">
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto relative">
+
+        <!-- Character Overview -->
+        <header class="bg-black/80 backdrop-blur-sm p-4 rounded-b-lg mb-6 border-x border-b border-border">
             <div class="flex flex-col sm:flex-row items-center gap-4">
                 <!-- Avatar and Name -->
                 <div class="flex items-center gap-4 flex-1">
-                    <img src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-16 h-16 object-cover rounded-full border-2 border-header">
+                    <img src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-24 h-24 object-cover rounded-full border-2 border-header">
                     <div>
                         <h1 class="text-3xl text-header">Elara Meadowlight</h1>
                         <p class="text-lg text-dim">Level 5 Wizard</p>
@@ -109,19 +123,19 @@
                 </div>
                 <!-- Core Stats -->
                 <div class="grid grid-cols-4 gap-3 text-center text-lg w-full sm:w-auto">
-                    <div class="content-card !p-2">
+                    <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">HP</span>
                         <span class="text-2xl text-accent">28/35</span>
                     </div>
-                    <div class="content-card !p-2">
+                    <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">AC</span>
                         <span class="text-2xl text-accent">13</span>
                     </div>
-                    <div class="content-card !p-2">
+                    <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Speed</span>
                         <span class="text-2xl text-accent">30ft</span>
                     </div>
-                    <div class="content-card !p-2">
+                    <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Init</span>
                         <span class="text-2xl text-accent">+2</span>
                     </div>
@@ -171,16 +185,24 @@
                     <div class="md:col-span-2">
                         <h2 class="text-2xl text-header mb-2">> Skills</h2>
                         <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2">
-                            <!-- Sample Skills -->
                             <p>Acrobatics <span class="text-accent">+2</span></p>
+                            <p>Animal Handling <span class="text-accent">+2</span></p>
                             <p>Arcana <span class="text-accent text-header">+7*</span></p>
                             <p>Athletics <span class="text-accent">+0</span></p>
+                            <p>Deception <span class="text-accent">+1</span></p>
                             <p>History <span class="text-accent text-header">+7*</span></p>
                             <p>Insight <span class="text-accent">+2</span></p>
+                            <p>Intimidation <span class="text-accent">+1</span></p>
                             <p>Investigation <span class="text-accent">+4</span></p>
                             <p>Medicine <span class="text-accent">+2</span></p>
+                            <p>Nature <span class="text-accent">+4</span></p>
                             <p>Perception <span class="text-accent">+2</span></p>
-                            <p class="text-dim">...and more</p>
+                            <p>Performance <span class="text-accent">+1</span></p>
+                            <p>Persuasion <span class="text-accent">+1</span></p>
+                            <p>Religion <span class="text-accent">+4</span></p>
+                            <p>Sleight of Hand <span class="text-accent">+2</span></p>
+                            <p>Stealth <span class="text-accent">+2</span></p>
+                            <p>Survival <span class="text-accent">+2</span></p>
                         </div>
                     </div>
                 </div>
@@ -205,7 +227,17 @@
                         <p>2d10 Fire</p>
                     </div>
                 </div>
-                <p class="text-dim mt-4">See Spell Management page for full spell list and slots.</p>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="content-card">
+                        <h3 class="text-xl text-header mb-2">> Prepared Spells</h3>
+                        <div id="prepared-spells-container" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2"></div>
+                    </div>
+                    <div class="content-card">
+                        <h3 class="text-xl text-header mb-2">> Spell Slots</h3>
+                        <div id="spell-slots-container" class="space-y-3"></div>
+                        <button id="long-rest-btn" class="mt-2 px-2 py-1 bg-header text-black rounded">Long Rest</button>
+                    </div>
+                </div>
             </div>
             <!-- Inventory Tab -->
             <div id="inventory" class="tab-content">
@@ -270,16 +302,122 @@ Backpack with:
 
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // Deactivate all buttons and content
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
-
-                // Activate the clicked button and corresponding content
                 button.classList.add('active');
                 const tabId = button.dataset.tab;
                 document.getElementById(tabId).classList.add('active');
             });
         });
+
+        // Spell state and rendering
+        const state = {
+            preparedSpells: [
+                { name: 'Fire Bolt', level: 0 },
+                { name: 'Magic Missile', level: 1 },
+                { name: 'Shield', level: 1 }
+            ],
+            spellSlots: {
+                1: { max: 4, expended: 0 },
+                2: { max: 3, expended: 0 },
+                3: { max: 2, expended: 0 },
+                4: { max: 1, expended: 0 }
+            }
+        };
+
+        function renderSpellSlots() {
+            const container = document.getElementById('spell-slots-container');
+            container.innerHTML = '';
+            for (const level in state.spellSlots) {
+                const { max, expended } = state.spellSlots[level];
+                let slotsHtml = '';
+                for (let i = 0; i < max; i++) {
+                    const isExpended = i < expended;
+                    slotsHtml += `<div class="slot-segment ${isExpended ? 'slot-expended' : 'slot-available'}" data-level="${level}" data-index="${i}"></div>`;
+                }
+                container.innerHTML += `
+                    <div class="flex items-center justify-start gap-4">
+                        <span class="text-accent w-20">Level ${level}</span>
+                        <div class="slot-bar">${slotsHtml}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderCastButtons(level) {
+            let buttons = '';
+            for (let i = level; i <= 9; i++) {
+                const slot = state.spellSlots[i];
+                if (slot && slot.expended < slot.max) {
+                    buttons += `<button class="border border-header px-2 py-1 rounded text-header hover:bg-header hover:text-black cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+                }
+            }
+            return buttons || '<span class="text-dim">No Slots</span>';
+        }
+
+        function preparedSpellRow(spell) {
+            return `
+                <div class="flex justify-between items-center py-1 border-b border-border">
+                    <span class="text-accent">${spell.name}</span>
+                    <div class="flex gap-1">${renderCastButtons(spell.level)}</div>
+                </div>
+            `;
+        }
+
+        function renderPreparedSpells() {
+            const container = document.getElementById('prepared-spells-container');
+            container.innerHTML = '';
+            if (state.preparedSpells.length === 0) {
+                container.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
+                return;
+            }
+            const cantrips = state.preparedSpells.filter(s => s.level === 0);
+            const spells = state.preparedSpells.filter(s => s.level > 0);
+            if (cantrips.length) {
+                container.innerHTML += '<h3 class="text-lg text-header">> Cantrips</h3>';
+                cantrips.forEach(spell => { container.innerHTML += preparedSpellRow(spell); });
+            }
+            if (spells.length) {
+                container.innerHTML += '<h3 class="text-lg text-header mt-2">> Spells</h3>';
+                spells.forEach(spell => { container.innerHTML += preparedSpellRow(spell); });
+            }
+        }
+
+        function handleCastSpell(e) {
+            const level = e.target.dataset.castLevel;
+            const slot = state.spellSlots[level];
+            if (!slot || slot.expended >= slot.max) return;
+            slot.expended++;
+            renderSpellSlots();
+        }
+
+        function handleSlotClick(e) {
+            if (!e.target.classList.contains('slot-segment')) return;
+            const level = e.target.dataset.level;
+            const index = Number(e.target.dataset.index);
+            const slot = state.spellSlots[level];
+            if (!slot) return;
+            if (index < slot.expended) {
+                slot.expended--;
+            } else if (slot.expended < slot.max) {
+                slot.expended++;
+            }
+            renderSpellSlots();
+        }
+
+        function handleLongRest() {
+            Object.values(state.spellSlots).forEach(s => s.expended = 0);
+            renderSpellSlots();
+        }
+
+        document.getElementById('spell-slots-container').addEventListener('click', handleSlotClick);
+        document.getElementById('prepared-spells-container').addEventListener('click', e => {
+            if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
+        });
+        document.getElementById('long-rest-btn').addEventListener('click', handleLongRest);
+
+        renderPreparedSpells();
+        renderSpellSlots();
     </script>
 </body>
 </html>
