@@ -392,22 +392,35 @@
             }
         }
 
+        function updateSlotsForLevel(level) {
+            const { max, expended } = state.spellSlots[level];
+            const container = document.getElementById('spell-slots-container');
+            const slots = container.querySelectorAll(`.slot[data-level="${level}"]`);
+            slots.forEach((slot, i) => {
+                const isAvailable = i < (max - expended);
+                slot.classList.toggle('slot-available', isAvailable);
+                slot.classList.toggle('slot-expended', !isAvailable);
+            });
+        }
+
         function renderSpellSlots() {
             const container = document.getElementById('spell-slots-container');
-            container.innerHTML = '';
-            for (const level in state.spellSlots) {
-                const { max, expended } = state.spellSlots[level];
-                let slotsHtml = '';
-                for (let i = 0; i < max; i++) {
-                    const isAvailable = i < (max - expended);
-                    slotsHtml += `<div class="slot-segment ${isAvailable ? 'slot-available' : 'slot-expended'}" data-level="${level}" data-index="${i}"></div>`;
+            if (!container.innerHTML) {
+                let html = '';
+                for (const level in state.spellSlots) {
+                    const { max } = state.spellSlots[level];
+                    html += `<div class="flex items-center justify-start gap-4" data-level-bar="${level}">`;
+                    html += `<span class="text-accent w-20">Lvl ${level}</span><div class="slot-bar">`;
+                    for (let i = 0; i < max; i++) {
+                        html += `<div class="slot-segment slot" data-level="${level}" data-index="${i}"></div>`;
+                    }
+                    html += `</div></div>`;
                 }
-                container.innerHTML += `
-                    <div class="flex items-center justify-start gap-4">
-                        <span class="text-accent w-20">Lvl ${level}</span>
-                        <div class="slot-bar">${slotsHtml}</div>
-                    </div>
-                `;
+                container.innerHTML = html;
+            }
+
+            for (const level in state.spellSlots) {
+                updateSlotsForLevel(level);
             }
         }
 
@@ -458,7 +471,7 @@
             if (!slot || slot.expended >= slot.max) return;
             slot.expended++;
             saveSpellSlots();
-            renderSpellSlots();
+            updateSlotsForLevel(level);
         }
 
         function handleSlotClick(e) {
@@ -475,13 +488,15 @@
                 slot.expended = maxSlots - (index + 1);
             }
             saveSpellSlots();
-            renderSpellSlots();
+            updateSlotsForLevel(level);
         }
 
         function handleLongRest() {
-            Object.values(state.spellSlots).forEach(s => s.expended = 0);
+            Object.keys(state.spellSlots).forEach(level => {
+                state.spellSlots[level].expended = 0;
+                updateSlotsForLevel(level);
+            });
             saveSpellSlots();
-            renderSpellSlots();
         }
 
         document.getElementById('spell-slots-container').addEventListener('click', handleSlotClick);
