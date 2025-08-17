@@ -100,6 +100,14 @@
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
+    <script>
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+        window.addEventListener('load', () => {
+            window.scrollTo(0, 0);
+        });
+    </script>
     <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
         <div id="toolbar-title" class="text-2xl hidden text-header"></div>
         <div id="controls-container" class="relative ml-auto flex items-center gap-4">
