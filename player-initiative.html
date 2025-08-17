@@ -53,6 +53,8 @@
         const combatantsList = document.getElementById('combatants-list');
         const roundCounter = document.getElementById('round-counter');
 
+        const broadcastChannel = new BroadcastChannel('initiative_tracker');
+
         function renderPlayerView() {
             if (!combatState.combatStarted || combatState.combatants.length === 0) {
                 combatantsList.innerHTML = '<p class="text-dim text-center">Waiting for combat to start...</p>';
@@ -102,7 +104,9 @@
         }
 
         function listenForUpdates() {
-            // TODO: implement real-time updates from server
+            broadcastChannel.onmessage = (event) => {
+                updateCombatState(event.data);
+            };
         }
 
         document.addEventListener('DOMContentLoaded', () => {
