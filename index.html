@@ -300,6 +300,55 @@
         btnObserver.observe(document.body, { childList: true, subtree: true });
         ensureButtonTypes();
 
+        // Prevent full rerender after our own writes
+        let suppressRender = false;
+        let saveSlotsDebounceTimer = null; // debounce timer for Firestore writes
+
+        function shallowEqualExcept(a, b, exceptKeys = []) {
+            const A = a || {}, B = b || {};
+            const keys = new Set([...Object.keys(A), ...Object.keys(B)]);
+            for (const k of keys) {
+                if (exceptKeys.includes(k)) continue;
+                const av = A[k], bv = B[k];
+                if (JSON.stringify(av) !== JSON.stringify(bv)) return false;
+            }
+            return true;
+        }
+
+        // Minimal DOM updater for the slot bars (no full rerender)
+        function updateSpellSlotsUI(newSlots) {
+            if (!newSlots) return;
+            const container = document.querySelector('#spell-slots-container');
+            if (!container) return; // Not on Character Hub right now
+            for (const level in newSlots) {
+                const data = newSlots[level];
+                if (!data) continue;
+                const { max, expended } = data;
+                const slots = container.querySelectorAll(`.slot[data-level="${level}"]`);
+                slots.forEach((slot, i) => {
+                    const isAvailable = i < (max - expended);
+                    slot.classList.toggle('slot-available', isAvailable);
+                    slot.classList.toggle('slot-expended', !isAvailable);
+                });
+            }
+        }
+
+        // Debounced saver: localStorage immediately, Firestore after quiet period
+        window.saveSpellSlotsDebounced = async function saveSpellSlotsDebounced(slots) {
+            try { localStorage.setItem('spellSlots', JSON.stringify(slots)); } catch {}
+            if (saveSlotsDebounceTimer) clearTimeout(saveSlotsDebounceTimer);
+            saveSlotsDebounceTimer = setTimeout(async () => {
+                try {
+                    suppressRender = true; // our write will echo back via onSnapshot
+                    await updateDoc(doc(db, 'characters', state.characterKey), { spellSlots: slots });
+                } catch (err) {
+                    console.error('saveSpellSlotsDebounced error:', err);
+                } finally {
+                    suppressRender = false;
+                }
+            }, 400); // adjust delay to taste
+        };
+
         const itemCatalog = {
           "blacksmith": { "name": "Blacksmith/Armory", "items": [ { "name": "Studded Leather", "price": 45 }, { "name": "Chain Shirt", "price": 50 }, { "name": "Scale Mail", "price": 50 }, { "name": "Breastplate", "price": 400 }, { "name": "Half Plate", "price": 750 }, { "name": "Ring Mail", "price": 30 }, { "name": "Chain Mail", "price": 75 }, { "name": "Splint", "price": 200 }, { "name": "Plate", "price": 1500 }, { "name": "Shield", "price": 10 }, { "name": "Dagger", "price": 2 }, { "name": "Handaxe", "price": 5 }, { "name": "Javelin", "price": 0.5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Mace", "price": 5 }, { "name": "Sickle", "price": 1 }, { "name": "Spear", "price": 1 }, { "name": "Battleaxe", "price": 10 }, { "name": "Flail", "price": 10 }, { "name": "Glaive", "price": 20 }, { "name": "Greataxe", "price": 30 }, { "name": "Greatsword", "price": 50 }, { "name": "Halberd", "price": 20 }, { "name": "Lance", "price": 10 }, { "name": "Longsword", "price": 15 }, { "name": "Maul", "price": 10 }, { "name": "Morningstar", "price": 15 }, { "name": "Pike", "price": 5 }, { "name": "Rapier", "price": 25 }, { "name": "Scimitar", "price": 25 }, { "name": "Shortsword", "price": 10 }, { "name": "Trident", "price": 5 }, { "name": "War Pick", "price": 5 }, { "name": "Warhammer", "price": 15 }, { "name": "Ball Bearings (bag of 1,000)", "price": 1 }, { "name": "Bell", "price": 1 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Crowbar", "price": 2 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Sledgehammer", "price": 2 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Manacles", "price": 2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Spikes, Iron", "price": 1 }, { "name": "Whetstone", "price": 0.01 }, { "name": "Carpenter's Tools", "price": 8 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Horn", "price": 3 } ] },
           "fletcher": { "name": "Fletcher/Bowyer", "items": [ { "name": "Crossbow, Light", "price": 25 }, { "name": "Shortbow", "price": 25 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Quiver", "price": 1 } ] },
@@ -483,13 +532,35 @@
             if (playerUnsubscribe) playerUnsubscribe();
             const playerDocRef = doc(db, 'characters', key);
             playerUnsubscribe = onSnapshot(playerDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    state.playerData = docSnap.data();
-                } else {
-                    alert("Character data lost or deleted.");
+                if (!docSnap.exists()) {
+                    alert('Character data lost or deleted.');
                     logout();
+                    return;
                 }
+
+                const next = docSnap.data();
+                const prev = state.playerData;
+
+                // Update state early so downstream reads see latest
+                state.playerData = next;
+
+                // Detect if ONLY spellSlots changed
+                const restEqual = shallowEqualExcept(next, prev, ['spellSlots']);
+                const slotsPrev = prev?.spellSlots || {};
+                const slotsNext = next?.spellSlots || {};
+                const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
+                const onlySlotsChanged = restEqual && slotsChanged;
+
+                // If it's our own write echo, or only slots changed, do minimal update
+                if (suppressRender || onlySlotsChanged) {
+                    updateSpellSlotsUI(slotsNext);
+                    return; // skip full render to prevent flashing
+                }
+
+                // Otherwise proceed with the normal render
                 render();
+            }, (error) => {
+                console.error('Firestore listener error:', error);
             });
         }
 
@@ -1053,9 +1124,7 @@ async function handleDMActiveChange(e) {
 
             async function saveSpellSlots() {
                 try {
-                    localStorage.setItem('spellSlots', JSON.stringify(spellState.spellSlots));
-                    await updateDoc(doc(db, 'characters', state.characterKey), { spellSlots: spellState.spellSlots });
-                    if (state.playerData) state.playerData.spellSlots = spellState.spellSlots;
+                    window.saveSpellSlotsDebounced(spellState.spellSlots);
                 } catch (err) {
                     console.error('Error saving spell slots:', err);
                 }
