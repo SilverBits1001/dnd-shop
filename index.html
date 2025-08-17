@@ -1052,6 +1052,15 @@
                                 `).join('')}
                         </div>
                     </div>
+
+                    <div class="dashboard-card lg:col-span-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="swords" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Join the Battle</h2>
+                        </div>
+                        <p class="text-dim mb-4 flex-grow">View the turn order and track the flow of combat.</p>
+                        <a href="player-initiative.html" class="btn mt-auto">Open Battle Tracker</a>
+                    </div>
                 </main>
             `;
             lucide.createIcons();
@@ -1074,7 +1083,7 @@
                 <h1 class="text-4xl text-header">&gt; DM Hub</h1>
                 <p class="text-lg text-dim">Manage your game world.</p>
             </header>
-            <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="dashboard-card">
                     <div class="flex items-center gap-3 mb-4">
                         <i data-lucide="swords" class="w-8 h-8 text-header"></i>
@@ -1085,6 +1094,14 @@
                         <button id="dm-create-character-btn" class="btn w-full">Create New Character</button>
                         <button id="dm-manage-players-btn" class="btn-secondary w-full">Manage Players</button>
                     </div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="crosshair" class="w-8 h-8 text-header"></i>
+                        <h2 class="text-2xl text-header">&gt; Combat Tracker</h2>
+                    </div>
+                    <p class="text-dim mb-4 flex-grow">Initiate and control combat encounters.</p>
+                    <a href="dm-initiative.html" class="btn w-full mt-auto">Start Combat Encounter</a>
                 </div>
                 <div class="dashboard-card">
                     <div class="flex items-center gap-3 mb-4">
