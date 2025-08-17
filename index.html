@@ -547,33 +547,47 @@
                 }
 
                 const next = docSnap.data();
-                const prev = state.playerData;
 
-                // Update state early so downstream reads see latest
-                state.playerData = next;
+                function applyData(data) {
+                    const prev = state.playerData;
 
-                // Detect if ONLY spellSlots changed
-                const restEqual = shallowEqualExcept(next, prev, ['spellSlots']);
-                const slotsPrev = prev?.spellSlots || {};
-                const slotsNext = next?.spellSlots || {};
-                const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
-                if (slotsChanged) {
-                    try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
-                }
-                const onlySlotsChanged = restEqual && slotsChanged;
+                    // Update state early so downstream reads see latest
+                    state.playerData = data;
 
-                // If it's our own write echo, or only slots changed, do minimal update
-                if (suppressRender || onlySlotsChanged) {
-                    updateSpellSlotsUI(slotsNext);
-                    if (state.spellState) {
-                        state.spellState.spellSlots = slotsNext;
+                    // Detect if ONLY spellSlots changed
+                    const restEqual = shallowEqualExcept(data, prev, ['spellSlots']);
+                    const slotsPrev = prev?.spellSlots || {};
+                    const slotsNext = data?.spellSlots || {};
+                    const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
+                    if (slotsChanged) {
                         try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
                     }
-                    return; // skip full render to prevent flashing
+                    const onlySlotsChanged = restEqual && slotsChanged;
+
+                    // If it's our own write echo, or only slots changed, do minimal update
+                    if (suppressRender || onlySlotsChanged) {
+                        updateSpellSlotsUI(slotsNext);
+                        if (state.spellState) {
+                            state.spellState.spellSlots = slotsNext;
+                            try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
+                        }
+                        return; // skip full render to prevent flashing
+                    }
+
+                    // Otherwise proceed with the normal render
+                    render();
                 }
 
-                // Otherwise proceed with the normal render
-                render();
+                if (!next.sheet) {
+                    fetch('sample-character.json')
+                        .then(r => r.json())
+                        .then(sample => {
+                            applyData({ ...next, sheet: sample });
+                        });
+                    return;
+                }
+
+                applyData(next);
             }, (error) => {
                 console.error('Firestore listener error:', error);
             });
