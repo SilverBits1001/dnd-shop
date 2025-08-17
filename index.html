@@ -549,11 +549,18 @@
                 const slotsPrev = prev?.spellSlots || {};
                 const slotsNext = next?.spellSlots || {};
                 const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
+                if (slotsChanged) {
+                    try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
+                }
                 const onlySlotsChanged = restEqual && slotsChanged;
 
                 // If it's our own write echo, or only slots changed, do minimal update
                 if (suppressRender || onlySlotsChanged) {
                     updateSpellSlotsUI(slotsNext);
+                    if (state.spellState) {
+                        state.spellState.spellSlots = slotsNext;
+                        try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
+                    }
                     return; // skip full render to prevent flashing
                 }
 
@@ -1121,6 +1128,9 @@ async function handleDMActiveChange(e) {
 
             const savedSlots = localStorage.getItem('spellSlots');
             if (savedSlots) { try { spellState.spellSlots = JSON.parse(savedSlots); } catch {} }
+
+            // expose for external updates (e.g., Firestore listeners)
+            state.spellState = spellState;
 
             async function saveSpellSlots() {
                 try {

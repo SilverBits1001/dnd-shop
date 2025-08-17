@@ -383,6 +383,7 @@
             if (!characterKey) return;
             try {
                 await updateDoc(doc(db, 'characters', characterKey), { spellSlots: state.spellSlots });
+                try { localStorage.setItem('spellSlots', JSON.stringify(state.spellSlots)); } catch {}
                 if (playerData) {
                     playerData.spellSlots = state.spellSlots;
                     sessionStorage.setItem('currentPlayer', JSON.stringify(playerData));
