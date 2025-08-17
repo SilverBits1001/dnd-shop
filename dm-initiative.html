@@ -149,6 +149,18 @@
         const showEnemyHPCheckbox = document.getElementById('show-enemy-hp-checkbox');
         const sessionIdDisplay = document.getElementById('session-id');
 
+        const broadcastChannel = new BroadcastChannel('initiative_tracker');
+
+        function broadcastState() {
+            broadcastChannel.postMessage({
+                combatants: state.combatants,
+                currentTurn: state.currentTurn,
+                round: state.round,
+                combatStarted: state.combatStarted,
+                showEnemyHP: state.showEnemyHP,
+            });
+        }
+
         function renderTracker() {
             if (state.combatStarted) {
                 state.combatants.sort((a, b) => b.initiative - a.initiative);
@@ -203,6 +215,7 @@
             updateControls();
             lucide.createIcons();
             attachCombatantListeners();
+            broadcastState();
         }
         
         function updateControls() {
