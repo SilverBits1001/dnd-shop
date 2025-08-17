@@ -137,27 +137,27 @@
                 <div class="flex items-center gap-4 flex-1">
                     <img id="char-avatar" src="https://i.imgur.com/zLRhJXx.png" alt="Character Avatar" class="w-24 h-24 object-cover rounded-full border-2 border-header">
                     <div>
-                        <h1 id="char-name" class="text-3xl text-header">Elara Meadowlight</h1>
-                        <p id="char-classlevel" class="text-lg text-dim">Level 5 Wizard</p>
+                        <h1 id="char-name" class="text-3xl text-header"></h1>
+                        <p id="char-classlevel" class="text-lg text-dim"></p>
                     </div>
                 </div>
                 <!-- Core Stats -->
                 <div class="grid grid-cols-4 gap-3 text-center text-lg w-full sm:w-auto">
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">HP</span>
-                        <span id="stat-hp" class="text-2xl text-accent">28/35</span>
+                        <span id="stat-hp" class="text-2xl text-accent"></span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">AC</span>
-                        <span id="stat-ac" class="text-2xl text-accent">13</span>
+                        <span id="stat-ac" class="text-2xl text-accent"></span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Speed</span>
-                        <span id="stat-speed" class="text-2xl text-accent">30ft</span>
+                        <span id="stat-speed" class="text-2xl text-accent"></span>
                     </div>
                     <div class="content-card !p-2 flex flex-col items-center">
                         <span class="text-dim text-sm">Init</span>
-                        <span id="stat-init" class="text-2xl text-accent">+2</span>
+                        <span id="stat-init" class="text-2xl text-accent"></span>
                     </div>
                 </div>
             </div>
@@ -348,11 +348,12 @@
                 playerData = JSON.parse(playerDataString);
                 const sheet = playerData.sheet || {};
                 renderCharacter(sheet, playerData);
+                initSpellData(sheet);
             } catch {
-                fetch('sample-character.json').then(r => r.json()).then(data => renderCharacter(data));
+                fetch('sample-character.json').then(r => r.json()).then(data => { renderCharacter(data); initSpellData(data); });
             }
         } else {
-            fetch('sample-character.json').then(r => r.json()).then(data => renderCharacter(data));
+            fetch('sample-character.json').then(r => r.json()).then(data => { renderCharacter(data); initSpellData(data); });
         }
 
         // Initialize Lucide Icons
@@ -374,12 +375,9 @@
 
         // Spell state and rendering
         const state = {
-            preparedSpells: [
-                { name: 'Fire Bolt', level: 0 },
-                { name: 'Magic Missile', level: 1 },
-                { name: 'Shield', level: 1 }
-            ],
-            spellSlots: (playerData && playerData.spellSlots) || {
+            knownSpells: [],
+            preparedSpells: [],
+            spellSlots: (playerData && playerData.sheet && playerData.sheet.spellcasting && playerData.sheet.spellcasting.spellSlots) || {
                 1: { max: 4, expended: 0 },
                 2: { max: 3, expended: 0 },
                 3: { max: 2, expended: 0 },
@@ -387,13 +385,44 @@
             }
         };
 
+        const API_BASE = "https://www.dnd5eapi.co/api";
+        function toIndex(name) {
+            return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        }
+        async function getSpellDetails(index) {
+            try {
+                const res = await fetch(`${API_BASE}/spells/${index}`);
+                if (!res.ok) throw new Error('Spell fetch failed');
+                return await res.json();
+            } catch (err) {
+                console.error('Spell fetch error', err);
+                return null;
+            }
+        }
+
+        async function initSpellData(sheet) {
+            const sc = (sheet && sheet.spellcasting) || {};
+            state.spellSlots = sc.spellSlots || state.spellSlots;
+            const knownNames = sc.knownSpells || [];
+            const preparedNames = sc.preparedSpells || [];
+            const spellPromises = knownNames.map(name => getSpellDetails(toIndex(name)));
+            state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+            state.preparedSpells = preparedNames
+                .map(name => state.knownSpells.find(s => s.name === name))
+                .filter(Boolean);
+            renderSpellSlots();
+            renderPreparedSpells();
+        }
+
         async function saveSpellSlots() {
             if (!characterKey) return;
             try {
-                await updateDoc(doc(db, 'characters', characterKey), { spellSlots: state.spellSlots });
+                await updateDoc(doc(db, 'characters', characterKey), { 'sheet.spellcasting.spellSlots': state.spellSlots });
                 try { localStorage.setItem('spellSlots', JSON.stringify(state.spellSlots)); } catch {}
                 if (playerData) {
-                    playerData.spellSlots = state.spellSlots;
+                    playerData.sheet = playerData.sheet || {};
+                    playerData.sheet.spellcasting = playerData.sheet.spellcasting || {};
+                    playerData.sheet.spellcasting.spellSlots = state.spellSlots;
                     sessionStorage.setItem('currentPlayer', JSON.stringify(playerData));
                 }
             } catch (err) {
@@ -514,18 +543,14 @@
         });
         document.getElementById('long-rest-btn').addEventListener('click', handleLongRest);
 
-        renderPreparedSpells();
-        renderSpellSlots();
-
         // Listen for remote updates
         if (characterKey) {
             const playerDocRef = doc(db, 'characters', characterKey);
             onSnapshot(playerDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     playerData = docSnap.data();
-                    state.spellSlots = playerData.spellSlots || state.spellSlots;
                     renderCharacter(playerData.sheet || {}, playerData);
-                    renderSpellSlots();
+                    initSpellData(playerData.sheet || {});
                 }
             });
         }

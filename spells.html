@@ -184,18 +184,79 @@
     </main>
 
     <script type="module">
-        lucide.createIcons();
-        // --- STATE MANAGEMENT (SAMPLE DATA) ---
-        let state = {
-            knownSpells: [], // Array of spell objects from API
-            preparedSpells: ["Magic Missile", "Shield"], // Array of spell names (string)
-            spellSlots: {
-                '1': { max: 4, expended: 0 },
-                '2': { max: 3, expended: 0 },
-                '3': { max: 2, expended: 0 },
-                '4': { max: 1, expended: 0 },
-            },
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "77441779841",
+          appId: "1:77441779841:web:9f5f0c8cf87ad467601f51"
         };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        lucide.createIcons();
+
+        const playerDataString = sessionStorage.getItem('currentPlayer');
+        const characterKey = sessionStorage.getItem('currentPlayerKey');
+        let playerData = null;
+
+        let state = {
+            knownSpells: [],
+            preparedSpells: [],
+            spellSlots: {},
+        };
+
+        function toIndex(name) {
+            return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        }
+
+        async function loadFromSheet(sheet) {
+            const sc = sheet.spellcasting || {};
+            state.preparedSpells = sc.preparedSpells || [];
+            state.spellSlots = sc.spellSlots || {};
+            const knownNames = sc.knownSpells || [];
+            const spellPromises = knownNames.map(name => getSpellDetails(toIndex(name)));
+            state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+            renderAll();
+        }
+
+        async function initializeState() {
+            if (playerDataString) {
+                try {
+                    playerData = JSON.parse(playerDataString);
+                    await loadFromSheet(playerData.sheet || {});
+                } catch {
+                    const sheet = await fetch('sample-character.json').then(r => r.json());
+                    await loadFromSheet(sheet);
+                }
+            } else {
+                const sheet = await fetch('sample-character.json').then(r => r.json());
+                await loadFromSheet(sheet);
+            }
+        }
+
+        async function saveSpellcasting() {
+            const spellcasting = {
+                spellSlots: state.spellSlots,
+                knownSpells: state.knownSpells.map(s => s.name),
+                preparedSpells: state.preparedSpells
+            };
+            if (playerData) {
+                playerData.sheet = playerData.sheet || {};
+                playerData.sheet.spellcasting = spellcasting;
+                sessionStorage.setItem('currentPlayer', JSON.stringify(playerData));
+            }
+            if (characterKey) {
+                try {
+                    await updateDoc(doc(db, 'characters', characterKey), { 'sheet.spellcasting': spellcasting });
+                } catch (err) {
+                    console.error('Error saving spells:', err);
+                }
+            }
+        }
 
         // --- API FUNCTIONS ---
         const API_BASE = "https://www.dnd5eapi.co/api";
@@ -227,15 +288,6 @@
             }
         }
         
-        // --- INITIAL DATA LOADING ---
-        async function loadInitialSpells() {
-            // Pre-load some spells into the spellbook for the example
-            const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
-            const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
-            state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
-            renderAll();
-        }
-
         // --- RENDER FUNCTIONS ---
         function renderAll() {
             renderPreparedSpells();
@@ -389,9 +441,10 @@
                 renderSpellbook();
                 const query = document.getElementById('search-input').value.trim();
                 if (query) searchSpellsAPI(query);
+                await saveSpellcasting();
             }
         }
-        
+
         function handlePrepareSpell(e) {
             const spellName = e.target.dataset.spellName;
             if (!spellName) return;
@@ -402,6 +455,7 @@
                 state.preparedSpells.push(spellName);
             }
             renderAll();
+            saveSpellcasting();
         }
 
         function handleCastSpell(e) {
@@ -414,6 +468,7 @@
             if (state.spellSlots[levelStr] && state.spellSlots[levelStr].expended < state.spellSlots[levelStr].max) {
                 state.spellSlots[levelStr].expended++;
                 updateSlotsForLevel(levelStr);
+                saveSpellcasting();
             } else {
                 const originalText = button.textContent;
                 button.textContent = "No Slots!";
@@ -442,6 +497,7 @@
                 levelData.expended = maxSlots - (index + 1);
             }
             updateSlotsForLevel(level);
+            saveSpellcasting();
         }
 
         function handleLongRest() {
@@ -450,6 +506,7 @@
                 updateSlotsForLevel(level);
             }
             renderPreparedSpells(); // Rerender to show all cast buttons again
+            saveSpellcasting();
         }
 
         function handleToggleSpellDetails(e) {
@@ -461,8 +518,7 @@
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadInitialSpells();
-
+            initializeState();
             document.getElementById('search-btn').addEventListener('click', () => {
                 const query = document.getElementById('search-input').value.trim();
                 if (query) searchSpellsAPI(query);
