@@ -297,6 +297,25 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        /**
+         * Safely gets a value from a nested object.
+         * @param {object} obj The object to read from (e.g., your sheet data).
+         * @param {string} path A string path to the value (e.g., 'combat.hp.current').
+         * @param {any} defaultValue The value to return if the path doesn't exist.
+         * @returns The found value or the default value.
+         */
+        function get(obj, path, defaultValue = "no context provided") {
+            const keys = path.split('.');
+            let result = obj;
+            for (const key of keys) {
+                if (result === null || result === undefined || typeof result !== 'object' || !key in result) {
+                    return defaultValue;
+                }
+                result = result[key];
+            }
+            return result === undefined || result === null ? defaultValue : result;
+        }
+
         function ensureButtonTypes(root = document) {
             root.querySelectorAll('button').forEach(btn => {
                 if (!btn.getAttribute('type')) {
@@ -934,18 +953,25 @@
                 characterHubView.innerHTML = `<div class="cli-window text-center"><p class="text-header">Loading Character...</p></div>`;
                 return;
             }
+            const sheet = player.sheet || {};
             const inventorySummary = player.inventory.reduce((acc, item) => {
                 acc[item.name] = (acc[item.name] || 0) + 1;
                 return acc;
             }, {});
-            const classLevel = player.sheet?.classlevel || '';
-            const formattedClassLevel = classLevel && !classLevel.toLowerCase().startsWith('lvl') ? `Level ${classLevel}` : classLevel;
-            const alignment = player.sheet?.alignment || '';
-            const subtitle = [formattedClassLevel, alignment].filter(Boolean).join(' | ');
-            const imgSrc = player.sheet?.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
-            const hpValue = player.sheet?.combat?.hp ? `${player.sheet.combat.hp.current ?? "-"} / ${player.sheet.combat.hp.max ?? "-"}` : "-";
-            const acValue = player.sheet?.combat?.ac ?? "-";
-            const speedValue = player.sheet?.combat?.speed ?? "-";
+            const charName = get(sheet, 'charname');
+            const classLevel = get(sheet, 'classlevel');
+            const formattedClassLevel = classLevel !== 'no context provided' && !String(classLevel).toLowerCase().startsWith('lvl') ? `Level ${classLevel}` : classLevel;
+            const alignment = get(sheet, 'alignment');
+            const subtitle = `${formattedClassLevel} | ${alignment}`;
+            const imgSrc = get(sheet, 'avatarUrl');
+            const currentHP = get(sheet, 'combat.hp.current');
+            const maxHP = get(sheet, 'combat.hp.max');
+            let hpValue = "no context provided";
+            if (currentHP !== 'no context provided' && maxHP !== 'no context provided') {
+                hpValue = `${currentHP} / ${maxHP}`;
+            }
+            const acValue = get(sheet, 'combat.ac');
+            const speedValue = get(sheet, 'combat.speed');
 
             characterHubView.innerHTML = `
                 <header class="mb-8">
@@ -954,7 +980,7 @@
                             <img src="${imgSrc}" alt="Character Avatar" class="w-32 h-32 object-cover rounded-full border-2 border-header shadow-[0_0_15px_rgba(0,255,136,0.5)]">
                         </div>
                         <div class="flex-1 text-center sm:text-left">
-                            <h1 class="text-4xl text-header">${player.name}</h1>
+                            <h1 class="text-4xl text-header">${charName}</h1>
                             <p class="text-xl text-dim">${subtitle}</p>
                             <div class="mt-3 flex items-center justify-center sm:justify-start gap-2 text-sm">
                                 <span class="text-dim">Key:</span>

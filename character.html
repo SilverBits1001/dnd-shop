@@ -283,6 +283,25 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        /**
+         * Safely gets a value from a nested object.
+         * @param {object} obj The object to read from (e.g., your sheet data).
+         * @param {string} path A string path to the value (e.g., 'combat.hp.current').
+         * @param {any} defaultValue The value to return if the path doesn't exist.
+         * @returns The found value or the default value.
+         */
+        function get(obj, path, defaultValue = "no context provided") {
+            const keys = path.split('.');
+            let result = obj;
+            for (const key of keys) {
+                if (result === null || result === undefined || typeof result !== 'object' || !key in result) {
+                    return defaultValue;
+                }
+                result = result[key];
+            }
+            return result === undefined || result === null ? defaultValue : result;
+        }
+
         // Load character data from sessionStorage or sample file
         let inspiration = false;
         const inspirationEl = document.getElementById('inspiration');
@@ -294,53 +313,79 @@
         const characterKey = sessionStorage.getItem('currentPlayerKey');
         let playerData = null;
         function renderCharacter(sheet, player) {
-            document.getElementById('char-avatar').src = sheet.avatarUrl || 'https://i.imgur.com/zLRhJXx.png';
-            document.getElementById('char-name').textContent = player?.name || sheet.charname || '';
-            document.getElementById('char-classlevel').textContent = sheet.classlevel || '';
-            const hp = sheet.combat?.hp || {};
-            document.getElementById('stat-hp').textContent = `${hp.current ?? '-'}${hp.max !== undefined ? '/' + hp.max : ''}`;
-            document.getElementById('stat-ac').textContent = sheet.combat?.ac ?? '';
-            document.getElementById('stat-speed').textContent = sheet.combat?.speed ? `${sheet.combat.speed}ft` : '';
-            document.getElementById('stat-init').textContent = sheet.combat?.initiative ?? '';
-            document.getElementById('proficiency-bonus').textContent = sheet.proficiencybonus ?? '';
-            inspiration = !!sheet.inspiration;
-            inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+            const avatar = get(sheet, 'avatarUrl');
+            document.getElementById('char-avatar').src = avatar;
+            document.getElementById('char-name').textContent = get(sheet, 'charname');
+            document.getElementById('char-classlevel').textContent = get(sheet, 'classlevel');
+            const currentHP = get(sheet, 'combat.hp.current');
+            const maxHP = get(sheet, 'combat.hp.max');
+            let hpValue = "no context provided";
+            if (currentHP !== 'no context provided' && maxHP !== 'no context provided') {
+                hpValue = `${currentHP}${maxHP !== 'no context provided' ? '/' + maxHP : ''}`;
+            }
+            document.getElementById('stat-hp').textContent = hpValue;
+            document.getElementById('stat-ac').textContent = get(sheet, 'combat.ac');
+            const speed = get(sheet, 'combat.speed');
+            document.getElementById('stat-speed').textContent = speed === 'no context provided' ? speed : `${speed}ft`;
+            document.getElementById('stat-init').textContent = get(sheet, 'combat.initiative');
+            document.getElementById('proficiency-bonus').textContent = get(sheet, 'proficiencybonus');
+            const inspVal = get(sheet, 'inspiration');
+            if (inspVal === 'no context provided') {
+                inspirationEl.textContent = 'no context provided';
+            } else {
+                inspiration = !!inspVal;
+                inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+            }
 
             const abbrMap = { Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' };
             const abilitiesContainer = document.getElementById('abilities-container');
             abilitiesContainer.innerHTML = '';
-            if (sheet.abilities) {
-                for (const [name, info] of Object.entries(sheet.abilities)) {
+            const abilities = get(sheet, 'abilities');
+            if (abilities !== 'no context provided') {
+                for (const [name, info] of Object.entries(abilities)) {
                     const abbr = abbrMap[name] || name.slice(0,3).toUpperCase();
-                    const mod = typeof info.mod === 'number' && info.mod >= 0 ? `+${info.mod}` : info.mod;
-                    abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${info.score ?? ''}</div><div class="text-dim">${mod ?? ''}</div></div>`;
+                    let mod = get(info, 'mod');
+                    if (mod !== 'no context provided' && typeof mod === 'number' && mod >= 0) mod = `+${mod}`;
+                    const score = get(info, 'score');
+                    abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${score}</div><div class="text-dim">${mod}</div></div>`;
                 }
+            } else {
+                abilitiesContainer.textContent = 'no context provided';
             }
 
             const skillsContainer = document.getElementById('skills-container');
             skillsContainer.innerHTML = '';
-            if (sheet.skills) {
-                for (const [name, info] of Object.entries(sheet.skills)) {
-                    const profClass = info.prof ? 'text-header' : '';
-                    const bonus = info.bonus ?? '';
-                    const mark = info.prof ? '*' : '';
+            const skills = get(sheet, 'skills');
+            if (skills !== 'no context provided') {
+                for (const [name, info] of Object.entries(skills)) {
+                    const prof = get(info, 'prof');
+                    const bonus = get(info, 'bonus');
+                    const profClass = prof === 'no context provided' ? '' : (prof ? 'text-header' : '');
+                    const mark = prof === 'no context provided' ? '' : (prof ? '*' : '');
                     skillsContainer.innerHTML += `<p>${name} <span class="text-accent ${profClass}">${bonus}${mark}</span></p>`;
                 }
+            } else {
+                skillsContainer.textContent = 'no context provided';
             }
 
             const attacksContainer = document.getElementById('attacks-container');
             attacksContainer.innerHTML = '';
-            if (Array.isArray(sheet.attacks)) {
-                sheet.attacks.forEach(a => {
-                    attacksContainer.innerHTML += `<div class="grid grid-cols-3 gap-4 border-t border-border pt-2"><p>${a.name}</p><p>${a.atkBonus}</p><p>${a.damage}</p></div>`;
+            const attacks = get(sheet, 'attacks');
+            if (Array.isArray(attacks)) {
+                attacks.forEach(a => {
+                    const nameVal = get(a, 'name');
+                    const atkBonus = get(a, 'atkBonus');
+                    const damage = get(a, 'damage');
+                    attacksContainer.innerHTML += `<div class="grid grid-cols-3 gap-4 border-t border-border pt-2"><p>${nameVal}</p><p>${atkBonus}</p><p>${damage}</p></div>`;
                 });
+            } else {
+                attacksContainer.textContent = 'no context provided';
             }
 
-            document.getElementById('equipment-list').textContent = sheet.equipment?.list || '';
-            const money = sheet.equipment?.money || {};
-            document.getElementById('money-gp').textContent = money.gp ?? 0;
-            document.getElementById('money-sp').textContent = money.sp ?? 0;
-            document.getElementById('money-cp').textContent = money.cp ?? 0;
+            document.getElementById('equipment-list').textContent = get(sheet, 'equipment.list');
+            document.getElementById('money-gp').textContent = get(sheet, 'equipment.money.gp');
+            document.getElementById('money-sp').textContent = get(sheet, 'equipment.money.sp');
+            document.getElementById('money-cp').textContent = get(sheet, 'equipment.money.cp');
         }
 
         if (playerDataString) {
@@ -374,15 +419,16 @@
         });
 
         // Spell state and rendering
+        const defaultSlots = {
+            1: { max: 4, expended: 0 },
+            2: { max: 3, expended: 0 },
+            3: { max: 2, expended: 0 },
+            4: { max: 1, expended: 0 }
+        };
         const state = {
             knownSpells: [],
             preparedSpells: [],
-            spellSlots: (playerData && playerData.sheet && playerData.sheet.spellcasting && playerData.sheet.spellcasting.spellSlots) || {
-                1: { max: 4, expended: 0 },
-                2: { max: 3, expended: 0 },
-                3: { max: 2, expended: 0 },
-                4: { max: 1, expended: 0 }
-            }
+            spellSlots: playerData ? get(playerData, 'sheet.spellcasting.spellSlots', defaultSlots) : defaultSlots
         };
 
         const API_BASE = "https://www.dnd5eapi.co/api";
@@ -401,10 +447,10 @@
         }
 
         async function initSpellData(sheet) {
-            const sc = (sheet && sheet.spellcasting) || {};
-            state.spellSlots = sc.spellSlots || state.spellSlots;
-            const knownNames = sc.knownSpells || [];
-            const preparedNames = sc.preparedSpells || [];
+            const sc = get(sheet, 'spellcasting', {});
+            state.spellSlots = get(sc, 'spellSlots', state.spellSlots);
+            const knownNames = get(sc, 'knownSpells', []);
+            const preparedNames = get(sc, 'preparedSpells', []);
             const spellPromises = knownNames.map(name => getSpellDetails(toIndex(name)));
             state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
             state.preparedSpells = preparedNames
