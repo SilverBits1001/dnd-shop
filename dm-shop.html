@@ -115,7 +115,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, runTransaction, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -143,6 +143,62 @@
             return Math.round(modified * 100) / 100;
         }
 
+        async function handleCheckout(e) {
+            const playerId = e.target.dataset.playerId;
+            const shopDocRef = doc(db, 'shops', shopId);
+            const playerDocRef = doc(db, 'characters', playerId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopDocRef);
+                    const playerDoc = await transaction.get(playerDocRef);
+                    if (!shopDoc.exists() || !playerDoc.exists()) throw 'Document not found!';
+                    const shopData = shopDoc.data();
+                    const playerData = playerDoc.data();
+                    const cart = shopData.carts[playerId];
+                    if (!cart || cart.items.length === 0) return;
+                    const totalCost = cart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
+                    if (playerData.gold < totalCost) throw `${playerData.name} doesn't have enough gold!`;
+                    transaction.update(shopDocRef, {
+                        'shopkeeper.gold': shopData.shopkeeper.gold + totalCost,
+                        [`carts.${playerId}`]: { items: [] }
+                    });
+                    transaction.update(playerDocRef, {
+                        gold: playerData.gold - totalCost,
+                        inventory: [...playerData.inventory, ...cart.items]
+                    });
+                });
+            } catch (error) {
+                console.error('Checkout failed:', error);
+                alert(`Checkout failed: ${error}`);
+            }
+        }
+
+        async function handleClearCart(e) {
+            const playerId = e.target.dataset.playerId;
+            const shopRef = doc(db, 'shops', shopId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const shopDoc = await transaction.get(shopRef);
+                    if (!shopDoc.exists()) throw 'Shop not found';
+                    const shopData = shopDoc.data();
+                    const cart = shopData.carts[playerId];
+                    if (!cart) return;
+                    const newInventory = [...shopData.inventory];
+                    cart.items.forEach(it => {
+                        const idx = newInventory.findIndex(inv => inv.id === it.id);
+                        if (idx !== -1) {
+                            newInventory[idx] = { ...newInventory[idx], quantity: newInventory[idx].quantity + 1 };
+                        }
+                    });
+                    const updates = { inventory: newInventory };
+                    updates[`carts.${playerId}`] = deleteField();
+                    transaction.update(shopRef, updates);
+                });
+            } catch (err) {
+                console.error('Clear cart failed:', err);
+            }
+        }
+
         function attachDMListeners() {
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -156,10 +212,15 @@
                 });
             });
 
-            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', (e) => console.log(`Checkout for ${e.target.dataset.playerId}`)));
-            document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', (e) => console.log(`Clear cart for ${e.target.dataset.playerId}`)));
-            document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', (e) => console.log(`Remove item at index ${e.target.dataset.index}`)));
-            document.getElementById('add-custom-item-btn')?.addEventListener('click', () => console.log('Add custom item'));
+            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
+            document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
+            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const value = parseInt(e.currentTarget.dataset.value, 10);
+                const newVal = state.shopData.priceModifier === value ? 0 : value;
+                state.shopData.priceModifier = newVal;
+                renderDMView();
+                updateDoc(doc(db, 'shops', shopId), { priceModifier: newVal });
+            }));
         }
 
         function renderDMView() {
@@ -188,7 +249,7 @@
                                     <div>
                                         <label class="block mb-1">> Price Modifier: <span class="text-accent">${priceModifier}%</span></label>
                                         <div class="grid grid-cols-3 gap-2">
-                                            ${[-50,-25,-15,15,25,50].map(v => `<button class="${priceModifier===v?'btn':'btn-secondary'} !p-2" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
+                                            ${[-50,-25,-15,15,25,50].map(v => `<button class="${priceModifier===v?'btn':'btn-secondary'} price-mod-btn !p-2" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
                                         </div>
                                     </div>
                                     <div>
@@ -232,6 +293,7 @@
                                             <input type="number" min="0" class="input-field w-20" value="${item.quantity}">
                                             <label class="text-dim ml-auto">Price:</label>
                                             <input type="number" min="0" step="0.01" class="input-field w-24 text-price" value="${item.price}">
+        <span class="text-dim ml-2">=</span><span class="text-price">${getModifiedPrice(item.price)} GP</span>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -247,7 +309,7 @@
                                         <h3 class="text-xl text-header">${cartData.playerName}</h3>
                                         ${cartData.items.length > 0 ? `
                                             <ul class="pl-4 list-disc list-inside text-dim my-2">
-                                                ${cartData.items.map(item => `<li><span class="text-item-name">${item.name}</span></li>`).join('')}
+                                                ${cartData.items.map(item => `<li><span class="text-item-name">${item.name}</span> - <span class="text-price">${getModifiedPrice(item.price)} GP</span></li>`).join('')}
                                             </ul>
                                             <p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0)} GP</span></p>
                                             <div class="grid grid-cols-2 gap-2 mt-3">
