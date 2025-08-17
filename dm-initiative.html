@@ -164,6 +164,8 @@
         const combatId = sessionStorage.getItem('currentCombatId') || Math.random().toString(36).substring(2, 8);
         sessionStorage.setItem('currentCombatId', combatId);
         const combatDocRef = doc(db, 'combatSessions', combatId);
+        const activeCombatRef = doc(db, 'currentCombat', 'active');
+        setDoc(activeCombatRef, { id: combatId });
 
         async function broadcastState() {
             await setDoc(combatDocRef, state);
@@ -360,7 +362,7 @@
             renderTracker();
         }
 
-        function endCombat() {
+        async function endCombat() {
             state.combatStarted = false;
             state.combatants.forEach(c => {
                 c.initiative = null;
@@ -372,6 +374,7 @@
             controlsSection.classList.add('hidden');
             setupSection.classList.remove('hidden');
             renderTracker();
+            await setDoc(activeCombatRef, { id: null });
         }
 
         function modifyActiveCombatantHP(action) {

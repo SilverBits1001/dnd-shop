@@ -40,7 +40,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -114,12 +114,18 @@
             renderPlayerView();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             renderPlayerView();
 
-            const combatId = sessionStorage.getItem('currentCombatId') || prompt('Enter combat session ID:');
+            let combatId = sessionStorage.getItem('currentCombatId');
             if (!combatId) {
-                alert('No combat session ID provided.');
+                try {
+                    const activeDoc = await getDoc(doc(db, 'currentCombat', 'active'));
+                    combatId = activeDoc.exists() ? activeDoc.data().id : null;
+                } catch {}
+            }
+            if (!combatId) {
+                combatantsList.innerHTML = '<p class="text-dim text-center">No active combat session.</p>';
                 return;
             }
             sessionStorage.setItem('currentCombatId', combatId);

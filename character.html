@@ -391,13 +391,21 @@
         if (playerDataString) {
             try {
                 playerData = JSON.parse(playerDataString);
-                const sheet = playerData.sheet || {};
-                renderCharacter(sheet, playerData);
-                initSpellData(sheet);
+                const sheet = playerData.sheet;
+                if (sheet) {
+                    renderCharacter(sheet, playerData);
+                    initSpellData(sheet);
+                } else {
+                    fetch('sample-character.json').then(r => r.json()).then(data => {
+                        playerData.sheet = data;
+                        renderCharacter(data, playerData);
+                        initSpellData(data);
+                    });
+                }
             } catch {
                 fetch('sample-character.json').then(r => r.json()).then(data => { renderCharacter(data); initSpellData(data); });
             }
-        } else {
+        } else if (!characterKey) {
             fetch('sample-character.json').then(r => r.json()).then(data => { renderCharacter(data); initSpellData(data); });
         }
 
@@ -595,8 +603,17 @@
             onSnapshot(playerDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     playerData = docSnap.data();
-                    renderCharacter(playerData.sheet || {}, playerData);
-                    initSpellData(playerData.sheet || {});
+                    const sheet = playerData.sheet;
+                    if (sheet) {
+                        renderCharacter(sheet, playerData);
+                        initSpellData(sheet);
+                    } else {
+                        fetch('sample-character.json').then(r => r.json()).then(data => {
+                            playerData.sheet = data;
+                            renderCharacter(data, playerData);
+                            initSpellData(data);
+                        });
+                    }
                 }
             });
         }
