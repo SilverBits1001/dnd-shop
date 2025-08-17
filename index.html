@@ -1061,39 +1061,57 @@
 
         function renderDMHub() {
             dmHubView.innerHTML = `
-                <div class="cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
-                    <div class="space-y-2">
-                        <button id="dm-create-character-btn" type="button" class="btn w-full">Create New Character</button>
-                        <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
+        <div id="dm-hub-view" class="max-w-4xl mx-auto">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl text-header">&gt; DM Hub</h1>
+                <p class="text-lg text-dim">Manage your game world.</p>
+            </header>
+            <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="dashboard-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="swords" class="w-8 h-8 text-header"></i>
+                        <h2 class="text-2xl text-header">&gt; DM Actions</h2>
+                    </div>
+                    <p class="text-dim mb-4 flex-grow">Create new characters for your players or manage existing ones.</p>
+                    <div class="space-y-3 mt-auto">
+                        <button id="dm-create-character-btn" class="btn w-full">Create New Character</button>
+                        <button id="dm-manage-players-btn" class="btn-secondary w-full">Manage Players</button>
                     </div>
                 </div>
-                <div class="mt-8 cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> Your Shops</h2>
-                    <div class="space-y-2">
-                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
-                        <div class="border-t border-border my-2"></div>
-                        ${state.dmShops.length === 0
-                            ? '<p class="text-dim">No shops.</p>'
-                            : state.dmShops.map(s => `
-                                <div class="flex items-center mb-2 gap-2">
-                                    <button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button>
-                                    <input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}>
-                                    <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button>
+                <div class="dashboard-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="store" class="w-8 h-8 text-header"></i>
+                        <h2 class="text-2xl text-header">&gt; Your Shops</h2>
+                    </div>
+                    <div id="dm-shops-list" class="space-y-3 flex-grow mb-4">
+                        ${state.dmShops.length === 0 ? '<p class="text-dim">No shops created yet.</p>' : state.dmShops.map(shop => `
+                            <div class="flex items-center justify-between p-2 border-b border-border">
+                                <span class="text-accent">${shop.shopName || shop.shopType}</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs ${shop.active ? 'text-header' : 'text-dim'}">${shop.active ? 'Active' : 'Inactive'}</span>
+                                    <button class="btn-secondary !p-2 text-sm dm-enter-shop-btn" data-shop-id="${shop.id}" title="Enter Shop">
+                                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${shop.id}" title="Delete Shop">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
                                 </div>
-                            `).join('')}
+                            </div>
+                        `).join('')}
                     </div>
+                    <button id="dm-create-shop-btn" class="btn w-full mt-auto">Create New Shop</button>
                 </div>
+            </main>
+        </div>
             `;
+            lucide.createIcons();
             document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
             document.getElementById('dm-create-character-btn').addEventListener('click', handleCreateCharacter);
             document.getElementById('dm-manage-players-btn').addEventListener('click', openPlayersModal);
             document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
-                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+                btn.addEventListener('click', e => joinShop(e.currentTarget.dataset.shopId));
             });
             document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
-            document.querySelectorAll('.dm-active-checkbox').forEach(cb => cb.addEventListener('change', handleDMActiveChange));
-
         }
 
         async function handleDMDeleteShop(e) {
