@@ -104,8 +104,21 @@
     </div>
 
     <script type="module">
-        // Firebase setup would go here in a real app
-        // These utility functions should be replaced with real data access in production.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "480358969004",
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+          measurementId: "G-DWLMWMZTZ3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         async function fetchPlayers() {
             // TODO: Replace with real data source
@@ -148,17 +161,12 @@
         const closeStatusModalBtn = document.getElementById('close-status-modal-btn');
         const showEnemyHPCheckbox = document.getElementById('show-enemy-hp-checkbox');
         const sessionIdDisplay = document.getElementById('session-id');
+        const combatId = sessionStorage.getItem('currentCombatId') || Math.random().toString(36).substring(2, 8);
+        sessionStorage.setItem('currentCombatId', combatId);
+        const combatDocRef = doc(db, 'combatSessions', combatId);
 
-        const broadcastChannel = new BroadcastChannel('initiative_tracker');
-
-        function broadcastState() {
-            broadcastChannel.postMessage({
-                combatants: state.combatants,
-                currentTurn: state.currentTurn,
-                round: state.round,
-                combatStarted: state.combatStarted,
-                showEnemyHP: state.showEnemyHP,
-            });
+        async function broadcastState() {
+            await setDoc(combatDocRef, state);
         }
 
         function renderTracker() {
@@ -425,10 +433,18 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            sessionIdDisplay.textContent = 'TBD'; // Replace with real session ID
+        document.addEventListener('DOMContentLoaded', async () => {
+            sessionIdDisplay.textContent = combatId;
             statusSelect.innerHTML = statusEffectOptions.map(s => `<option value="${s}">${s}</option>`).join('');
-            
+
+            const existing = await getDoc(combatDocRef);
+            if (existing.exists()) {
+                state = { ...state, ...existing.data() };
+            } else {
+                await setDoc(combatDocRef, state);
+            }
+            showEnemyHPCheckbox.checked = state.showEnemyHP;
+
             addPlayersBtn.addEventListener('click', addPlayers);
             addEnemyBtn.addEventListener('click', addEnemy);
             startCombatBtn.addEventListener('click', startCombat);
@@ -440,7 +456,7 @@
             closeStatusModalBtn.addEventListener('click', () => statusEffectModal.classList.add('hidden'));
             showEnemyHPCheckbox.addEventListener('change', (e) => {
                 state.showEnemyHP = e.target.checked;
-                // TODO: persist this preference
+                renderTracker();
             });
 
             renderTracker();

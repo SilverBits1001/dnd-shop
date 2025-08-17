@@ -39,8 +39,21 @@
     </div>
 
     <script type="module">
-        // In production, subscribe to real-time combat state from the backend.
-        // This placeholder simply updates the DOM when combatState changes.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "480358969004",
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+          measurementId: "G-DWLMWMZTZ3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         let combatState = {
             combatants: [],
@@ -52,8 +65,6 @@
 
         const combatantsList = document.getElementById('combatants-list');
         const roundCounter = document.getElementById('round-counter');
-
-        const broadcastChannel = new BroadcastChannel('initiative_tracker');
 
         function renderPlayerView() {
             if (!combatState.combatStarted || combatState.combatants.length === 0) {
@@ -103,15 +114,23 @@
             renderPlayerView();
         }
 
-        function listenForUpdates() {
-            broadcastChannel.onmessage = (event) => {
-                updateCombatState(event.data);
-            };
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             renderPlayerView();
-            listenForUpdates();
+
+            const combatId = sessionStorage.getItem('currentCombatId') || prompt('Enter combat session ID:');
+            if (!combatId) {
+                alert('No combat session ID provided.');
+                return;
+            }
+            sessionStorage.setItem('currentCombatId', combatId);
+            const combatDocRef = doc(db, 'combatSessions', combatId);
+            onSnapshot(combatDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    updateCombatState(docSnap.data());
+                } else {
+                    combatantsList.innerHTML = '<p class="text-dim text-center">Waiting for combat to start...</p>';
+                }
+            });
         });
 
     </script>
