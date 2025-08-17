@@ -1,1365 +1,3329 @@
 <!DOCTYPE html>
+
+
+
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Hub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Cormorant+Garamond:wght@400;700&family=Inter:wght@400;700&family=Raleway:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        html { scroll-behavior: smooth; }
-        body {
-            font-size: 20px;
-            line-height: 1.6;
-            overflow-x: hidden;
-            padding-top: 5rem; /* Space for the fixed navbar */
-            color: var(--color-text);
-            background-color: var(--color-bg);
-        }
-        body.cli-theme {
-            --color-text: #E6E6E6;
-            --color-header: #00FF88; /* Neon Green */
-            --color-accent: #FFFFFF; /* White */
-            --color-price: #FFB454;  /* Amber */
-            --color-dim: #6B7280;
-            --color-border: #333333;
-            --shadow-glow: 0 0 8px;
-            --color-bg: #0A0A0A;
-            --window-bg: rgba(20, 20, 20, 0.9);
-            --input-bg: #1a1a1a;
-            --input-text: #ffffff;
-            --btn-text: #000000;
-            font-family: 'VT323', monospace;
-        }
-        .cli-window {
-            border: 1px solid var(--color-border);
-            border-radius: 0.375rem;
-            padding: 1rem;
-            background-color: var(--window-bg);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-            position: relative; /* For positioning exit buttons */
-        }
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.25rem;
-            background-color: var(--color-accent);
-            color: var(--btn-text);
-            text-shadow: none;
-            cursor: pointer;
-            border: none;
-            border-radius: 0.25rem;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
-        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
-        .btn-secondary:hover { background-color: var(--color-accent); color: var(--btn-text); }
-        .cast-btn { background-color: var(--color-bg); }
-        .cast-btn:active { background-color: var(--color-accent); color: var(--btn-text); }
-        .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
-        .input-field, .select-field {
-            background-color: var(--input-bg);
-            border: 1px solid var(--color-border);
-            color: var(--input-text);
-            padding: 0.75rem;
-            width: 100%;
-            font-family: inherit;
-            text-transform: uppercase;
-            border-radius: 0.25rem;
-        }
-        .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
-        .ascii-wrap { /* Centers the block and provides a measuring container */
-            display: grid;
-            place-items: center;
-            padding: .5rem;
-        }
-        .ascii-title {
-            font-family: 'VT323';
-            white-space: pre;           /* Preserve spacing and line breaks */
-            color: var(--color-header);
-            text-shadow: var(--shadow-glow) var(--color-header);
-            margin: 0 auto 1rem;        /* Center the block and add spacing below */
-            max-width: 100%;            /* Never overflow container */
-            overflow: hidden;           /* Avoid stray scrollbars on tiny screens */
-            display: block;             /* Needed for margin auto centering */
-        }
-        @media (max-width: 480px) {
-            .ascii-wrap { padding-top: .25rem; }
-        }
-        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
-        .text-item-name { color: var(--color-accent); }
-        .text-price { color: var(--color-price); font-weight: bold; }
-        .text-dim { color: var(--color-dim); }
-        .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
-        .player-login-btn { text-decoration: none; }
-        #dm-tools-btn, #logout-btn { background: none; border: none; color: var(--color-accent); font-size: 1.25rem; cursor: pointer; }
-        #dm-tools-btn:hover, #logout-btn:hover { color: var(--color-header); text-decoration: underline; }
-        #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
-        #exit-mode-btn:hover { color: var(--color-accent); }
-        .subview-exit-btn {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: var(--color-header);
-            font-size: 1.75rem;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0.25rem;
-        }
-        .subview-exit-btn:hover { color: white; }
-        .item-card { transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s; touch-action: pan-y; }
-        .item-card.sold-out { opacity: 0.5; }
-        .item-card.swiping { transition: none; }
-        .dashboard-card {
-            background-color: var(--window-bg);
-            border: 1px solid var(--color-border);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            transition: all 0.3s ease-in-out;
-            display: flex;
-            flex-direction: column;
-        }
-        .dashboard-card:hover {
-            border-color: var(--color-header);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-        }
-        .text-accent { color: var(--color-accent); }
-        .border-border { border-color: var(--color-border); }
-        @keyframes glow-success { 0% { box-shadow: 0 0 0px var(--color-header); } 50% { box-shadow: 0 0 15px var(--color-header); } 100% { box-shadow: 0 0 0px var(--color-header); } }
-        .glow-once { animation: glow-success 0.7s ease-out; }
-    </style>
-    <style>
-        summary::marker { content: ''; }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
-        .slot-bar { display: flex; }
-        .slot-segment { width: 1.75rem; height: 1.25rem; transform: skew(-20deg); margin-right: 4px; cursor: pointer; border: 2px solid var(--color-header); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
-        .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
-        .slot-expended { background-color: transparent; box-shadow: none; }
-    </style>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>D&D Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Cormorant+Garamond:wght@400;700&family=Inter:wght@400;700&family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+
+        html { scroll-behavior: smooth; }
+
+        body {
+
+            font-size: 20px;
+
+            line-height: 1.6;
+
+            overflow-x: hidden;
+
+            padding-top: 5rem; /* Space for the fixed navbar */
+
+            color: var(--color-text);
+
+            background-color: var(--color-bg);
+
+        }
+
+        body.cli-theme {
+
+            --color-text: #E6E6E6;
+
+            --color-header: #00FF88; /* Neon Green */
+
+            --color-accent: #FFFFFF; /* White */
+
+            --color-price: #FFB454;  /* Amber */
+
+            --color-dim: #6B7280;
+
+            --color-border: #333333;
+
+            --shadow-glow: 0 0 8px;
+
+            --color-bg: #0A0A0A;
+
+            --window-bg: rgba(20, 20, 20, 0.9);
+
+            --input-bg: #1a1a1a;
+
+            --input-text: #ffffff;
+
+            --btn-text: #000000;
+
+            font-family: 'VT323', monospace;
+
+        }
+
+        .cli-window {
+
+            border: 1px solid var(--color-border);
+
+            border-radius: 0.375rem;
+
+            padding: 1rem;
+
+            background-color: var(--window-bg);
+
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+
+            position: relative; /* For positioning exit buttons */
+
+        }
+
+        .btn {
+
+            display: inline-block;
+
+            padding: 0.75rem 1.25rem;
+
+            background-color: var(--color-accent);
+
+            color: var(--btn-text);
+
+            text-shadow: none;
+
+            cursor: pointer;
+
+            border: none;
+
+            border-radius: 0.25rem;
+
+            transition: all 0.2s ease-in-out;
+
+        }
+
+        .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
+
+        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
+
+        .btn-secondary:hover { background-color: var(--color-accent); color: var(--btn-text); }
+
+        .cast-btn { background-color: var(--color-bg); }
+
+        .cast-btn:active { background-color: var(--color-accent); color: var(--btn-text); }
+
+        .btn:disabled { background-color: #333; color: #888; cursor: not-allowed; opacity: 0.7; }
+
+        .input-field, .select-field {
+
+            background-color: var(--input-bg);
+
+            border: 1px solid var(--color-border);
+
+            color: var(--input-text);
+
+            padding: 0.75rem;
+
+            width: 100%;
+
+            font-family: inherit;
+
+            text-transform: uppercase;
+
+            border-radius: 0.25rem;
+
+        }
+
+        .input-field:focus, .select-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
+
+        .ascii-wrap { /* Centers the block and provides a measuring container */
+
+            display: grid;
+
+            place-items: center;
+
+            padding: .5rem;
+
+        }
+
+        .ascii-title {
+
+            font-family: 'VT323', ;
+
+            white-space: pre;           /* Preserve spacing and line breaks */
+
+            color: var(--color-header);
+
+            text-shadow: var(--shadow-glow) var(--color-header);
+
+            margin: 0 auto 1rem;        /* Center the block and add spacing below */
+
+            max-width: 100%;            /* Never overflow container */
+
+            overflow: hidden;           /* Avoid stray scrollbars on tiny screens */
+
+            display: block;             /* Needed for margin auto centering */
+
+        }
+
+        @media (max-width: 480px) {
+
+            .ascii-wrap { padding-top: .25rem; }
+
+        }
+
+        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
+
+        .text-item-name { color: var(--color-accent); }
+
+        .text-price { color: var(--color-price); font-weight: bold; }
+
+        .text-dim { color: var(--color-dim); }
+
+        .link-style { background: none; border: none; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
+
+        .player-login-btn { text-decoration: none; }
+
+        #dm-tools-btn, #logout-btn { background: none; border: none; color: var(--color-accent); font-size: 1.25rem; cursor: pointer; }
+
+        #dm-tools-btn:hover, #logout-btn:hover { color: var(--color-header); text-decoration: underline; }
+
+        #exit-mode-btn { background: none; border: none; color: var(--color-header); font-size: 1.75rem; line-height: 1; cursor: pointer; padding: 0 0.5rem; }
+
+        #exit-mode-btn:hover { color: var(--color-accent); }
+
+        .subview-exit-btn {
+
+            position: absolute;
+
+            top: 0.5rem;
+
+            right: 0.5rem;
+
+            background: none;
+
+            border: none;
+
+            color: var(--color-header);
+
+            font-size: 1.75rem;
+
+            line-height: 1;
+
+            cursor: pointer;
+
+            padding: 0.25rem;
+
+        }
+
+        .subview-exit-btn:hover { color: white; }
+
+        .item-card { transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s; touch-action: pan-y; }
+
+        .item-card.sold-out { opacity: 0.5; }
+
+        .item-card.swiping { transition: none; }
+
+        .dashboard-card {
+
+            background-color: var(--window-bg);
+
+            border: 1px solid var(--color-border);
+
+            border-radius: 0.5rem;
+
+            padding: 1.5rem;
+
+            transition: all 0.3s ease-in-out;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+        .dashboard-card:hover {
+
+            border-color: var(--color-header);
+
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+
+        }
+
+        .text-accent { color: var(--color-accent); }
+
+        .border-border { border-color: var(--color-border); }
+
+        @keyframes glow-success { 0% { box-shadow: 0 0 0px var(--color-header); } 50% { box-shadow: 0 0 15px var(--color-header); } 100% { box-shadow: 0 0 0px var(--color-header); } }
+
+        .glow-once { animation: glow-success 0.7s ease-out; }
+
+    </style>
+
+    <style>
+
+        summary::marker { content: ''; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
+
+        .slot-bar { display: flex; }
+
+        .slot-segment { width: 1.75rem; height: 1.25rem; transform: skew(-20deg); margin-right: 4px; cursor: pointer; border: 2px solid var(--color-header); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+
+        .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
+
+        .slot-expended { background-color: transparent; box-shadow: none; }
+
+    </style>
+
 </head>
+
 <body class="p-4 sm:p-6 lg:p-8 cli-theme">
 
-    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
-        <div id="toolbar-title" class="text-2xl hidden text-header"></div>
-        <div id="controls-container" class="relative ml-auto flex items-center gap-4">
-             <button id="dm-tools-btn" class="hidden">DM Tools</button>
-             <button id="exit-mode-btn" class="hidden"><i data-lucide="log-out" class="w-6 h-6"></i></button>
-             <button id="logout-btn" class="hidden">Logout</button>
-        </div>
-    </div>
 
-    <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
-        <!-- Auth View -->
-        <div id="auth-view">
-            <div class="ascii-wrap">
+
+    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
+
+        <div id="toolbar-title" class="text-2xl hidden text-header"></div>
+
+        <div id="controls-container" class="relative ml-auto flex items-center gap-4">
+
+             <button id="dm-tools-btn" class="hidden">DM Tools</button>
+
+             <button id="exit-mode-btn" class="hidden"><i data-lucide="log-out" class="w-6 h-6"></i></button>
+
+             <button id="logout-btn" class="hidden">Logout</button>
+
+        </div>
+
+    </div>
+
+
+
+    <div id="app-container" class="max-w-7xl my-8 py-8 mx-auto">
+
+        <!-- Auth View -->
+
+        <div id="auth-view">
+
+            <div class="ascii-wrap">
+
 <pre class="ascii-title" data-max-font="40" data-min-font="10" id="ascii-logo">
-██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
-██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
-██║  ██║██╔██╗ ██║██║  ██║    ███████║██║   ██║██████╔╝
-██║  ██║██║╚██╗██║██║  ██║    ██╔══██║██║   ██║██╔══██╗
-██████╔╝██║ ╚████║██████╔╝    ██║  ██║╚██████╔╝██████╔╝
-╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
+
+██████╗ ███╗   ██╗██████╗     ██╗  ██╗██╗   ██╗██████╗ 
+
+██╔══██╗████╗  ██║██╔══██╗    ██║  ██║██║   ██║██╔══██╗
+
+██║  ██║██╔██╗ ██║██║  ██║    ███████║██║   ██║██████╔╝
+
+██║  ██║██║╚██╗██║██║  ██║    ██╔══██║██║   ██║██╔══██╗
+
+██████╔╝██║ ╚████║██████╔╝    ██║  ██║╚██████╔╝██████╔╝
+
+╚═════╝ ╚═╝  ╚═══╝╚═════╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
+
 </pre>
-            </div>
-            <div id="login-container" class="max-w-md mx-auto mb-8 cli-window text-center">
-                <h2 class="text-2xl mb-4 text-header">> Welcome, Adventurer!</h2>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
-                    <button id="login-key-btn" class="btn">Enter</button>
-                </div>
-                <button id="create-character-btn" class="link-style mt-4">Create New Character</button>
-            </div>
-        </div>
-
-        <!-- Redesigned Character Hub View -->
-        <div id="character-hub-view" class="hidden">
-            <!-- This content is now generated by the renderCharacterHub function -->
-        </div>
-
-        <!-- DM Hub View -->
-        <div id="dm-hub-view" class="hidden"></div>
-        <!-- Create Shop View -->
-        <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
-        <!-- DM View -->
-        <div id="dm-view" class="hidden"></div>
-        <!-- Player View -->
-        <div id="player-view" class="hidden"></div>
-    </div>
-
-    <!-- New Key Modal -->
-    <div id="new-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
-        <div class="cli-window w-full max-w-md text-center">
-            <button id="new-key-modal-close" class="subview-exit-btn">ⓧ</button>
-            <h2 class="text-2xl font-bold mb-4 text-header">> Your New Character Key!</h2>
-            <p class="mb-4 text-dim">> This is your secret key. Write it down! It is the ONLY way to access your character again.</p>
-            <div class="bg-gray-900 p-4 border-2 border-dashed border-header mb-6">
-                <p id="new-key-display" class="text-4xl text-header tracking-widest"></p>
-            </div>
-            <button id="key-modal-continue-btn" class="btn w-full">Continue to Hub</button>
-        </div>
-    </div>
-
-    <!-- Inventory Modal -->
-    <div id="inventory-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
-        <div class="cli-window w-full max-w-md text-center">
-            <button id="inventory-modal-close" class="subview-exit-btn">ⓧ</button>
-            <h2 class="text-2xl font-bold mb-4 text-header">> Edit Inventory</h2>
-            <div id="inventory-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
-        </div>
-    </div>
-
-    <!-- Players Modal -->
-    <div id="keys-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
-        <div class="cli-window w-full max-w-md text-center">
-            <button id="keys-modal-close" class="subview-exit-btn">ⓧ</button>
-            <h2 class="text-2xl font-bold mb-4 text-header">> Manage Players</h2>
-            <div id="players-list" class="space-y-2"></div>
-        </div>
-    </div>
-
-    <!-- Update Character Sheet Modal -->
-    <div id="update-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
-        <div class="cli-window w-full max-w-md text-center">
-            <button id="update-sheet-modal-close" class="subview-exit-btn">ⓧ</button>
-            <h2 class="text-2xl font-bold mb-4 text-header">> Update Character Sheet</h2>
-            <textarea id="sheet-json-textarea" class="w-full h-48 p-2 text-black"></textarea>
-            <button id="save-sheet-btn" class="btn w-full mt-4">Save</button>
-        </div>
-    </div>
-
-    <script>
-      // Fit ASCII to its container by adjusting font-size based on the widest line
-      (function fitAsciiAll(){
-        const blocks = Array.from(document.querySelectorAll('.ascii-title'));
-        function longestLineCols(str){
-          const lines = str.replace(/\t/g, '    ').split(/\r?\n/);
-          let max = 0; for (const l of lines) max = Math.max(max, l.length);
-          return Math.max(1, max);
-        }
-        function fit(pre){
-          const container = pre.parentElement || document.body;
-          const styles = getComputedStyle(container);
-          const pad = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
-          const available = Math.max(0, container.clientWidth - pad);
-          const cols = longestLineCols(pre.textContent);
-          const minPx = parseFloat(pre.dataset.minFont || '10');
-          const maxPx = parseFloat(pre.dataset.maxFont || '40');
-          const size = Math.max(minPx, Math.min(maxPx, available / cols));
-          pre.style.fontSize = size + 'px';
-          pre.style.marginLeft = 'auto';
-          pre.style.marginRight = 'auto';
-        }
-        function fitAll(){ blocks.forEach(fit); }
-        // Initial fit
-        fitAll();
-        // Re-fit on resize/orientation changes
-        let rAF; window.addEventListener('resize', ()=>{ cancelAnimationFrame(rAF); rAF=requestAnimationFrame(fitAll); });
-        window.addEventListener('orientationchange', fitAll, { passive: true });
-        // Observe each container for size changes
-        const observers = new WeakMap();
-        blocks.forEach(pre => {
-          const c = pre.parentElement || document.body;
-          if (!observers.has(c)){
-            const ro = new ResizeObserver(() => fitAll());
-            ro.observe(c);
-            observers.set(c, ro);
-          }
-        });
-      })();
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
-          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
-          projectId: "dnd-shop-app-c4f86",
-          storageBucket: "dnd-shop-app-c4f86.appspot.com",
-          messagingSenderId: "480358969004",
-          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
-          measurementId: "G-DWLMWMZTZ3"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Ensures all buttons have a type attribute to prevent accidental form submissions.
-        function ensureButtonTypes(root = document) {
-            root.querySelectorAll('button').forEach(btn => {
-                if (!btn.getAttribute('type')) {
-                    btn.setAttribute('type', 'button');
-                }
-            });
-        }
-        const btnObserver = new MutationObserver(() => ensureButtonTypes());
-        btnObserver.observe(document.body, { childList: true, subtree: true });
-        ensureButtonTypes();
-
-        // Static catalog of items available for shops.
-        const itemCatalog = {
-          "blacksmith": { "name": "Blacksmith/Armory", "items": [ { "name": "Studded Leather", "price": 45 }, { "name": "Chain Shirt", "price": 50 }, { "name": "Scale Mail", "price": 50 }, { "name": "Breastplate", "price": 400 }, { "name": "Half Plate", "price": 750 }, { "name": "Ring Mail", "price": 30 }, { "name": "Chain Mail", "price": 75 }, { "name": "Splint", "price": 200 }, { "name": "Plate", "price": 1500 }, { "name": "Shield", "price": 10 }, { "name": "Dagger", "price": 2 }, { "name": "Handaxe", "price": 5 }, { "name": "Javelin", "price": 0.5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Mace", "price": 5 }, { "name": "Sickle", "price": 1 }, { "name": "Spear", "price": 1 }, { "name": "Battleaxe", "price": 10 }, { "name": "Flail", "price": 10 }, { "name": "Glaive", "price": 20 }, { "name": "Greataxe", "price": 30 }, { "name": "Greatsword", "price": 50 }, { "name": "Halberd", "price": 20 }, { "name": "Lance", "price": 10 }, { "name": "Longsword", "price": 15 }, { "name": "Maul", "price": 10 }, { "name": "Morningstar", "price": 15 }, { "name": "Pike", "price": 5 }, { "name": "Rapier", "price": 25 }, { "name": "Scimitar", "price": 25 }, { "name": "Shortsword", "price": 10 }, { "name": "Trident", "price": 5 }, { "name": "War Pick", "price": 5 }, { "name": "Warhammer", "price": 15 }, { "name": "Ball Bearings (bag of 1,000)", "price": 1 }, { "name": "Bell", "price": 1 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Crowbar", "price": 2 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Sledgehammer", "price": 2 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Manacles", "price": 2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Spikes, Iron", "price": 1 }, { "name": "Whetstone", "price": 0.01 }, { "name": "Carpenter's Tools", "price": 8 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Horn", "price": 3 } ] },
-          "fletcher": { "name": "Fletcher/Bowyer", "items": [ { "name": "Crossbow, Light", "price": 25 }, { "name": "Shortbow", "price": 25 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Quiver", "price": 1 } ] },
-          "leathersmith": { "name": "Leathersmith/Tanner", "items": [ { "name": "Leather", "price": 10 }, { "name": "Studded Leather", "price": 45 }, { "name": "Hide", "price": 10 }, { "name": "Shield", "price": 10 }, { "name": "Sling", "price": 0.1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Cobbler's Tools", "price": 5 }, { "name": "Leatherworker's Tools", "price": 5 }, { "name": "Bagpipes", "price": 30 }, { "name": "Drum", "price": 6 } ] },
-          "temple": { "name": "Temple/Priest", "items": [ { "name": "Alms Box", "price": 5 }, { "name": "Bell", "price": 1 }, { "name": "Blanket", "price": 0.5 }, { "name": "Book, Scripture", "price": 25 }, { "name": "Candle", "price": 0.01 }, { "name": "Case, Map or Scroll", "price": 1 }, { "name": "Censer", "price": 5 }, { "name": "Chalk (1 piece)", "price": 0.01 }, { "name": "Flask", "price": 0.02 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Holy Symbol, Amulet", "price": 5 }, { "name": "Holy Symbol, Emblem", "price": 5 }, { "name": "Holy Symbol, Reliquary", "price": 5 }, { "name": "Holy Water (flask)", "price": 25 }, { "name": "Incense (1 block)", "price": 0.01 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Perfume (vial)", "price": 5 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Rations (1 day)", "price": 0.5 }, { "name": "Torch", "price": 0.01 }, { "name": "Vial", "price": 1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Calligrapher's Supplies", "price": 10 }, { "name": "Herbalism Kit", "price": 5 }, { "name": "Flute", "price": 2 }, { "name": "Lyre", "price": 30 }, { "name": "Horn", "price": 3 }, { "name": "Cure Wounds (lvl 1)", "price": 10, "type": "service" }, { "name": "Gentle Repose (lvl 2)", "price": 50, "type": "service" }, { "name": "Lesser Restoration (lvl 2)", "price": 50, "type": "service" }, { "name": "Remove Curse (lvl 3)", "price": 100, "type": "service" }, { "name": "Revivify (lvl 3)", "price": 400, "type": "service" }, { "name": "Raise Dead (lvl 5)", "price": 1000, "type": "service" } ] },
-          "general_store": { "name": "General Store", "items": [ { "name": "Abacus", "price": 2 }, { "name": "Barrel", "price": 2 }, { "name": "Blanket", "price": 0.5 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Bucket", "price": 0.05 }, { "name": "Candle", "price": 0.01 }, { "name": "Chest", "price": 5 }, { "name": "Clothes, Common", "price": 0.5 }, { "name": "Clothes, Fine", "price": 15 }, { "name": "Flask or Tankard", "price": 0.02 }, { "name": "Hammer", "price": 1 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Jug or Pitcher", "price": 0.02 }, { "name": "Ladder (10-foot)", "price": 0.1 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lock", "price": 10 }, { "name": "Mess Kit", "price": 0.2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Pouch", "price": 0.5 }, { "name": "Rope, Hempen (50 feet)", "price": 1 }, { "name": "Rope, Silk (50 feet)", "price": 10 }, { "name": "Sack", "price": 0.01 }, { "name": "Scale, Merchant's", "price": 5 }, { "name": "Shovel", "price": 2 }, { "name": "Signet Ring", "price": 5 }, { "name": "Soap", "price": 0.02 }, { "name": "Vial", "price": 1 }, { "name": "Carpenter's Tools", "price": 15 }, { "name": "Cobbler's Tools", "price": 25 }, { "name": "Cook's Utensils", "price": 50 }, { "name": "Glassblower's Tools", "price": 30 }, { "name": "Leatherworker's Tools", "price": 5 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Potter's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Weaver's Tools", "price": 1 }, { "name": "Woodcarver's Tools", "price": 1 } ] },
-          "adventuring_supplies": { "name": "Adventuring Supplies", "items": [ { "name": "Padded Armor", "price": 5 }, { "name": "Leather Armor", "price": 10 }, { "name": "Studded Leather", "price": 45 }, { "name": "Hide Armor", "price": 10 }, { "name": "Club", "price": 0.1 }, { "name": "Dagger", "price": 2 }, { "name": "Greatclub", "price": 0.2 }, { "name": "Handaxe", "price": 5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Quarterstaff", "price": 0.2 }, { "name": "Crossbow, Light", "price": 25 }, { "name": "Dart", "price": 0.05 }, { "name": "Shortbow", "price": 25 }, { "name": "Sling", "price": 0.1 }, { "name": "Whip", "price": 2 }, { "name": "Blowgun", "price": 10 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Blowgun Needles (50)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Sling Bullets (20)", "price": 0.04 }, { "name": "Backpack", "price": 2 }, { "name": "Bedroll", "price": 1 }, { "name": "Blanket", "price": 0.5 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Candle", "price": 0.01 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Case, Map or Scroll", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Chest", "price": 5 }, { "name": "Climber's Kit", "price": 25 }, { "name": "Clothes, Traveler's", "price": 2 }, { "name": "Crowbar", "price": 2 }, { "name": "Flask or Tankard", "price": 0.02 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Hourglass", "price": 25 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Jug or Pitcher", "price": 0.02 }, { "name": "Ladder (10-foot)", "price": 0.1 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Mess Kit", "price": 0.2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pole (10-foot)", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Pouch", "price": 0.5 }, { "name": "Quiver", "price": 1 }, { "name": "Rations (1 day)", "price": 0.5 }, { "name": "Rope, Hempen (50 feet)", "price": 1 }, { "name": "Rope, Silk (50 feet)", "price": 10 }, { "name": "Sack", "price": 0.01 }, { "name": "Shovel", "price": 2 }, { "name": "Signal Whistle", "price": 5 }, { "name": "Signet Ring", "price": 5 }, { "name": "Spyglass", "price": 1000 }, { "name": "Tent, Two-person", "price": 2 }, { "name": "Tinderbox", "price": 0.5 }, { "name": "Torch", "price": 0.01 }, { "name": "Vial", "price": 1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Cartographer's Tools", "price": 15 }, { "name": "Jeweler's Tools", "price": 25 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Herbalism Kit", "price": 5 }, { "name": "Navigator's Tools", "price": 25 } ] },
-          "arcane_shop": { "name": "Arcane Shop", "items": [ { "name": "Crystal", "price": 10 }, { "name": "Orb", "price": 20 }, { "name": "Rod", "price": 10 }, { "name": "Staff", "price": 5 }, { "name": "Wand", "price": 10 }, { "name": "Component Pouch", "price": 25 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Spellbook", "price": 50 } ] },
-          "thieves_guild": { "name": "Thieves' Guild", "items": [ { "name": "Acid (vial)", "price": 25 }, { "name": "Antitoxin (vial)", "price": 50 }, { "name": "Caltrops (bag of 20)", "price": 1 }, { "name": "Clothes, Costume", "price": 5 }, { "name": "Manacles", "price": 2 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Poison, Basic (vial)", "price": 100 }, { "name": "Ram, Portable", "price": 4 }, { "name": "Spikes, Iron (10)", "price": 1 }, { "name": "Disguise Kit", "price": 25 }, { "name": "Forgery Kit", "price": 15 }, { "name": "Dice Set", "price": 0.1 }, { "name": "Playing Card Set", "price": 0.5 }, { "name": "Poisoner's Kit", "price": 50 }, { "name": "Thieves' Tools", "price": 25 } ] },
-          "potion_shop": { "name": "Potion Shop", "items": [ { "name": "Acid (vial)", "price": 25 }, { "name": "Alchemist's Fire (flask)", "price": 50 }, { "name": "Antitoxin (vial)", "price": 50 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Component Pouch", "price": 25 }, { "name": "Flask", "price": 0.02 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Jug", "price": 0.02 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Perfume (vial)", "price": 5 }, { "name": "Poison, Basic (vial)", "price": 100 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Vial", "price": 1 }, { "name": "Alchemist's Supplies", "price": 50 }, { "name": "Brewer's Supplies", "price": 20 }, { "name": "Cook's Utensils", "price": 1 }, { "name": "Poisoner's Kit", "price": 50 }, { "name": "Potion (Common)", "price": 50 }, { "name": "Potion (Uncommon)", "price": 250 }, { "name": "Potion (Rare)", "price": 2500 } ] }
-        };
-
-        // --- Global State Management ---
-        let shopUnsubscribe = null;
-        let playerUnsubscribe = null;
-        let updateSheetPlayerId = null;
-
-        let state = {
-            isDM: false,
-            inShop: false,
-            characterKey: null,
-            playerData: null,
-            shopId: null,
-            shopData: null,
-            activeShops: [],
-            dmShops: [],
-        };
-
-        // --- DOM Element Caching ---
-        const allViews = document.querySelectorAll('#app-container > div');
-        const authView = document.getElementById('auth-view');
-        const characterHubView = document.getElementById('character-hub-view');
-        const dmHubView = document.getElementById('dm-hub-view');
-        const createShopView = document.getElementById('create-shop-view');
-        const dmView = document.getElementById('dm-view');
-        const playerView = document.getElementById('player-view');
-        const toolbarTitle = document.getElementById('toolbar-title');
-        const controlsContainer = document.getElementById('controls-container');
-        const dmToolsBtn = document.getElementById('dm-tools-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const exitModeBtn = document.getElementById('exit-mode-btn');
-        const newKeyModal = document.getElementById('new-key-modal');
-        const keysModal = document.getElementById('keys-modal');
-        const inventoryModal = document.getElementById('inventory-modal');
-        const updateSheetModal = document.getElementById('update-sheet-modal');
-        const sheetJsonTextarea = document.getElementById('sheet-json-textarea');
-
-        // --- Modal Handlers ---
-        function closeNewKeyModal() {
-            newKeyModal.classList.add('hidden');
-            if (state.characterKey) {
-                listenToPlayerData(state.characterKey);
-            }
-        }
-
-        function closeInventoryModal() {
-            inventoryModal.classList.add('hidden');
-        }
-        
-        function closeUpdateSheetModal() {
-            updateSheetModal.classList.add('hidden');
-            updateSheetPlayerId = null;
-        }
-
-        // --- Main Application Initialization ---
-        function main() {
-            // Event Listeners for Authentication
-            document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
-            document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
-
-            // Event Listeners for Modals
-            document.getElementById('key-modal-continue-btn').addEventListener('click', closeNewKeyModal);
-            newKeyModal.addEventListener('click', (e) => {
-                if (e.target === newKeyModal || e.target.id === 'new-key-modal-close') closeNewKeyModal();
-            });
-            keysModal.addEventListener('click', (e) => {
-                if (e.target === keysModal || e.target.id === 'keys-modal-close') keysModal.classList.add('hidden');
-            });
-            inventoryModal.addEventListener('click', (e) => {
-                if (e.target === inventoryModal || e.target.id === 'inventory-modal-close') closeInventoryModal();
-            });
-            updateSheetModal.addEventListener('click', (e) => {
-                if (e.target === updateSheetModal || e.target.id === 'update-sheet-modal-close') closeUpdateSheetModal();
-            });
-            document.getElementById('save-sheet-btn').addEventListener('click', handleSaveSheet);
-
-            // Event Listeners for Toolbar Controls
-            dmToolsBtn.addEventListener('click', enterDMHub);
-            logoutBtn.addEventListener('click', logout);
-            exitModeBtn.addEventListener('click', exitCurrentMode);
-
-            // Initial Setup
-            const savedKey = localStorage.getItem('dndShopCharacterKey');
-            if (savedKey) {
-                document.getElementById('character-key-input').value = savedKey;
-            }
-            listenToActiveShops();
-            render();
-        }
-
-        // --- Inventory Management ---
-        function handleEditInventory() {
-            const summary = state.playerData.inventory.reduce((acc, item) => {
-                acc[item.name] = (acc[item.name] || 0) + 1;
-                return acc;
-            }, {});
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = Object.keys(summary).length === 0
-                ? '<p class="text-dim">Empty.</p>'
-                : Object.entries(summary).map(([name, count]) => `
-                    <div class="flex justify-between items-center">
-                        <span><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></span>
-                        <div class="flex items-center gap-2">
-                            <input type="number" min="1" max="${count}" value="1" class="input-field w-16" data-name="${name}">
-                            <button class="text-red-500 hover:text-red-400 inv-remove-btn" data-name="${name}">[X]</button>
-                        </div>
-                    </div>
-                `).join('');
-            inventoryModal.classList.remove('hidden');
-            document.querySelectorAll('.inv-remove-btn').forEach(btn => btn.addEventListener('click', handlePlayerInventoryRemove));
-        }
-
-        function handlePlayerInventoryRemove(e) {
-            const name = e.target.dataset.name;
-            const input = document.querySelector(`input[data-name="${name}"]`);
-            const qty = parseInt(input.value, 10);
-            const available = state.playerData.inventory.filter(it => it.name === name).length;
-            if (!qty || qty <= 0 || qty > available) return;
-            
-            let remaining = qty;
-            const newInv = state.playerData.inventory.filter(it => {
-                if (it.name === name && remaining > 0) { remaining--; return false; }
-                return true;
-            });
-            state.playerData.inventory = newInv;
-            updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
-            closeInventoryModal();
-            renderCharacterHub();
-        }
-
-        // --- Authentication & Character Functions ---
-        async function handleKeyLogin() {
-            const key = document.getElementById('character-key-input').value.toUpperCase();
-            if (key.length !== 6) { return; }
-            await loginWithKey(key);
-        }
-
-        async function loginWithKey(key) {
-            const playerDocRef = doc(db, 'characters', key);
-            const docSnap = await getDoc(playerDocRef);
-            if (docSnap.exists()) {
-                state.characterKey = key;
-                localStorage.setItem('dndShopCharacterKey', key);
-                listenToPlayerData(key);
-            } else {
-                // In a real app, show a message in the UI instead of an alert.
-                console.error("Character key not found.");
-            }
-        }
-
-        async function handleCreateCharacter() {
-            const name = prompt("Enter your character's name:");
-            if (!name || !name.trim()) { return; }
-            const key = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const playerDocRef = doc(db, 'characters', key);
-
-            try {
-                await setDoc(playerDocRef, {
-                    name: name.trim(),
-                    gold: 50,
-                    inventory: []
-                });
-                document.getElementById('new-key-display').textContent = key;
-                newKeyModal.classList.remove('hidden');
-                state.characterKey = key;
-                localStorage.setItem('dndShopCharacterKey', key);
-            } catch (error) {
-                console.error("Error creating character:", error);
-            }
-        }
-
-        function listenToPlayerData(key) {
-            if (playerUnsubscribe) playerUnsubscribe();
-            const playerDocRef = doc(db, 'characters', key);
-            playerUnsubscribe = onSnapshot(playerDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    state.playerData = docSnap.data();
-                } else {
-                    logout();
-                }
-                render();
-            });
-        }
-
-        function logout() {
-            if (playerUnsubscribe) playerUnsubscribe();
-            localStorage.removeItem('dndShopCharacterKey');
-            state.characterKey = null;
-            state.playerData = null;
-            exitCurrentMode();
-        }
-
-        // --- Firestore Listeners for Shops ---
-        let activeShopsUnsubscribe = null;
-        let dmShopsUnsubscribe = null;
-        function listenToActiveShops() {
-            if (activeShopsUnsubscribe) activeShopsUnsubscribe();
-            const q = query(collection(db, 'shops'), where('active', '==', true));
-            activeShopsUnsubscribe = onSnapshot(q, (snapshot) => {
-                state.activeShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (!state.inShop && !state.isDM) render();
-            });
-        }
-
-        function listenToDMShops() {
-            if (dmShopsUnsubscribe) dmShopsUnsubscribe();
-            dmShopsUnsubscribe = onSnapshot(collection(db, 'shops'), (snapshot) => {
-                state.dmShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (state.isDM && !state.inShop) render();
-            });
-        }
-
-        // --- DM Mode Functions ---
-        function enterDMHub() {
-            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
-            state.isDM = true;
-            state.inShop = false;
-            state.shopId = null;
-            state.shopData = null;
-            listenToDMShops();
-            render();
-        }
-
-        function exitCurrentMode() {
-            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
-            if (dmShopsUnsubscribe) { dmShopsUnsubscribe(); dmShopsUnsubscribe = null; }
-            state.isDM = false;
-            state.inShop = false;
-            state.shopId = null;
-            state.shopData = null;
-            state.dmShops = [];
-            render();
-        }
-
-        function exitSubView() {
-            createShopView.classList.add('hidden');
-            render();
-        }
-
-        function showCreateShopView() {
-            allViews.forEach(v => v.classList.add('hidden'));
-            createShopView.classList.remove('hidden');
-            createShopView.innerHTML = `
-                <div class="cli-window">
-                    <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
-                    <h2 class="text-2xl mb-4 text-header">> Create a New Shop</h2>
-                    <div class="space-y-4">
-                        <div><label for="shop-type-select" class="block mb-1">> Shop Type</label><select id="shop-type-select" class="select-field">${Object.keys(itemCatalog).map(key => `<option value="${key}">${itemCatalog[key].name}</option>`).join('')}</select></div>
-                        <div><label for="shop-size-select" class="block mb-1">> Shop Size</label><select id="shop-size-select" class="select-field">${['Small', 'Urban', 'Specialty'].map(size => `<option value="${size.toLowerCase()}">${size}</option>`).join('')}</select></div>
-                        <button id="generate-shop-btn" class="btn w-full">Go</button>
-                    </div>
-                </div>`;
-            document.getElementById('generate-shop-btn').addEventListener('click', handleGenerateShop);
-            document.getElementById('exit-create-shop-btn').addEventListener('click', exitSubView);
-        }
-        
-        async function openPlayersModal() {
-            keysModal.classList.remove('hidden');
-            const playersList = document.getElementById('players-list');
-            playersList.innerHTML = 'Loading...';
-
-            try {
-                const querySnapshot = await getDocs(collection(db, "characters"));
-                playersList.innerHTML = querySnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return `<div class="flex flex-wrap items-center justify-between gap-2">
-                                <button class="player-login-btn link-style flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></button>
-                                <button class="btn-secondary text-xs update-sheet-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Update</button>
-                                <button class="text-red-500 hover:text-red-400 delete-player-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Delete</button>
-                            </div>`;
-                }).join('');
-                document.querySelectorAll('.player-login-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        keysModal.classList.add('hidden');
-                        exitCurrentMode();
-                        loginWithKey(btn.dataset.key);
-                    });
-                });
-                document.querySelectorAll('.delete-player-btn').forEach(btn => {
-                    btn.addEventListener('click', () => deletePlayer(btn.dataset.playerId, btn.dataset.playerName));
-                });
-                document.querySelectorAll('.update-sheet-btn').forEach(btn => {
-                    btn.addEventListener('click', () => openUpdateSheetModal(btn.dataset.playerId));
-                });
-            } catch (error) {
-                playersList.innerHTML = `<p class="text-red-500">Could not load players.</p>`;
-                console.error("Error fetching players:", error);
-            }
-        }
-
-        async function deletePlayer(playerId, name) {
-            if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
-            try {
-                await deleteDoc(doc(db, 'characters', playerId));
-                const shopsSnapshot = await getDocs(collection(db, 'shops'));
-                for (const shopDoc of shopsSnapshot.docs) {
-                    const shopData = shopDoc.data();
-                    if (shopData.carts && shopData.carts[playerId]) {
-                        await updateDoc(shopDoc.ref, { [`carts.${playerId}`]: deleteField() });
-                    }
-                }
-                openPlayersModal();
-            } catch (error) {
-                console.error('Error deleting player:', error);
-            }
-        }
-
-        async function openUpdateSheetModal(playerId) {
-            updateSheetPlayerId = playerId;
-            sheetJsonTextarea.value = '';
-            try {
-                const docSnap = await getDoc(doc(db, 'characters', playerId));
-                if (docSnap.exists()) {
-                    sheetJsonTextarea.value = JSON.stringify(docSnap.data().sheet || {}, null, 2);
-                }
-            } catch (err) {
-                console.error('Error loading sheet:', err);
-            }
-            updateSheetModal.classList.remove('hidden');
-        }
-
-        async function handleSaveSheet() {
-            if (!updateSheetPlayerId) return;
-            let data;
-            try {
-                data = JSON.parse(sheetJsonTextarea.value);
-            } catch {
-                console.error('Invalid JSON');
-                return;
-            }
-            try {
-                await updateDoc(doc(db, 'characters', updateSheetPlayerId), { sheet: data });
-                closeUpdateSheetModal();
-            } catch (err) {
-                console.error('Error updating sheet:', err);
-            }
-        }
-
-        function handleGenerateShop() {
-            const shopKey = document.getElementById('shop-type-select').value;
-            const shopSize = document.getElementById('shop-size-select').value;
-            createShopView.classList.add('hidden');
-            createSession(shopKey, shopSize);
-        }
-
-        // --- Shop Session Management ---
-        function generateShopkeeper() {
-            const names = ['Aelar', 'Borin', 'Cedric', 'Daria', 'Eldon', 'Fira', 'Garron', 'Hilda'];
-            const personalities = ['cheerful and talkative', 'gruff but fair', 'mysterious and quiet', 'greedy with a sharp eye for coin', 'kind-hearted and generous', 'sarcastic with a dark sense of humor', 'nervous and jumpy', 'wise and patient'];
-            const name = names[Math.floor(Math.random() * names.length)];
-            const description = personalities[Math.floor(Math.random() * personalities.length)];
-            const gold = Math.floor(Math.random() * 1501) + 500;
-            return { name, description, gold };
-        }
-
-        function generateShopName() {
-            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
-            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
-            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-            const noun = nouns[Math.floor(Math.random() * nouns.length)];
-            return `The ${adj} ${noun}`;
-        }
-
-        async function createSession(shopKey, shopSize) {
-            state.isDM = true;
-            state.inShop = true;
-            
-            const shopTemplate = itemCatalog[shopKey];
-            const fullInventory = shopTemplate.items;
-            let randomInventory = [];
-            if (shopSize === 'small') {
-                const shuffled = fullInventory.sort(() => 0.5 - Math.random());
-                randomInventory = shuffled.slice(0, Math.floor(Math.random() * 8) + 5);
-            } else if (shopSize === 'urban') {
-                const shuffled = fullInventory.sort(() => 0.5 - Math.random());
-                const min = Math.ceil(fullInventory.length * 0.4);
-                const max = Math.floor(fullInventory.length * 0.8);
-                randomInventory = shuffled.slice(0, Math.floor(Math.random() * (max - min + 1)) + min);
-            } else {
-                const sorted = [...fullInventory].sort((a, b) => b.price - a.price);
-                randomInventory = sorted.slice(0, Math.floor(Math.random() * 5) + 3);
-            }
-
-            const finalInventory = randomInventory.map(item => ({
-                ...item,
-                details: item.details || '',
-                quantity: Math.floor(Math.random() * 5) + 1,
-                id: `item-${Math.random().toString(36).substr(2, 9)}`
-            }));
-
-            const newSessionRef = doc(collection(db, 'shops'));
-            state.shopId = newSessionRef.id;
-            const initialShopData = {
-                shopName: generateShopName(),
-                shopType: shopTemplate.name,
-                shopkeeper: generateShopkeeper(),
-                inventory: finalInventory,
-                carts: {},
-                priceModifier: 0,
-                active: true,
-            };
-
-            state.shopData = initialShopData;
-
-            try {
-                await setDoc(newSessionRef, initialShopData);
-                listenToShopChanges(state.shopId);
-                render();
-            } catch (error) {
-                console.error("Error creating session:", error);
-                exitCurrentMode();
-            }
-        }
-        
-        async function joinShop(shopId) {
-            const shopDocRef = doc(db, 'shops', shopId);
-            const docSnap = await getDoc(shopDocRef);
-            if (docSnap.exists() && docSnap.data().active) {
-                state.shopId = shopId;
-                state.inShop = true;
-                listenToShopChanges(shopId);
-            } else {
-                console.error("Shop not found or inactive.");
-            }
-        }
-
-        function listenToShopChanges(shopId) {
-            if (shopUnsubscribe) shopUnsubscribe(); 
-            const shopDocRef = doc(db, 'shops', shopId);
-            shopUnsubscribe = onSnapshot(shopDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    state.shopData = docSnap.data();
-                    render();
-                } else {
-                    exitCurrentMode();
-                }
-            }, (error) => {
-                console.error("Firestore listener error:", error);
-                exitCurrentMode();
-            });
-        }
-        
-        // --- Core Render Logic ---
-        function render() {
-            const loggedIn = !!state.characterKey;
-            const inShop = state.inShop;
-
-            allViews.forEach(v => v.classList.add('hidden'));
-            controlsContainer.classList.remove('hidden');
-
-            const showDmTools = !state.isDM && !loggedIn;
-            exitModeBtn.classList.toggle('hidden', !(state.isDM || inShop));
-            toolbarTitle.classList.toggle('hidden', !state.isDM);
-            if(state.isDM) toolbarTitle.textContent = inShop ? '> DM Mode' : '> DM Hub';
-            dmToolsBtn.classList.toggle('hidden', !showDmTools);
-            logoutBtn.classList.toggle('hidden', !(loggedIn && !inShop && !state.isDM));
-
-            if (!loggedIn && !state.isDM) {
-                authView.classList.remove('hidden');
-            } else if (!inShop) {
-                if (state.isDM) {
-                    dmHubView.classList.remove('hidden');
-                    renderDMHub();
-                } else {
-                    characterHubView.classList.remove('hidden');
-                    renderCharacterHub();
-                }
-            } else if (state.isDM) {
-                dmView.classList.remove('hidden');
-                renderDMView();
-            } else {
-                playerView.classList.remove('hidden');
-                renderPlayerView();
-            }
-        }
-
-        // --- View-Specific Render Functions ---
-
-        function renderCharacterHub() {
-            const player = state.playerData;
-            if (!player) {
-                characterHubView.innerHTML = `<div class="cli-window text-center"><p class="text-header">Loading Character...</p></div>`;
-                return;
-            }
-
-            const inventorySummary = player.inventory.reduce((acc, item) => {
-                acc[item.name] = (acc[item.name] || 0) + 1;
-                return acc;
-            }, {});
-
-            const classLevel = player.sheet?.classlevel || '';
-            const formattedClassLevel = classLevel && !classLevel.toLowerCase().startsWith('lvl') ? `Level ${classLevel}` : classLevel;
-            const alignment = player.sheet?.alignment || '';
-            const subtitle = [formattedClassLevel, alignment].filter(Boolean).join(' | ');
-            const imgSrc = player.sheet?.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
-            const hpValue = player.sheet?.combat?.hp ? `${player.sheet.combat.hp.current ?? "-"} / ${player.sheet.combat.hp.max ?? "-"}` : "-";
-            const acValue = player.sheet?.combat?.ac ?? "-";
-            const speedValue = player.sheet?.combat?.speed ?? "-";
-
-            characterHubView.innerHTML = `
-                <header class="mb-8">
-                    <div class="flex flex-col sm:flex-row items-center gap-6 p-4 border border-border rounded-lg bg-black/30">
-                        <div class="flex-shrink-0">
-                            <img src="${imgSrc}" alt="Character Avatar" class="w-32 h-32 object-cover rounded-full border-2 border-header shadow-[0_0_15px_rgba(0,255,136,0.5)]">
-                        </div>
-                        <div class="flex-1 text-center sm:text-left">
-                            <h1 class="text-4xl text-header">${player.name}</h1>
-                            <p class="text-xl text-dim">${subtitle}</p>
-                            <div class="mt-3 flex items-center justify-center sm:justify-start gap-2 text-sm">
-                                <span class="text-dim">Key:</span>
-                                <span id="player-key" class="text-header tracking-widest cursor-pointer" title="Click to copy">${state.characterKey}</span>
-                                <i data-lucide="clipboard" class="w-4 h-4 text-dim"></i>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-4 text-center text-lg w-full sm:w-auto">
-                            <div class="dashboard-card !p-3"><span class="text-dim">HP</span><span class="text-2xl text-accent">${hpValue}</span></div>
-                            <div class="dashboard-card !p-3"><span class="text-dim">AC</span><span class="text-2xl text-accent">${acValue}</span></div>
-                            <div class="dashboard-card !p-3"><span class="text-dim">Speed</span><span class="text-2xl text-accent">${speedValue}</span></div>
-                        </div>
-                    </div>
-                </header>
-                <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="dashboard-card lg:col-span-1">
-                        <div class="flex items-center gap-3 mb-4"><i data-lucide="scroll-text" class="w-8 h-8 text-header"></i><h2 class="text-2xl text-header">&gt; Character Sheet</h2></div>
-                        <p class="text-dim mb-4 flex-grow">Review your full character details, including abilities, skills, and background.</p>
-                        <a href="character.html" id="open-full-sheet-btn" class="btn mt-auto">Open Full Sheet</a>
-                    </div>
-                    <div class="dashboard-card lg:col-span-2" id="inventory-card">
-                        <div class="flex items-center gap-3 mb-4"><i data-lucide="backpack" class="w-8 h-8 text-header"></i><h2 class="text-2xl text-header">&gt; Inventory</h2></div>
-                        <div class="flex-grow mb-4">
-                            <p class="text-3xl text-price mb-4">${player.gold} GP</p>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-lg max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                                ${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-accent">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}
-                            </div>
-                        </div>
-                        <button id="edit-inventory-btn" class="btn mt-auto">Manage Inventory</button>
-                    </div>
-                    <div id="spell-management-details" class="dashboard-card lg:col-span-3">
-                        <div class="flex items-center gap-3 mb-4">
-                            <i data-lucide="sparkles" class="w-8 h-8 text-header"></i>
-                            <h2 class="text-2xl text-header">&gt; Spellcasting</h2>
-                            <div class="ml-auto">
-                                <a href="spells.html" id="open-full-spells-btn" class="btn mr-2">Full Spellbook</a>
-                                <button id="long-rest-btn" class="btn">Long Rest</button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4 flex-grow">
-                             <div>
-                                <h3 class="text-xl text-accent mb-2">Spell Slots</h3>
-                                <div class="space-y-2" id="spell-slots-container"></div>
-                            </div>
-                            <div>
-                                <h3 class="text-xl text-accent mb-2">Prepared Spells</h3>
-                                <div id="prepared-spells-container" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dashboard-card lg:col-span-3">
-                        <div class="flex items-center gap-3 mb-4"><i data-lucide="store" class="w-8 h-8 text-header"></i><h2 class="text-2xl text-header">&gt; Available Shops</h2></div>
-                        <div class="space-y-3 flex-grow mb-4">
-                            ${state.activeShops.length === 0 ? '<p class="text-dim">No active shops found.</p>' : state.activeShops.map(s => `<div class="flex justify-between items-center p-2 border-b border-border"><span class="text-accent">${s.shopName || s.shopType}</span><button class="btn-secondary !p-2 text-sm join-shop-btn" data-shop-id="${s.id}">Enter Shop</button></div>`).join('')}
-                        </div>
-                    </div>
-                </main>
-            `;
-
-            lucide.createIcons();
-            document.getElementById('open-full-sheet-btn')?.addEventListener('click', () => sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData)));
-            document.getElementById('open-full-spells-btn')?.addEventListener('click', () => sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData)));
-            document.querySelectorAll('.join-shop-btn').forEach(btn => btn.addEventListener('click', e => joinShop(e.target.dataset.shopId)));
-            document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
-            document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
-            initializeSpellManagement();
-        }
-
-        function renderDMHub() {
-            dmHubView.innerHTML = `
-                <div class="cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
-                    <div class="space-y-2">
-                        <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
-                    </div>
-                </div>
-                <div class="mt-8 cli-window max-w-md mx-auto">
-                    <h2 class="text-2xl mb-4 text-header">> Your Shops</h2>
-                    <div class="space-y-2">
-                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
-                        <div class="border-t border-border my-2"></div>
-                        ${state.dmShops.length === 0 ? '<p class="text-dim">No shops.</p>' : state.dmShops.map(s => `<div class="flex items-center mb-2 gap-2"><button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button><input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}><button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button></div>`).join('')}
-                    </div>
-                </div>
-            `;
-            document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
-            document.getElementById('dm-manage-players-btn').addEventListener('click', openPlayersModal);
-            document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => btn.addEventListener('click', e => joinShop(e.target.dataset.shopId)));
-            document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
-            document.querySelectorAll('.dm-active-checkbox').forEach(cb => cb.addEventListener('change', handleDMActiveChange));
-        }
-
-        async function handleDMDeleteShop(e) {
-            const shopId = e.target.dataset.shopId;
-            if (!confirm('Delete this shop? This cannot be undone.')) return;
-            await deleteDoc(doc(db, 'shops', shopId));
-            state.dmShops = state.dmShops.filter(s => s.id !== shopId);
-            renderDMHub();
-        }
-
-        async function handleDMActiveChange(e) {
-            const shopId = e.target.dataset.shopId;
-            await updateDoc(doc(db, 'shops', shopId), { active: e.target.checked });
-        }
-
-        // --- [FIXED] Spell Management Logic ---
-        function initializeSpellManagement() {
-            const module = document.getElementById('spell-management-details');
-            if (!module || module.dataset.initialized) return;
-            module.dataset.initialized = 'true';
-
-            const spellState = {
-                preparedSpells: [ 
-                    { name: 'Fire Bolt', level: 0 },
-                    { name: 'Magic Missile', level: 1 },
-                    { name: 'Shield', level: 1 }
-                ],
-                spellSlots: { '1': { max: 4, expended: 0 }, '2': { max: 3, expended: 0 }, '3': { max: 2, expended: 0 } },
-            };
-
-            const savedSlots = localStorage.getItem('spellSlots');
-            if (savedSlots) { try { spellState.spellSlots = JSON.parse(savedSlots); } catch {} }
-
-            function saveSpellSlots() { localStorage.setItem('spellSlots', JSON.stringify(spellState.spellSlots)); }
-            
-            function renderAll() { 
-                renderPreparedSpells(); 
-                renderSpellSlots(); 
-                saveSpellSlots(); 
-            }
-
-            function renderSpellSlots() {
-                const container = module.querySelector('#spell-slots-container');
-                if (!container.innerHTML) {
-                    let html = '';
-                     for (const level in spellState.spellSlots) {
-                        html += `<div class="flex items-center justify-start gap-4" data-level-bar="${level}"><span class="text-item-name w-20">Level ${level}</span><div class="slot-bar">`;
-                        const { max } = spellState.spellSlots[level];
-                        for (let i = 0; i < max; i++) {
-                            html += `<div class="slot-segment slot" data-level="${level}" data-index="${i}"></div>`;
-                        }
-                        html += `</div></div>`;
-                    }
-                    container.innerHTML = html;
-                }
-
-                for (const level in spellState.spellSlots) {
-                    const { max, expended } = spellState.spellSlots[level];
-                    const slots = container.querySelectorAll(`.slot[data-level="${level}"]`);
-                    slots.forEach((slot, i) => {
-                        const isAvailable = i < (max - expended);
-                        slot.classList.toggle('slot-available', isAvailable);
-                        slot.classList.toggle('slot-expended', !isAvailable);
-                    });
-                }
-            }
-            
-            function renderPreparedSpells() {
-                const container = module.querySelector('#prepared-spells-container');
-                container.innerHTML = '';
-                if (spellState.preparedSpells.length === 0) {
-                    container.innerHTML = '<p class="text-dim">> No spells prepared.</p>'; return;
-                }
-                const cantrips = spellState.preparedSpells.filter(s => s.level === 0);
-                const spells = spellState.preparedSpells.filter(s => s.level > 0);
-                if (cantrips.length) {
-                    container.innerHTML += '<h4 class="text-lg text-header">> Cantrips</h4>';
-                    cantrips.forEach(spell => { container.innerHTML += createPreparedSpellRow(spell); });
-                }
-                if (spells.length) {
-                    container.innerHTML += '<h4 class="text-lg text-header mt-2">> Spells</h4>';
-                    spells.forEach(spell => { container.innerHTML += createPreparedSpellRow(spell); });
-                }
-            }
-
-            function createPreparedSpellRow(spell) {
-                let castButtons = '';
-                if (spell.level > 0) {
-                     for (let i = spell.level; i <= 9; i++) {
-                        const levelStr = String(i);
-                        const slot = spellState.spellSlots[levelStr];
-                        if (slot && slot.expended < slot.max) {
-                             castButtons += `<button class="btn-secondary cast-btn !p-1 !text-sm" data-cast-level="${i}">Lvl ${i}</button>`;
-                        }
-                    }
-                }
-                const buttonHtml = castButtons ? `<div class="flex gap-1 flex-wrap justify-end">${castButtons}</div>` : `<p class="text-dim text-right">> No Slots</p>`;
-                return `<div class="flex justify-between items-center py-1 border-b border-border"><span class="text-item-name">${spell.name}</span>${spell.level > 0 ? buttonHtml : ''}</div>`;
-            }
-
-            function handleCastSpell(e) {
-                const spellLevelToUse = parseInt(e.target.dataset.castLevel, 10);
-                const levelStr = String(spellLevelToUse);
-                const slot = spellState.spellSlots[levelStr];
-                if (slot && slot.expended < slot.max) { 
-                    slot.expended++; 
-                    renderAll();
-                }
-            }
-
-            function handleSlotClick(e) {
-                if (!e.target.classList.contains('slot')) return;
-                const level = e.target.dataset.level;
-                const index = parseInt(e.target.dataset.index, 10);
-                const levelData = spellState.spellSlots[level];
-                const maxSlots = levelData.max;
-                const currentAvailable = maxSlots - levelData.expended;
-                levelData.expended = (currentAvailable === index + 1) ? maxSlots - index : maxSlots - (index + 1);
-                renderSpellSlots();
-                saveSpellSlots();
-            }
-
-            function handleLongRest() {
-                for (const level in spellState.spellSlots) { spellState.spellSlots[level].expended = 0; }
-                renderAll();
-            }
-            
-            module.querySelector('#long-rest-btn').addEventListener('click', handleLongRest);
-            module.querySelector('#spell-slots-container').addEventListener('click', handleSlotClick);
-            module.querySelector('#prepared-spells-container').addEventListener('click', e => { if (e.target.classList.contains('cast-btn')) handleCastSpell(e); });
-            
-            window.addEventListener('pageshow', () => {
-                 const savedSlots = localStorage.getItem('spellSlots');
-                 if (savedSlots) { try { spellState.spellSlots = JSON.parse(savedSlots); } catch {} }
-                 renderAll();
-            });
-
-            renderAll();
-        }
-
-        function getModifiedPrice(basePrice) {
-            const modifier = state.shopData?.priceModifier || 0;
-            const modified = basePrice * (1 + modifier / 100);
-            return Math.round(modified * 100) / 100;
-        }
-
-        function renderDMView() {
-            const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
-            dmView.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-lg">
-                <div class="md:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window">
-                        <h2 class="text-2xl mb-4 text-header">> DM Controls</h2>
-                        <p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p>
-                        <p class="mb-1">> Type: ${shopType}</p>
-                        <div class="mt-4">
-                            <label class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label>
-                            <div class="grid grid-cols-3 gap-2">${[-50,-25,-15,15,25,50].map(v => `<button class="${priceModifier===v?'btn':'btn-secondary'} price-mod-btn" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}</div>
-                        </div>
-                        <div class="mt-4"><label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label><button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button></div>
-                        <div class="mt-4"><button id="delete-shop-btn" class="btn btn-secondary w-full text-red-500 border-red-500">Delete Shop</button></div>
-                    </div>
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
-                </div>
-                <div class="md:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window">
-                        <h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3>
-                        <div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3 space-y-2" data-index="${index}"><div class="flex justify-between items-center"><span class="text-item-name">${item.name}</span><button class="text-red-500 hover:text-red-400 dm-remove-item-btn" data-index="${index}">[X]</button></div><textarea class="input-field dm-details-input w-full" data-index="${index}" placeholder="Details">${item.details||''}</textarea><div class="flex items-center gap-2"><label class="text-dim">Qty:</label><input type="number" min="0" class="input-field dm-qty-input w-16" data-index="${index}" value="${item.quantity}"><label class="text-dim">Price:</label><input type="number" min="0" step="0.01" class="input-field dm-price-input w-24" data-index="${index}" value="${item.price}"></div></div>`).join('')}</div>
-                        <div class="mt-4">
-                            <h4 class="text-xl mb-2 text-header">> Add Custom Item</h4>
-                            <input id="custom-item-name" class="input-field mb-2" placeholder="Item Name"><textarea id="custom-item-details" class="input-field mb-2" placeholder="Details"></textarea>
-                            <div class="flex gap-2 mb-2"><input id="custom-item-price" type="number" class="input-field flex-1" placeholder="Price"><input id="custom-item-qty" type="number" class="input-field flex-1" placeholder="Qty"></div>
-                            <button id="add-custom-item-btn" class="btn w-full">Add Item</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="md:col-span-1 flex flex-col gap-6">
-                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><div class="grid grid-cols-2 gap-2 mt-3"><button class="btn checkout-btn" data-player-id="${playerId}">Checkout</button><button class="btn btn-secondary clear-cart-btn" data-player-id="${playerId}">Clear Cart</button></div>` : `<p class="text-dim">Cart is empty.</p><div class="mt-3"><button class="btn btn-secondary clear-cart-btn w-full" data-player-id="${playerId}">Remove Cart</button></div>`}</div>`).join('')}</div></div>
-                </div>
-            </div>`;
-            attachDMListeners();
-        }
-
-        function renderPlayerView() {
-            const playerView = document.getElementById('player-view');
-            const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
-            const playerCart = carts[state.characterKey] || { items: [] };
-            const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
-            
-            playerView.innerHTML = `
-                <div class="pb-24 lg:pb-0 lg:grid lg:grid-cols-3 lg:gap-6 text-lg">
-                    <!-- Main Shop Content (Items Grid) -->
-                    <div class="lg:col-span-2">
-                        <div class="cli-window mb-6">
-                            <h1 class="text-3xl text-header">${shopName}</h1>
-                            <p class="text-xl text-dim">(${shopType})</p>
-                            <p class="mt-2">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p>
-                            <p class="text-dim">> ${shopkeeper.description||'...'}</p>
-                        </div>
-
-                        <div class="cli-window">
-                            <h2 class="text-2xl mb-4 text-header">> Items for Sale</h2>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                ${inventory.map(item=>`
-                                    <div class="item-card ${item.quantity === 0 ? 'sold-out' : ''}" data-item-id="${item.id}">
-                                        <div class="border border-border p-3 flex flex-col justify-between rounded-lg h-full">
-                                            <div>
-                                                <p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p>
-                                                ${item.details ? `<p class="text-sm text-dim mt-1">${item.details}</p>`:''}
-                                            </div>
-                                            <div class="mt-3 flex justify-between items-center">
-                                                <p class="text-price text-xl">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p>
-                                                ${item.quantity > 0 ? `<button class="btn !p-2 add-to-cart-btn"><i data-lucide="plus" class="w-5 h-5"></i></button>`: ''}
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Desktop Cart & Purse -->
-                    <div class="hidden lg:block lg:col-span-1">
-                        <div class="cli-window sticky top-24">
-                            <h2 class="text-2xl mb-4 text-header">> ${state.playerData.name}'s Purse</h2>
-                            <p class="text-2xl text-price">${state.playerData.gold} GP</p>
-                            <hr class="border-border my-4">
-                            <h2 class="text-2xl mb-4 text-header">> Your Cart</h2>
-                            <div id="player-cart-list-desktop" class="space-y-2 mb-4 min-h-[50px] max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                                ${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`
-                                    <div class="flex justify-between items-center">
-                                        <span>- <span class="text-item-name">${item.name}</span></span>
-                                        <button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button>
-                                    </div>`).join('')}
-                            </div>
-                            <hr class="border-border my-4">
-                            <p class="text-xl text-right">> Total: <span class="text-price">${cartTotal} GP</span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mobile Sticky Cart -->
-                <div id="mobile-cart-bar" class="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--window-bg)] border-t-2 border-[var(--color-header)] p-3 z-40">
-                     <details>
-                        <summary class="flex justify-between items-center cursor-pointer">
-                            <div>
-                                <h3 class="text-header text-xl">> Your Cart (${playerCart.items.length})</h3>
-                                <p class="text-price text-lg">${cartTotal} GP</p>
-                            </div>
-                            <i data-lucide="chevron-up" class="w-6 h-6 text-header"></i>
-                        </summary>
-                        <div class="mt-4 pt-4 border-t border-border max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                             <div id="player-cart-list-mobile" class="space-y-3">
-                                ${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`
-                                    <div class="flex justify-between items-center">
-                                        <span>- <span class="text-item-name">${item.name}</span></span>
-                                        <button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button>
-                                    </div>`).join('')}
-                             </div>
-                        </div>
-                     </details>
-                </div>
-            `;
-            lucide.createIcons();
-            attachPlayerListeners();
-        }
-        
-        // --- Transactional Functions (Firebase) ---
-        async function handleCheckout(e) {
-            const playerId = e.target.dataset.playerId;
-            const shopDocRef = doc(db, "shops", state.shopId);
-            const playerDocRef = doc(db, "characters", playerId);
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const shopDoc = await transaction.get(shopDocRef);
-                    const playerDoc = await transaction.get(playerDocRef);
-                    if (!shopDoc.exists() || !playerDoc.exists()) { throw "Document not found!"; }
-
-                    const shopData = shopDoc.data();
-                    const playerData = playerDoc.data();
-                    const cart = shopData.carts[playerId];
-                    if (!cart || cart.items.length === 0) { return; }
-
-                    const totalCost = cart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
-                    if (playerData.gold < totalCost) { throw `${playerData.name} doesn't have enough gold!`; }
-
-                    transaction.update(shopDocRef, { "shopkeeper.gold": shopData.shopkeeper.gold + totalCost, [`carts.${playerId}`]: { items: [] } });
-                    transaction.update(playerDocRef, { gold: playerData.gold - totalCost, inventory: [...playerData.inventory, ...cart.items] });
-                });
-            } catch (error) {
-                console.error("Transaction failed: ", error);
-            }
-        }
-
-        async function handleAddToCart(itemId) {
-            const shopRef = doc(db, 'shops', state.shopId);
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const shopDoc = await transaction.get(shopRef);
-                    if (!shopDoc.exists()) throw "Shop not found";
-                    const shopData = shopDoc.data();
-                    const invIndex = shopData.inventory.findIndex(item => item.id === itemId);
-                    if (invIndex === -1) throw "Item not found";
-                    const item = shopData.inventory[invIndex];
-                    if (item.quantity <= 0) throw "Item sold out";
-
-                    const newInventory = [...shopData.inventory];
-                    newInventory[invIndex] = { ...item, quantity: item.quantity - 1 };
-                    const playerCart = shopData.carts[state.characterKey] || { playerName: state.playerData.name, items: [] };
-                    const { id, name, price, details } = item;
-                    const newCartItems = [...playerCart.items, { id, name, price, details }];
-                    transaction.update(shopRef, { inventory: newInventory, [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newCartItems } });
-                });
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function handleRemoveFromCart(indexToRemove) {
-            const shopRef = doc(db, 'shops', state.shopId);
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const shopDoc = await transaction.get(shopRef);
-                    if (!shopDoc.exists()) throw "Shop not found";
-                    const shopData = shopDoc.data();
-                    const cart = shopData.carts[state.characterKey];
-                    if (!cart) return;
-                    const item = cart.items[indexToRemove];
-                    if (!item) return;
-
-                    const invIndex = shopData.inventory.findIndex(i => i.id === item.id);
-                    const newInventory = [...shopData.inventory];
-                    if (invIndex !== -1) {
-                        newInventory[invIndex] = { ...newInventory[invIndex], quantity: newInventory[invIndex].quantity + 1 };
-                    }
-                    const newCartItems = cart.items.filter((_, i) => i !== indexToRemove);
-                    const updates = { inventory: newInventory };
-                    updates[`carts.${state.characterKey}.items`] = newCartItems;
-                    transaction.update(shopRef, updates);
-                });
-            } catch (err) {
-                console.error('Remove from cart failed:', err);
-            }
-        }
-
-        async function handleClearCart(e) {
-            const playerId = e.target.dataset.playerId;
-            const shopRef = doc(db, 'shops', state.shopId);
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const shopDoc = await transaction.get(shopRef);
-                    if (!shopDoc.exists()) throw "Shop not found";
-                    const shopData = shopDoc.data();
-                    const cart = shopData.carts[playerId];
-                    if (!cart) return;
-                    const newInventory = [...shopData.inventory];
-                    cart.items.forEach(it => {
-                        const idx = newInventory.findIndex(inv => inv.id === it.id);
-                        if (idx !== -1) newInventory[idx] = { ...newInventory[idx], quantity: newInventory[idx].quantity + 1 };
-                    });
-                    const updates = { inventory: newInventory };
-                    updates[`carts.${playerId}`] = deleteField();
-                    transaction.update(shopRef, updates);
-                });
-            } catch (err) {
-                console.error('Clear cart failed:', err);
-            }
-        }
-
-        function handleInventoryUpdate(e) {
-            const index = parseInt(e.target.dataset.index, 10);
-            const field = e.target.classList.contains('dm-qty-input') ? 'quantity' : e.target.classList.contains('dm-price-input') ? 'price' : 'details';
-            let value = field === 'price' ? parseFloat(e.target.value) : field === 'quantity' ? parseInt(e.target.value, 10) : e.target.value;
-            if (field !== 'details' && (isNaN(value) || value < 0)) return;
-            const newInventory = [...state.shopData.inventory];
-            newInventory[index] = { ...newInventory[index], [field]: value };
-            state.shopData.inventory = newInventory;
-            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
-            renderDMView();
-        }
-
-        function handleRemoveInventoryItem(e) {
-            const index = parseInt(e.target.dataset.index, 10);
-            const newInventory = state.shopData.inventory.filter((_, i) => i !== index);
-            state.shopData.inventory = newInventory;
-            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
-            renderDMView();
-        }
-
-        function handleAddCustomItem() {
-            const nameInput = document.getElementById('custom-item-name');
-            const detailsInput = document.getElementById('custom-item-details');
-            const priceInput = document.getElementById('custom-item-price');
-            const qtyInput = document.getElementById('custom-item-qty');
-            const name = nameInput.value.trim();
-            const details = detailsInput.value.trim();
-            const price = parseFloat(priceInput.value);
-            const qty = parseInt(qtyInput.value, 10);
-            if (!name || isNaN(price) || isNaN(qty) || qty < 0 || price < 0) return;
-            const newItem = { id: `item-${Math.random().toString(36).substr(2,9)}`, name, price, quantity: qty, details };
-            const newInventory = [...state.shopData.inventory, newItem];
-            state.shopData.inventory = newInventory;
-            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
-            nameInput.value = ''; detailsInput.value = ''; priceInput.value = ''; qtyInput.value = '';
-            renderDMView();
-        }
-
-        // --- Event Listener Attachment ---
-        function attachDMListeners() {
-            document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
-            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
-            document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
-            document.querySelectorAll('.dm-qty-input, .dm-price-input, .dm-details-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
-            document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
-            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                const value = parseInt(e.target.dataset.value, 10);
-                const newVal = state.shopData.priceModifier === value ? 0 : value;
-                state.shopData.priceModifier = newVal;
-                render();
-                updateDoc(doc(db, 'shops', state.shopId), { priceModifier: newVal });
-            }));
-            document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
-            document.getElementById('add-custom-item-btn')?.addEventListener('click', handleAddCustomItem);
-            document.getElementById('delete-shop-btn')?.addEventListener('click', async () => {
-                if (confirm('Delete this shop? This cannot be undone.')) {
-                    await deleteDoc(doc(db, 'shops', state.shopId));
-                    exitCurrentMode();
-                }
-            });
-        }
-        function attachPlayerListeners() {
-            document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                const card = e.target.closest('.item-card');
-                handleAddToCart(card.dataset.itemId);
-                card.classList.add('glow-once');
-                setTimeout(() => card.classList.remove('glow-once'), 700);
-            }));
-            document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const indexToRemove = parseInt(e.target.dataset.index, 10);
-                    handleRemoveFromCart(indexToRemove);
-                });
-            });
-        }
-        
-        // --- Start the App ---
-        main();
-        
-    </script>
+
+            </div>
+
+            <div id="login-container" class="max-w-md mx-auto mb-8 cli-window text-center">
+
+                <h2 class="text-2xl mb-4 text-header">> Welcome, Adventurer!</h2>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+
+                    <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
+
+                    <button id="login-key-btn" class="btn">Enter</button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Character Hub View -->
+
+        <div id="character-hub-view" class="hidden"></div>
+
+        <!-- DM Hub View -->
+
+        <div id="dm-hub-view" class="hidden"></div>
+
+        <!-- Create Shop View -->
+
+        <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
+
+        <!-- DM View -->
+
+        <div id="dm-view" class="hidden"></div>
+
+        <!-- Player View -->
+
+        <div id="player-view" class="hidden max-w-7xl mx-auto"></div>
+
+    </div>
+
+
+
+    <!-- New Key Modal (Moved outside app-container) -->
+
+    <div id="new-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+
+        <div class="cli-window w-full max-w-md text-center">
+
+            <button id="new-key-modal-close" class="subview-exit-btn">ⓧ</button>
+
+            <h2 class="text-2xl font-bold mb-4 text-header">> Your New Character Key!</h2>
+
+            <p class="mb-4 text-dim">> This is your secret key. Write it down! It is the ONLY way to access your character again.</p>
+
+            <div class="bg-gray-900 p-4 border-2 border-dashed border-header mb-6">
+
+                <p id="new-key-display" class="text-4xl text-header tracking-widest"></p>
+
+            </div>
+
+            <button id="key-modal-continue-btn" class="btn w-full">Continue to Hub</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Inventory Modal -->
+
+    <div id="inventory-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+
+        <div class="cli-window w-full max-w-md text-center">
+
+            <button id="inventory-modal-close" class="subview-exit-btn">ⓧ</button>
+
+            <h2 class="text-2xl font-bold mb-4 text-header">> Edit Inventory</h2>
+
+            <div id="inventory-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Players Modal -->
+
+    <div id="keys-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+
+        <div class="cli-window w-full max-w-md text-center">
+
+            <button id="keys-modal-close" class="subview-exit-btn">ⓧ</button>
+
+            <h2 class="text-2xl font-bold mb-4 text-header">> Manage Players</h2>
+
+            <div id="players-list" class="space-y-2"></div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Update Character Sheet Modal -->
+
+    <div id="update-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4">
+
+        <div class="cli-window w-full max-w-md text-center">
+
+            <button id="update-sheet-modal-close" class="subview-exit-btn">ⓧ</button>
+
+            <h2 class="text-2xl font-bold mb-4 text-header">> Update Character Sheet</h2>
+
+            <textarea id="sheet-json-textarea" class="w-full h-48 p-2 text-black"></textarea>
+
+            <button id="save-sheet-btn" class="btn w-full mt-4">Save</button>
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+
+      // Fit ASCII to its container by adjusting font-size based on the widest line
+
+      (function fitAsciiAll(){
+
+        const blocks = Array.from(document.querySelectorAll('.ascii-title'));
+
+        function longestLineCols(str){
+
+          const lines = str.replace(/\t/g, '    ').split(/\r?\n/);
+
+          let max = 0; for (const l of lines) max = Math.max(max, l.length);
+
+          return Math.max(1, max);
+
+        }
+
+        function fit(pre){
+
+          const container = pre.parentElement || document.body;
+
+          const styles = getComputedStyle(container);
+
+          const pad = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+
+          const available = Math.max(0, container.clientWidth - pad);
+
+          const cols = longestLineCols(pre.textContent);
+
+          const minPx = parseFloat(pre.dataset.minFont || '10');
+
+          const maxPx = parseFloat(pre.dataset.maxFont || '40');
+
+          const size = Math.max(minPx, Math.min(maxPx, available / cols));
+
+          pre.style.fontSize = size + 'px';
+
+          pre.style.marginLeft = 'auto';
+
+          pre.style.marginRight = 'auto';
+
+        }
+
+        function fitAll(){ blocks.forEach(fit); }
+
+        // Initial fit
+
+        fitAll();
+
+        // Re-fit on resize/orientation changes
+
+        let rAF; window.addEventListener('resize', ()=>{ cancelAnimationFrame(rAF); rAF=requestAnimationFrame(fitAll); });
+
+        window.addEventListener('orientationchange', fitAll, { passive: true });
+
+        // Observe each container for size changes
+
+        const observers = new WeakMap();
+
+        blocks.forEach(pre => {
+
+          const c = pre.parentElement || document.body;
+
+          if (!observers.has(c)){
+
+            const ro = new ResizeObserver(() => fitAll());
+
+            ro.observe(c);
+
+            observers.set(c, ro);
+
+          }
+
+        });
+
+      })();
+
+    </script>
+
+
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteDoc, getDoc, runTransaction, collection, getDocs, query, where, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+
+        const firebaseConfig = {
+
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+
+          projectId: "dnd-shop-app-c4f86",
+
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+
+          messagingSenderId: "480358969004",
+
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+
+          measurementId: "G-DWLMWMZTZ3"
+
+        };
+
+
+
+        const app = initializeApp(firebaseConfig);
+
+        const db = getFirestore(app);
+
+
+
+        function ensureButtonTypes(root = document) {
+
+            root.querySelectorAll('button').forEach(btn => {
+
+                if (!btn.getAttribute('type')) {
+
+                    btn.setAttribute('type', 'button');
+
+                }
+
+            });
+
+        }
+
+        const btnObserver = new MutationObserver(() => ensureButtonTypes());
+
+        btnObserver.observe(document.body, { childList: true, subtree: true });
+
+        ensureButtonTypes();
+
+
+
+        const itemCatalog = {
+
+          "blacksmith": { "name": "Blacksmith/Armory", "items": [ { "name": "Studded Leather", "price": 45 }, { "name": "Chain Shirt", "price": 50 }, { "name": "Scale Mail", "price": 50 }, { "name": "Breastplate", "price": 400 }, { "name": "Half Plate", "price": 750 }, { "name": "Ring Mail", "price": 30 }, { "name": "Chain Mail", "price": 75 }, { "name": "Splint", "price": 200 }, { "name": "Plate", "price": 1500 }, { "name": "Shield", "price": 10 }, { "name": "Dagger", "price": 2 }, { "name": "Handaxe", "price": 5 }, { "name": "Javelin", "price": 0.5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Mace", "price": 5 }, { "name": "Sickle", "price": 1 }, { "name": "Spear", "price": 1 }, { "name": "Battleaxe", "price": 10 }, { "name": "Flail", "price": 10 }, { "name": "Glaive", "price": 20 }, { "name": "Greataxe", "price": 30 }, { "name": "Greatsword", "price": 50 }, { "name": "Halberd", "price": 20 }, { "name": "Lance", "price": 10 }, { "name": "Longsword", "price": 15 }, { "name": "Maul", "price": 10 }, { "name": "Morningstar", "price": 15 }, { "name": "Pike", "price": 5 }, { "name": "Rapier", "price": 25 }, { "name": "Scimitar", "price": 25 }, { "name": "Shortsword", "price": 10 }, { "name": "Trident", "price": 5 }, { "name": "War Pick", "price": 5 }, { "name": "Warhammer", "price": 15 }, { "name": "Ball Bearings (bag of 1,000)", "price": 1 }, { "name": "Bell", "price": 1 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Crowbar", "price": 2 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Sledgehammer", "price": 2 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Manacles", "price": 2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Spikes, Iron", "price": 1 }, { "name": "Whetstone", "price": 0.01 }, { "name": "Carpenter's Tools", "price": 8 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Horn", "price": 3 } ] },
+
+          "fletcher": { "name": "Fletcher/Bowyer", "items": [ { "name": "Crossbow, Light", "price": 25 }, { "name": "Shortbow", "price": 25 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Quiver", "price": 1 } ] },
+
+          "leathersmith": { "name": "Leathersmith/Tanner", "items": [ { "name": "Leather", "price": 10 }, { "name": "Studded Leather", "price": 45 }, { "name": "Hide", "price": 10 }, { "name": "Shield", "price": 10 }, { "name": "Sling", "price": 0.1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Cobbler's Tools", "price": 5 }, { "name": "Leatherworker's Tools", "price": 5 }, { "name": "Bagpipes", "price": 30 }, { "name": "Drum", "price": 6 } ] },
+
+          "temple": { "name": "Temple/Priest", "items": [ { "name": "Alms Box", "price": 5 }, { "name": "Bell", "price": 1 }, { "name": "Blanket", "price": 0.5 }, { "name": "Book, Scripture", "price": 25 }, { "name": "Candle", "price": 0.01 }, { "name": "Case, Map or Scroll", "price": 1 }, { "name": "Censer", "price": 5 }, { "name": "Chalk (1 piece)", "price": 0.01 }, { "name": "Flask", "price": 0.02 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Holy Symbol, Amulet", "price": 5 }, { "name": "Holy Symbol, Emblem", "price": 5 }, { "name": "Holy Symbol, Reliquary", "price": 5 }, { "name": "Holy Water (flask)", "price": 25 }, { "name": "Incense (1 block)", "price": 0.01 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Perfume (vial)", "price": 5 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Rations (1 day)", "price": 0.5 }, { "name": "Torch", "price": 0.01 }, { "name": "Vial", "price": 1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Calligrapher's Supplies", "price": 10 }, { "name": "Herbalism Kit", "price": 5 }, { "name": "Flute", "price": 2 }, { "name": "Lyre", "price": 30 }, { "name": "Horn", "price": 3 }, { "name": "Cure Wounds (lvl 1)", "price": 10, "type": "service" }, { "name": "Gentle Repose (lvl 2)", "price": 50, "type": "service" }, { "name": "Lesser Restoration (lvl 2)", "price": 50, "type": "service" }, { "name": "Remove Curse (lvl 3)", "price": 100, "type": "service" }, { "name": "Revivify (lvl 3)", "price": 400, "type": "service" }, { "name": "Raise Dead (lvl 5)", "price": 1000, "type": "service" } ] },
+
+          "general_store": { "name": "General Store", "items": [ { "name": "Abacus", "price": 2 }, { "name": "Barrel", "price": 2 }, { "name": "Blanket", "price": 0.5 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Bucket", "price": 0.05 }, { "name": "Candle", "price": 0.01 }, { "name": "Chest", "price": 5 }, { "name": "Clothes, Common", "price": 0.5 }, { "name": "Clothes, Fine", "price": 15 }, { "name": "Flask or Tankard", "price": 0.02 }, { "name": "Hammer", "price": 1 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Jug or Pitcher", "price": 0.02 }, { "name": "Ladder (10-foot)", "price": 0.1 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lamp", "price": 0.5 }, { "name": "Lock", "price": 10 }, { "name": "Mess Kit", "price": 0.2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Pouch", "price": 0.5 }, { "name": "Rope, Hempen (50 feet)", "price": 1 }, { "name": "Rope, Silk (50 feet)", "price": 10 }, { "name": "Sack", "price": 0.01 }, { "name": "Scale, Merchant's", "price": 5 }, { "name": "Shovel", "price": 2 }, { "name": "Signet Ring", "price": 5 }, { "name": "Soap", "price": 0.02 }, { "name": "Vial", "price": 1 }, { "name": "Carpenter's Tools", "price": 15 }, { "name": "Cobbler's Tools", "price": 25 }, { "name": "Cook's Utensils", "price": 50 }, { "name": "Glassblower's Tools", "price": 30 }, { "name": "Leatherworker's Tools", "price": 5 }, { "name": "Mason's Tools", "price": 10 }, { "name": "Potter's Tools", "price": 10 }, { "name": "Smith's Tools", "price": 20 }, { "name": "Weaver's Tools", "price": 1 }, { "name": "Woodcarver's Tools", "price": 1 } ] },
+
+          "adventuring_supplies": { "name": "Adventuring Supplies", "items": [ { "name": "Padded Armor", "price": 5 }, { "name": "Leather Armor", "price": 10 }, { "name": "Studded Leather", "price": 45 }, { "name": "Hide Armor", "price": 10 }, { "name": "Club", "price": 0.1 }, { "name": "Dagger", "price": 2 }, { "name": "Greatclub", "price": 0.2 }, { "name": "Handaxe", "price": 5 }, { "name": "Light Hammer", "price": 2 }, { "name": "Quarterstaff", "price": 0.2 }, { "name": "Crossbow, Light", "price": 25 }, { "name": "Dart", "price": 0.05 }, { "name": "Shortbow", "price": 25 }, { "name": "Sling", "price": 0.1 }, { "name": "Whip", "price": 2 }, { "name": "Blowgun", "price": 10 }, { "name": "Crossbow, Hand", "price": 75 }, { "name": "Crossbow, Heavy", "price": 50 }, { "name": "Longbow", "price": 50 }, { "name": "Arrows (20)", "price": 1 }, { "name": "Blowgun Needles (50)", "price": 1 }, { "name": "Crossbow Bolts (20)", "price": 1 }, { "name": "Sling Bullets (20)", "price": 0.04 }, { "name": "Backpack", "price": 2 }, { "name": "Bedroll", "price": 1 }, { "name": "Blanket", "price": 0.5 }, { "name": "Block and Tackle", "price": 1 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Candle", "price": 0.01 }, { "name": "Case, Crossbow Bolt", "price": 1 }, { "name": "Case, Map or Scroll", "price": 1 }, { "name": "Chain (10 feet)", "price": 5 }, { "name": "Chest", "price": 5 }, { "name": "Climber's Kit", "price": 25 }, { "name": "Clothes, Traveler's", "price": 2 }, { "name": "Crowbar", "price": 2 }, { "name": "Flask or Tankard", "price": 0.02 }, { "name": "Grappling Hook", "price": 2 }, { "name": "Hammer", "price": 1 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Hourglass", "price": 25 }, { "name": "Hunting Trap", "price": 5 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Ink Pen", "price": 0.02 }, { "name": "Jug or Pitcher", "price": 0.02 }, { "name": "Ladder (10-foot)", "price": 0.1 }, { "name": "Lantern, Bullseye", "price": 10 }, { "name": "Lantern, Hooded", "price": 5 }, { "name": "Lock", "price": 10 }, { "name": "Mess Kit", "price": 0.2 }, { "name": "Mirror, Steel", "price": 5 }, { "name": "Paper (one sheet)", "price": 0.2 }, { "name": "Parchment (one sheet)", "price": 0.1 }, { "name": "Pick, Miner's", "price": 2 }, { "name": "Piton", "price": 0.05 }, { "name": "Pole (10-foot)", "price": 0.05 }, { "name": "Pot, Iron", "price": 2 }, { "name": "Pouch", "price": 0.5 }, { "name": "Quiver", "price": 1 }, { "name": "Rations (1 day)", "price": 0.5 }, { "name": "Rope, Hempen (50 feet)", "price": 1 }, { "name": "Rope, Silk (50 feet)", "price": 10 }, { "name": "Sack", "price": 0.01 }, { "name": "Shovel", "price": 2 }, { "name": "Signal Whistle", "price": 5 }, { "name": "Signet Ring", "price": 5 }, { "name": "Spyglass", "price": 1000 }, { "name": "Tent, Two-person", "price": 2 }, { "name": "Tinderbox", "price": 0.5 }, { "name": "Torch", "price": 0.01 }, { "name": "Vial", "price": 1 }, { "name": "Waterskin", "price": 0.2 }, { "name": "Cartographer's Tools", "price": 15 }, { "name": "Jeweler's Tools", "price": 25 }, { "name": "Tinker's Tools", "price": 50 }, { "name": "Herbalism Kit", "price": 5 }, { "name": "Navigator's Tools", "price": 25 } ] },
+
+          "arcane_shop": { "name": "Arcane Shop", "items": [ { "name": "Crystal", "price": 10 }, { "name": "Orb", "price": 20 }, { "name": "Rod", "price": 10 }, { "name": "Staff", "price": 5 }, { "name": "Wand", "price": 10 }, { "name": "Component Pouch", "price": 25 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Spellbook", "price": 50 } ] },
+
+          "thieves_guild": { "name": "Thieves' Guild", "items": [ { "name": "Acid (vial)", "price": 25 }, { "name": "Antitoxin (vial)", "price": 50 }, { "name": "Caltrops (bag of 20)", "price": 1 }, { "name": "Clothes, Costume", "price": 5 }, { "name": "Manacles", "price": 2 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Poison, Basic (vial)", "price": 100 }, { "name": "Ram, Portable", "price": 4 }, { "name": "Spikes, Iron (10)", "price": 1 }, { "name": "Disguise Kit", "price": 25 }, { "name": "Forgery Kit", "price": 15 }, { "name": "Dice Set", "price": 0.1 }, { "name": "Playing Card Set", "price": 0.5 }, { "name": "Poisoner's Kit", "price": 50 }, { "name": "Thieves' Tools", "price": 25 } ] },
+
+          "potion_shop": { "name": "Potion Shop", "items": [ { "name": "Acid (vial)", "price": 25 }, { "name": "Alchemist's Fire (flask)", "price": 50 }, { "name": "Antitoxin (vial)", "price": 50 }, { "name": "Bottle, glass", "price": 2 }, { "name": "Component Pouch", "price": 25 }, { "name": "Flask", "price": 0.02 }, { "name": "Healer's Kit", "price": 5 }, { "name": "Ink (1 ounce bottle)", "price": 10 }, { "name": "Jug", "price": 0.02 }, { "name": "Oil (flask)", "price": 0.1 }, { "name": "Perfume (vial)", "price": 5 }, { "name": "Poison, Basic (vial)", "price": 100 }, { "name": "Potion of Healing", "price": 50 }, { "name": "Vial", "price": 1 }, { "name": "Alchemist's Supplies", "price": 50 }, { "name": "Brewer's Supplies", "price": 20 }, { "name": "Cook's Utensils", "price": 1 }, { "name": "Poisoner's Kit", "price": 50 }, { "name": "Potion (Common)", "price": 50 }, { "name": "Potion (Uncommon)", "price": 250 }, { "name": "Potion (Rare)", "price": 2500 } ] }
+
+        };
+
+
+
+        let shopUnsubscribe = null;
+
+        let playerUnsubscribe = null;
+
+        let updateSheetPlayerId = null;
+
+
+
+        let state = {
+
+            isDM: false,
+
+            inShop: false,
+
+            characterKey: null,
+
+            playerData: null,
+
+            shopId: null,
+
+            shopData: null,
+
+            activeShops: [],
+
+            dmShops: [],
+
+        };
+
+
+
+        // DOM Elements
+
+        const allViews = document.querySelectorAll('#app-container > div');
+
+        const authView = document.getElementById('auth-view');
+
+        const characterHubView = document.getElementById('character-hub-view');
+
+        const dmHubView = document.getElementById('dm-hub-view');
+
+        const createShopView = document.getElementById('create-shop-view');
+
+        const dmView = document.getElementById('dm-view');
+
+        const playerView = document.getElementById('player-view');
+
+        const toolbarTitle = document.getElementById('toolbar-title');
+
+        const controlsContainer = document.getElementById('controls-container');
+
+        const dmToolsBtn = document.getElementById('dm-tools-btn');
+
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const exitModeBtn = document.getElementById('exit-mode-btn');
+
+        const newKeyModal = document.getElementById('new-key-modal');
+
+        const keysModal = document.getElementById('keys-modal');
+
+        const inventoryModal = document.getElementById('inventory-modal');
+
+        const updateSheetModal = document.getElementById('update-sheet-modal');
+
+        const sheetJsonTextarea = document.getElementById('sheet-json-textarea');
+
+
+
+        function closeNewKeyModal() {
+
+            newKeyModal.classList.add('hidden');
+
+            if (state.characterKey) {
+
+                listenToPlayerData(state.characterKey);
+
+            }
+
+        }
+
+
+
+        // --- Initialization ---
+
+        function main() {
+
+            // Auth
+
+            document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
+
+
+
+            document.getElementById('key-modal-continue-btn').addEventListener('click', closeNewKeyModal);
+
+            newKeyModal.addEventListener('click', (e) => {
+
+                if (e.target === newKeyModal || e.target.id === 'new-key-modal-close') {
+
+                    closeNewKeyModal();
+
+                }
+
+            });
+
+
+
+            // DM
+
+            dmToolsBtn.addEventListener('click', enterDMHub);
+
+            logoutBtn.addEventListener('click', logout);
+
+            exitModeBtn.addEventListener('click', exitCurrentMode);
+
+            keysModal.addEventListener('click', (e) => {
+
+                if (e.target === keysModal || e.target.id === 'keys-modal-close') {
+
+                    keysModal.classList.add('hidden');
+
+                }
+
+            });
+
+            inventoryModal.addEventListener('click', (e) => {
+
+                if (e.target === inventoryModal || e.target.id === 'inventory-modal-close') {
+
+                    closeInventoryModal();
+
+                }
+
+            });
+
+            updateSheetModal.addEventListener('click', (e) => {
+
+                if (e.target === updateSheetModal || e.target.id === 'update-sheet-modal-close') {
+
+                    closeUpdateSheetModal();
+
+                }
+
+            });
+
+            document.getElementById('save-sheet-btn').addEventListener('click', handleSaveSheet);
+
+
+
+            // Check for saved key and pre-fill login field
+
+            const savedKey = localStorage.getItem('dndShopCharacterKey');
+
+            if (savedKey) {
+
+                document.getElementById('character-key-input').value = savedKey;
+
+            }
+
+            listenToActiveShops();
+
+            render();
+
+        }
+
+
+
+        function handleEditInventory() {
+
+            const summary = state.playerData.inventory.reduce((acc, item) => {
+
+                acc[item.name] = (acc[item.name] || 0) + 1;
+
+                return acc;
+
+            }, {});
+
+            const list = document.getElementById('inventory-list');
+
+            list.innerHTML = Object.keys(summary).length === 0
+
+                ? '<p class="text-dim">Empty.</p>'
+
+                : Object.entries(summary).map(([name, count]) => `
+
+                    <div class="flex justify-between items-center">
+
+                        <span><span class="text-item-name">${name}</span> <span class="text-dim">(x${count})</span></span>
+
+                        <div class="flex items-center gap-2">
+
+                            <input type="number" min="1" max="${count}" value="1" class="input-field w-16" data-name="${name}">
+
+                            <button class="text-red-500 hover:text-red-400 inv-remove-btn" data-name="${name}">[X]</button>
+
+                        </div>
+
+                    </div>
+
+                `).join('');
+
+            inventoryModal.classList.remove('hidden');
+
+            document.querySelectorAll('.inv-remove-btn').forEach(btn => btn.addEventListener('click', handlePlayerInventoryRemove));
+
+        }
+
+
+
+        function handlePlayerInventoryRemove(e) {
+
+            const name = e.target.dataset.name;
+
+            const input = document.querySelector(`input[data-name="${name}"]`);
+
+            const qty = parseInt(input.value, 10);
+
+            const available = state.playerData.inventory.filter(it => it.name === name).length;
+
+            if (!qty || qty <= 0 || qty > available) return;
+
+            if (!confirm(`Remove ${qty} ${name}?`)) return;
+
+            let remaining = qty;
+
+            const newInv = state.playerData.inventory.filter(it => {
+
+                if (it.name === name && remaining > 0) { remaining--; return false; }
+
+                return true;
+
+            });
+
+            state.playerData.inventory = newInv;
+
+            updateDoc(doc(db, 'characters', state.characterKey), { inventory: newInv });
+
+            closeInventoryModal();
+
+            renderCharacterHub();
+
+        }
+
+
+
+        function closeInventoryModal() {
+
+            inventoryModal.classList.add('hidden');
+
+        }
+
+
+
+        // --- Auth & Character Functions ---
+
+        async function handleKeyLogin() {
+
+            const key = document.getElementById('character-key-input').value.toUpperCase();
+
+            if (key.length !== 6) { alert("Please enter a valid 6-character key."); return; }
+
+            await loginWithKey(key);
+
+        }
+
+
+
+        async function loginWithKey(key) {
+
+            const playerDocRef = doc(db, 'characters', key);
+
+            const docSnap = await getDoc(playerDocRef);
+
+            if (docSnap.exists()) {
+
+                state.characterKey = key;
+
+                localStorage.setItem('dndShopCharacterKey', key);
+
+                listenToPlayerData(key);
+
+            } else {
+
+                alert("Character key not found.");
+
+            }
+
+        }
+
+
+
+        async function handleCreateCharacter() {
+
+            const name = prompt("Enter your character's name:");
+
+            if (!name || !name.trim()) { return; }
+
+            const key = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            const playerDocRef = doc(db, 'characters', key);
+
+
+
+            try {
+
+                await setDoc(playerDocRef, {
+
+                    name: name.trim(),
+
+                    gold: 50,
+
+                    inventory: []
+
+                });
+
+                document.getElementById('new-key-display').textContent = key;
+
+                newKeyModal.classList.remove('hidden');
+
+                state.characterKey = key;
+
+                localStorage.setItem('dndShopCharacterKey', key);
+
+            } catch (error) {
+
+                console.error("Error creating character:", error);
+
+                alert("Could not create character. Please try again.");
+
+            }
+
+        }
+
+
+
+        function listenToPlayerData(key) {
+
+            if (playerUnsubscribe) playerUnsubscribe();
+
+            const playerDocRef = doc(db, 'characters', key);
+
+            playerUnsubscribe = onSnapshot(playerDocRef, (docSnap) => {
+
+                if (docSnap.exists()) {
+
+                    state.playerData = docSnap.data();
+
+                } else {
+
+                    alert("Character data lost or deleted.");
+
+                    logout();
+
+                }
+
+                render();
+
+            });
+
+        }
+
+
+
+        let activeShopsUnsubscribe = null;
+
+        let dmShopsUnsubscribe = null;
+
+        function listenToActiveShops() {
+
+            if (activeShopsUnsubscribe) activeShopsUnsubscribe();
+
+            const q = query(collection(db, 'shops'), where('active', '==', true));
+
+            activeShopsUnsubscribe = onSnapshot(q, (snapshot) => {
+
+                state.activeShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                if (!state.inShop && !state.isDM) render();
+
+            });
+
+        }
+
+
+
+        function listenToDMShops() {
+
+            if (dmShopsUnsubscribe) dmShopsUnsubscribe();
+
+            dmShopsUnsubscribe = onSnapshot(collection(db, 'shops'), (snapshot) => {
+
+                state.dmShops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                if (state.isDM && !state.inShop) render();
+
+            });
+
+        }
+
+
+
+        function logout() {
+
+            if (playerUnsubscribe) playerUnsubscribe();
+
+            localStorage.removeItem('dndShopCharacterKey');
+
+            state.characterKey = null;
+
+            state.playerData = null;
+
+            exitCurrentMode();
+
+        }
+
+
+
+        function enterDMHub() {
+
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+
+            state.isDM = true;
+
+            state.inShop = false;
+
+            state.shopId = null;
+
+            state.shopData = null;
+
+            listenToDMShops();
+
+            render();
+
+        }
+
+
+
+
+
+        // --- Core App Logic ---
+
+        function exitSubView() {
+
+            createShopView.classList.add('hidden');
+
+            render(); // This will show the correct main view (auth or hub)
+
+        }
+
+
+
+        function showCreateShopView() {
+
+            authView.classList.add('hidden');
+
+            characterHubView.classList.add('hidden');
+
+            dmHubView.classList.add('hidden');
+
+            createShopView.classList.remove('hidden');
+
+            createShopView.innerHTML = `
+
+                <div class="cli-window">
+
+                    <button id="exit-create-shop-btn" class="subview-exit-btn">ⓧ</button>
+
+                    <h2 class="text-2xl mb-4 text-header">> Create a New Shop</h2>
+
+                    <div class="space-y-4">
+
+                        <div><label for="shop-type-select" class="block mb-1">> Shop Type</label><select id="shop-type-select" class="select-field">${Object.keys(itemCatalog).map(key => `<option value="${key}">${itemCatalog[key].name}</option>`).join('')}</select></div>
+
+                        <div><label for="shop-size-select" class="block mb-1">> Shop Size</label><select id="shop-size-select" class="select-field">${['Small', 'Urban', 'Specialty'].map(size => `<option value="${size.toLowerCase()}">${size}</option>`).join('')}</select></div>
+
+                        <button id="generate-shop-btn" class="btn w-full">Go</button>
+
+                    </div>
+
+                </div>`;
+
+            document.getElementById('generate-shop-btn').addEventListener('click', handleGenerateShop);
+
+            document.getElementById('exit-create-shop-btn').addEventListener('click', exitSubView);
+
+        }
+
+        
+
+        async function openPlayersModal() {
+
+            keysModal.classList.remove('hidden');
+
+            const playersList = document.getElementById('players-list');
+
+            playersList.innerHTML = 'Loading...';
+
+
+
+            try {
+
+                const querySnapshot = await getDocs(collection(db, "characters"));
+
+                playersList.innerHTML = querySnapshot.docs.map(doc => {
+
+                    const data = doc.data();
+
+                    return `<div class="flex flex-wrap items-center justify-between gap-2">
+
+                                <button class="player-login-btn link-style flex-1 text-left" data-key="${doc.id}"><span class="text-item-name">${data.name}</span>: <span class="text-header">${doc.id}</span></button>
+
+                                <button class="btn-secondary text-xs update-sheet-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Update</button>
+
+                                <button class="text-red-500 hover:text-red-400 delete-player-btn" data-player-id="${doc.id}" data-player-name="${data.name}">Delete</button>
+
+                            </div>`;
+
+                }).join('');
+
+                document.querySelectorAll('.player-login-btn').forEach(btn => {
+
+                    btn.addEventListener('click', () => {
+
+                        keysModal.classList.add('hidden');
+
+                        exitCurrentMode();
+
+                        loginWithKey(btn.dataset.key);
+
+                    });
+
+                });
+
+                document.querySelectorAll('.delete-player-btn').forEach(btn => {
+
+                    btn.addEventListener('click', () => deletePlayer(btn.dataset.playerId, btn.dataset.playerName));
+
+                });
+
+                document.querySelectorAll('.update-sheet-btn').forEach(btn => {
+
+                    btn.addEventListener('click', () => openUpdateSheetModal(btn.dataset.playerId));
+
+                });
+
+            } catch (error) {
+
+                playersList.innerHTML = `<p class="text-red-500">Could not load players.</p>`;
+
+                console.error("Error fetching players:", error);
+
+            }
+
+        }
+
+
+
+        async function deletePlayer(playerId, name) {
+
+            if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+
+            try {
+
+                await deleteDoc(doc(db, 'characters', playerId));
+
+                const shopsSnapshot = await getDocs(collection(db, 'shops'));
+
+                for (const shopDoc of shopsSnapshot.docs) {
+
+                    const shopData = shopDoc.data();
+
+                    if (shopData.carts && shopData.carts[playerId]) {
+
+                        await updateDoc(shopDoc.ref, { [`carts.${playerId}`]: deleteField() });
+
+                    }
+
+                }
+
+                openPlayersModal();
+
+            } catch (error) {
+
+                console.error('Error deleting player:', error);
+
+            }
+
+        }
+
+
+
+        async function openUpdateSheetModal(playerId) {
+
+            updateSheetPlayerId = playerId;
+
+            sheetJsonTextarea.value = '';
+
+            try {
+
+                const docSnap = await getDoc(doc(db, 'characters', playerId));
+
+                if (docSnap.exists()) {
+
+                    sheetJsonTextarea.value = JSON.stringify(docSnap.data().sheet || {}, null, 2);
+
+                }
+
+            } catch (err) {
+
+                console.error('Error loading sheet:', err);
+
+            }
+
+            updateSheetModal.classList.remove('hidden');
+
+        }
+
+
+
+        function closeUpdateSheetModal() {
+
+            updateSheetModal.classList.add('hidden');
+
+            updateSheetPlayerId = null;
+
+        }
+
+
+
+        async function handleSaveSheet() {
+
+            if (!updateSheetPlayerId) return;
+
+            let data;
+
+            try {
+
+                data = JSON.parse(sheetJsonTextarea.value);
+
+            } catch {
+
+                alert('Invalid JSON');
+
+                return;
+
+            }
+
+            try {
+
+                await updateDoc(doc(db, 'characters', updateSheetPlayerId), { sheet: data });
+
+                closeUpdateSheetModal();
+
+            } catch (err) {
+
+                console.error('Error updating sheet:', err);
+
+                alert('Could not update sheet.');
+
+            }
+
+        }
+
+
+
+        function handleGenerateShop() {
+
+            const shopKey = document.getElementById('shop-type-select').value;
+
+            const shopSize = document.getElementById('shop-size-select').value;
+
+            createShopView.classList.add('hidden');
+
+            createSession(shopKey, shopSize);
+
+        }
+
+
+
+        function exitCurrentMode() {
+
+            if (shopUnsubscribe) { shopUnsubscribe(); shopUnsubscribe = null; }
+
+            if (dmShopsUnsubscribe) { dmShopsUnsubscribe(); dmShopsUnsubscribe = null; }
+
+            state.isDM = false;
+
+            state.inShop = false;
+
+            state.shopId = null;
+
+            state.shopData = null;
+
+            state.dmShops = [];
+
+            render();
+
+        }
+
+
+
+        function generateShopkeeper() {
+
+            const names = [
+
+                'Aelar',
+
+                'Borin',
+
+                'Cedric',
+
+                'Daria',
+
+                'Eldon',
+
+                'Fira',
+
+                'Garron',
+
+                'Hilda'
+
+            ];
+
+            const personalities = [
+
+                'cheerful and talkative',
+
+                'gruff but fair',
+
+                'mysterious and quiet',
+
+                'greedy with a sharp eye for coin',
+
+                'kind-hearted and generous',
+
+                'sarcastic with a dark sense of humor',
+
+                'nervous and jumpy',
+
+                'wise and patient'
+
+            ];
+
+            const name = names[Math.floor(Math.random() * names.length)];
+
+            const description = personalities[Math.floor(Math.random() * personalities.length)];
+
+            const gold = Math.floor(Math.random() * 1501) + 500;
+
+            return { name, description, gold };
+
+        }
+
+
+
+        function generateShopName() {
+
+            const adjectives = ['Rusty','Golden','Wandering','Lucky','Silver','Hidden','Mystic','Brave','Silent','Clever'];
+
+            const nouns = ['Anvil','Dragon','Goblet','Merchant','Griffin','Sword','Scroll','Shield','Lantern','Dagger'];
+
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+
+            return `The ${adj} ${noun}`;
+
+        }
+
+
+
+
+
+        async function createSession(shopKey, shopSize) {
+
+            state.isDM = true;
+
+            state.inShop = true;
+
+            
+
+            const shopTemplate = itemCatalog[shopKey];
+
+            const fullInventory = shopTemplate.items;
+
+            let randomInventory = [];
+
+            if (shopSize === 'small') {
+
+                const shuffled = fullInventory.sort(() => 0.5 - Math.random());
+
+                randomInventory = shuffled.slice(0, Math.floor(Math.random() * 8) + 5);
+
+            } else if (shopSize === 'urban') {
+
+                const shuffled = fullInventory.sort(() => 0.5 - Math.random());
+
+                const min = Math.ceil(fullInventory.length * 0.4);
+
+                const max = Math.floor(fullInventory.length * 0.8);
+
+                randomInventory = shuffled.slice(0, Math.floor(Math.random() * (max - min + 1)) + min);
+
+            } else {
+
+                const sorted = [...fullInventory].sort((a, b) => b.price - a.price);
+
+                randomInventory = sorted.slice(0, Math.floor(Math.random() * 5) + 3);
+
+            }
+
+
+
+            const finalInventory = randomInventory.map(item => ({
+
+                ...item,
+
+                details: item.details || '',
+
+                quantity: Math.floor(Math.random() * 5) + 1,
+
+                id: `item-${Math.random().toString(36).substr(2, 9)}`
+
+            }));
+
+
+
+            const newSessionRef = doc(collection(db, 'shops'));
+
+            state.shopId = newSessionRef.id;
+
+            const initialShopData = {
+
+                shopName: generateShopName(),
+
+                shopType: shopTemplate.name,
+
+                shopkeeper: generateShopkeeper(),
+
+                inventory: finalInventory,
+
+                carts: {},
+
+                priceModifier: 0,
+
+                active: true,
+
+            };
+
+
+
+
+
+            state.shopData = initialShopData;
+
+
+
+            try {
+
+                await setDoc(newSessionRef, initialShopData);
+
+                sessionStorage.setItem('currentShopId', state.shopId);
+
+                window.location.href = 'dm-shop.html';
+
+            } catch (error) {
+
+                console.error("Error creating session:", error);
+
+                alert("Error creating session.");
+
+                exitCurrentMode();
+
+            }
+
+        }
+
+
+
+        async function joinShop(shopId) {
+
+            const shopDocRef = doc(db, 'shops', shopId);
+
+            const docSnap = await getDoc(shopDocRef);
+
+            if (docSnap.exists() && docSnap.data().active) {
+
+                if (state.isDM) {
+
+                    sessionStorage.setItem('currentShopId', shopId);
+
+                    window.location.href = 'dm-shop.html';
+
+                } else {
+
+                    state.shopId = shopId;
+
+                    state.inShop = true;
+
+                    listenToShopChanges(shopId);
+
+                }
+
+            } else {
+
+                alert("Shop not found or inactive.");
+
+            }
+
+        }
+
+
+
+        function listenToShopChanges(shopId) {
+
+            if (shopUnsubscribe) shopUnsubscribe(); 
+
+            const shopDocRef = doc(db, 'shops', shopId);
+
+            shopUnsubscribe = onSnapshot(shopDocRef, (docSnap) => {
+
+                if (docSnap.exists()) {
+
+                    state.shopData = docSnap.data();
+
+                    render();
+
+                } else {
+
+                    alert("Shop session has ended.");
+
+                    exitCurrentMode();
+
+                }
+
+            }, (error) => {
+
+                console.error("Firestore listener error:", error);
+
+                alert("Connection to shop lost.");
+
+                exitCurrentMode();
+
+            });
+
+        }
+
+        
+
+        // --- RENDER FUNCTIONS ---
+
+        function render() {
+
+
+
+            const loggedIn = !!state.characterKey;
+
+            const inShop = state.inShop;
+
+
+
+            allViews.forEach(v => v.classList.add('hidden'));
+
+
+
+            controlsContainer.classList.remove('hidden');
+
+
+
+            const showDmTools = !state.isDM && !loggedIn;
+
+            if (state.isDM || inShop) {
+
+                exitModeBtn.classList.remove('hidden');
+
+            } else {
+
+                exitModeBtn.classList.add('hidden');
+
+            }
+
+
+
+            if (state.isDM) {
+
+                toolbarTitle.classList.remove('hidden');
+
+                toolbarTitle.textContent = inShop ? '> DM Mode' : '> DM Hub';
+
+            } else {
+
+                toolbarTitle.classList.add('hidden');
+
+            }
+
+            if (showDmTools) {
+
+                dmToolsBtn.classList.remove('hidden');
+
+            } else {
+
+                dmToolsBtn.classList.add('hidden');
+
+            }
+
+
+
+            if (loggedIn && !inShop && !state.isDM) {
+
+                logoutBtn.classList.remove('hidden');
+
+            } else {
+
+                logoutBtn.classList.add('hidden');
+
+            }
+
+
+
+            if (!loggedIn && !state.isDM) {
+
+                authView.classList.remove('hidden');
+
+            } else if (!inShop) {
+
+                if (state.isDM) {
+
+                    dmHubView.classList.remove('hidden');
+
+                    renderDMHub();
+
+                } else {
+
+                    characterHubView.classList.remove('hidden');
+
+                    renderCharacterHub();
+
+                }
+
+            } else if (state.isDM) {
+
+                dmView.classList.remove('hidden');
+
+                renderDMView();
+
+            } else {
+
+                playerView.classList.remove('hidden');
+
+                renderPlayerView();
+
+            }
+
+        }
+
+
+
+
+
+
+
+        function renderCharacterHub() {
+
+            const player = state.playerData;
+
+            if (!player) {
+
+                characterHubView.innerHTML = `<div class="cli-window text-center"><p class="text-header">Loading Character...</p></div>`;
+
+                return;
+
+            }
+
+            const inventorySummary = player.inventory.reduce((acc, item) => {
+
+                acc[item.name] = (acc[item.name] || 0) + 1;
+
+                return acc;
+
+            }, {});
+
+            const classLevel = player.sheet?.classlevel || '';
+
+            const formattedClassLevel = classLevel && !classLevel.toLowerCase().startsWith('lvl') ? `Level ${classLevel}` : classLevel;
+
+            const alignment = player.sheet?.alignment || '';
+
+            const subtitle = [formattedClassLevel, alignment].filter(Boolean).join(' | ');
+
+            const imgSrc = player.sheet?.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
+
+            const hpValue = player.sheet?.combat?.hp ? `${player.sheet.combat.hp.current ?? "-"} / ${player.sheet.combat.hp.max ?? "-"}` : "-";
+
+            const acValue = player.sheet?.combat?.ac ?? "-";
+
+            const speedValue = player.sheet?.combat?.speed ?? "-";
+
+
+
+            characterHubView.innerHTML = `
+
+                <header class="mb-8">
+
+                    <div class="flex flex-col sm:flex-row items-center gap-6 p-4 border border-border rounded-lg bg-black/30">
+
+                        <div class="flex-shrink-0">
+
+                            <img src="${imgSrc}" alt="Character Avatar" class="w-32 h-32 object-cover rounded-full border-2 border-header shadow-[0_0_15px_rgba(0,255,136,0.5)]">
+
+                        </div>
+
+                        <div class="flex-1 text-center sm:text-left">
+
+                            <h1 class="text-4xl text-header">${player.name}</h1>
+
+                            <p class="text-xl text-dim">${subtitle}</p>
+
+                            <div class="mt-3 flex items-center justify-center sm:justify-start gap-2 text-sm">
+
+                                <span class="text-dim">Key:</span>
+
+                                <span id="player-key" class="text-header tracking-widest cursor-pointer" title="Click to copy">${state.characterKey}</span>
+
+                                <i data-lucide="clipboard" class="w-4 h-4 text-dim"></i>
+
+                            </div>
+
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4 text-center text-lg w-full sm:w-auto">
+
+                            <div class="dashboard-card !p-3">
+
+                                <span class="text-dim">HP</span>
+
+                                <span class="text-2xl text-accent">${hpValue}</span>
+
+                            </div>
+
+                            <div class="dashboard-card !p-3">
+
+                                <span class="text-dim">AC</span>
+
+                                <span class="text-2xl text-accent">${acValue}</span>
+
+                            </div>
+
+                            <div class="dashboard-card !p-3">
+
+                                <span class="text-dim">Speed</span>
+
+                                <span class="text-2xl text-accent">${speedValue}</span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </header>
+
+                <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <div class="dashboard-card lg:col-span-1">
+
+                        <div class="flex items-center gap-3 mb-4">
+
+                            <i data-lucide="scroll-text" class="w-8 h-8 text-header"></i>
+
+                            <h2 class="text-2xl text-header">&gt; Character Sheet</h2>
+
+                        </div>
+
+                        <p class="text-dim mb-4 flex-grow">Review your full character details, including abilities, skills, and background.</p>
+
+                        <a href="character.html" id="open-full-sheet-btn" class="btn mt-auto">Open Full Sheet</a>
+
+                    </div>
+
+
+
+                    <div class="dashboard-card lg:col-span-2" id="inventory-card">
+
+                        <div class="flex items-center gap-3 mb-4">
+
+                            <i data-lucide="backpack" class="w-8 h-8 text-header"></i>
+
+                            <h2 class="text-2xl text-header">&gt; Inventory</h2>
+
+                        </div>
+
+                        <div class="flex-grow mb-4">
+
+                            <p class="text-3xl text-price mb-4">${player.gold} GP</p>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-lg max-h-32 overflow-y-auto">
+
+                                ${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-accent">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}
+
+                            </div>
+
+                        </div>
+
+                        <button id="edit-inventory-btn" class="btn mt-auto">Manage Inventory</button>
+
+                    </div>
+
+
+
+                    <div id="spell-management-details" class="dashboard-card lg:col-span-2">
+
+                        <div class="flex items-center gap-3 mb-4">
+
+                            <i data-lucide="sparkles" class="w-8 h-8 text-header"></i>
+
+                            <h2 class="text-2xl text-header">&gt; Spellcasting</h2>
+
+                            <div class="ml-auto"><button id="long-rest-btn" type="button" class="btn">Long Rest</button></div>
+
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4 flex-grow">
+
+                            <div>
+
+                                <h3 class="text-xl text-accent mb-2">Spell Slots</h3>
+
+                                <div class="space-y-2" id="spell-slots-container"></div>
+
+                            </div>
+
+                            <div>
+
+                                <h3 class="text-xl text-accent mb-2">Prepared Spells</h3>
+
+                                <ul class="list-disc list-inside text-dim" id="prepared-spells-container"></ul>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                            <details class="cli-window">
+
+                                <summary class="text-xl text-header cursor-pointer">Spellbook</summary>
+
+                                <div id="spellbook-container" class="space-y-2 h-[50vh] lg:h-[600px] overflow-y-auto custom-scrollbar pr-2 mt-4"></div>
+
+                            </details>
+
+                            <details class="cli-window">
+
+                                <summary class="text-xl text-header cursor-pointer">Spell Search</summary>
+
+                                <div class="mt-4">
+
+                                    <div class="flex gap-2 mb-4">
+
+                                        <input type="text" id="search-input" class="input-field" placeholder="Search Spells">
+
+                                        <button id="search-btn" type="button" class="btn">Go</button>
+
+                                    </div>
+
+                                    <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
+
+                                </div>
+
+                            </details>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="dashboard-card lg:col-span-1">
+
+                        <div class="flex items-center gap-3 mb-4">
+
+                            <i data-lucide="store" class="w-8 h-8 text-header"></i>
+
+                            <h2 class="text-2xl text-header">&gt; Shops</h2>
+
+                        </div>
+
+                        <div class="space-y-3 flex-grow mb-4">
+
+                            ${state.activeShops.length === 0
+
+                                ? '<p class="text-dim">No active shops.</p>'
+
+                                : state.activeShops.map(s => `
+
+                                    <div class="flex justify-between items-center">
+
+                                        <span class="text-accent">${s.shopName || s.shopType}</span>
+
+                                        <button class="btn-secondary !p-2 text-sm join-shop-btn" data-shop-id="${s.id}">Enter</button>
+
+                                    </div>
+
+                                `).join('')}
+
+                        </div>
+
+                    </div>
+
+                </main>
+
+            `;
+
+            lucide.createIcons();
+
+            document.getElementById('open-full-sheet-btn')?.addEventListener('click', () => {
+
+                sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
+
+                sessionStorage.setItem('currentPlayerKey', state.characterKey);
+
+            });
+
+            document.querySelectorAll('.join-shop-btn').forEach(btn => {
+
+                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+
+            });
+
+            document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
+
+            document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
+
+            initializeSpellManagement();
+
+        }
+
+
+
+        function renderDMHub() {
+
+            dmHubView.innerHTML = `
+
+                <div class="cli-window max-w-md mx-auto">
+
+                    <h2 class="text-2xl mb-4 text-header">> DM Tools</h2>
+
+                    <div class="space-y-2">
+
+                        <button id="dm-create-character-btn" type="button" class="btn w-full">Create New Character</button>
+
+                        <button id="dm-manage-players-btn" class="btn w-full">Manage Players</button>
+
+                    </div>
+
+                </div>
+
+                <div class="mt-8 cli-window max-w-md mx-auto">
+
+                    <h2 class="text-2xl mb-4 text-header">> Your Shops</h2>
+
+                    <div class="space-y-2">
+
+                        <button id="dm-create-shop-btn" class="btn w-full">Create New Shop</button>
+
+                        <div class="border-t border-border my-2"></div>
+
+                        ${state.dmShops.length === 0
+
+                            ? '<p class="text-dim">No shops.</p>'
+
+                            : state.dmShops.map(s => `
+
+                                <div class="flex items-center mb-2 gap-2">
+
+                                    <button class="btn flex-1 text-left dm-enter-shop-btn" data-shop-id="${s.id}">${s.shopName || s.shopType}</button>
+
+                                    <input type="checkbox" class="dm-active-checkbox" data-shop-id="${s.id}" ${s.active ? 'checked' : ''}>
+
+                                    <button class="text-red-500 hover:text-red-400 dm-delete-shop-btn" data-shop-id="${s.id}">X</button>
+
+                                </div>
+
+                            `).join('')}
+
+                    </div>
+
+                </div>
+
+            `;
+
+            document.getElementById('dm-create-shop-btn').addEventListener('click', showCreateShopView);
+
+            document.getElementById('dm-create-character-btn').addEventListener('click', handleCreateCharacter);
+
+            document.getElementById('dm-manage-players-btn').addEventListener('click', openPlayersModal);
+
+            document.querySelectorAll('.dm-enter-shop-btn').forEach(btn => {
+
+                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+
+            });
+
+            document.querySelectorAll('.dm-delete-shop-btn').forEach(btn => btn.addEventListener('click', handleDMDeleteShop));
+
+            document.querySelectorAll('.dm-active-checkbox').forEach(cb => cb.addEventListener('change', handleDMActiveChange));
+
+
+
+        }
+
+
+
+        async function handleDMDeleteShop(e) {
+
+            const shopId = e.target.dataset.shopId;
+
+            if (!confirm('Delete this shop? This cannot be undone.')) return;
+
+            await deleteDoc(doc(db, 'shops', shopId));
+
+            state.dmShops = state.dmShops.filter(s => s.id !== shopId);
+
+            renderDMHub();
+
+        }
+
+
+
+async function handleDMActiveChange(e) {
+
+    const shopId = e.target.dataset.shopId;
+
+    await updateDoc(doc(db, 'shops', shopId), { active: e.target.checked });
+
+
+
+}
+
+
+
+        function initializeSpellManagement() {
+
+            const module = document.getElementById('spell-management-details');
+
+            if (!module || module.dataset.initialized) return;
+
+            module.dataset.initialized = 'true';
+
+
+
+            const spellState = {
+
+                knownSpells: [],
+
+                preparedSpells: ["Magic Missile", "Shield"],
+
+                spellSlots: state.playerData.spellSlots || {
+
+                    '1': { max: 4, expended: 0 },
+
+                    '2': { max: 3, expended: 0 },
+
+                    '3': { max: 2, expended: 0 },
+
+                    '4': { max: 1, expended: 0 },
+
+                },
+
+            };
+
+
+
+            const savedSlots = localStorage.getItem('spellSlots');
+
+            if (savedSlots) { try { spellState.spellSlots = JSON.parse(savedSlots); } catch {} }
+
+
+
+            async function saveSpellSlots() {
+
+                try {
+
+                    localStorage.setItem('spellSlots', JSON.stringify(spellState.spellSlots));
+
+                    await updateDoc(doc(db, 'characters', state.characterKey), { spellSlots: spellState.spellSlots });
+
+                    if (state.playerData) state.playerData.spellSlots = spellState.spellSlots;
+
+                } catch (err) {
+
+                    console.error('Error saving spell slots:', err);
+
+                }
+
+            }
+
+
+
+            const API_BASE = "https://www.dnd5eapi.co/api";
+
+
+
+            async function searchSpellsAPI(query) {
+
+                const resultsContainer = module.querySelector('#search-results-container');
+
+                resultsContainer.innerHTML = `<p class="text-dim">> Searching...</p>`;
+
+                try {
+
+                    const response = await fetch(`${API_BASE}/spells?name=${query}`);
+
+                    if (!response.ok) throw new Error('Network response was not ok.');
+
+                    const data = await response.json();
+
+                    const detailPromises = data.results.map(r => getSpellDetails(r.index));
+
+                    const detailed = (await Promise.all(detailPromises)).filter(Boolean);
+
+                    renderSearchResults(detailed);
+
+                } catch (error) {
+
+                    console.error('API Search Error:', error);
+
+                    resultsContainer.innerHTML = `<p class="text-price">> Error fetching spells.</p>`;
+
+                }
+
+            }
+
+
+
+            async function getSpellDetails(spellIndex) {
+
+                try {
+
+                    const response = await fetch(`${API_BASE}/spells/${spellIndex}`);
+
+                    if (!response.ok) throw new Error('Could not fetch spell details.');
+
+                    return await response.json();
+
+                } catch (error) {
+
+                    console.error('API Detail Error:', error);
+
+                    return null;
+
+                }
+
+            }
+
+
+
+            async function loadInitialSpells() {
+
+                const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
+
+                const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
+
+                spellState.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+
+                renderSpellbook();
+
+                renderPreparedSpells();
+
+                renderSpellSlots();
+
+            }
+
+
+
+            function renderSpellSlots() {
+
+                const container = module.querySelector('#spell-slots-container');
+
+                if (!container.innerHTML) {
+
+                    let html = '';
+
+                    for (const level in spellState.spellSlots) {
+
+                        html += `<div class="flex items-center justify-start gap-4" data-level-bar="${level}">`;
+
+                        html += `<span class="text-item-name w-20">Level ${level}</span><div class="slot-bar">`;
+
+                        const { max } = spellState.spellSlots[level];
+
+                        for (let i = 0; i < max; i++) {
+
+                            html += `<div class="slot-segment slot" data-level="${level}" data-index="${i}"></div>`;
+
+                        }
+
+                        html += `</div></div>`;
+
+                    }
+
+                    container.innerHTML = html;
+
+                }
+
+
+
+                for (const level in spellState.spellSlots) {
+
+                    const { max, expended } = spellState.spellSlots[level];
+
+                    const slots = container.querySelectorAll(`.slot[data-level="${level}"]`);
+
+                    slots.forEach((slot, i) => {
+
+                        const isAvailable = i < (max - expended);
+
+                        slot.classList.toggle('slot-available', isAvailable);
+
+                        slot.classList.toggle('slot-expended', !isAvailable);
+
+                    });
+
+                }
+
+            }
+
+
+
+            function renderPreparedSpells() {
+
+                const container = module.querySelector('#prepared-spells-container');
+
+                container.innerHTML = '';
+
+                const cantrips = spellState.knownSpells.filter(s => s.level === 0);
+
+                const prepared = spellState.preparedSpells
+
+                    .map(name => spellState.knownSpells.find(s => s.name === name && s.level > 0))
+
+                    .filter(Boolean);
+
+                if (cantrips.length === 0 && prepared.length === 0) {
+
+                    container.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
+
+                    return;
+
+                }
+
+                if (cantrips.length) {
+
+                    container.innerHTML += '<h3 class="text-xl text-header">> Cantrips</h3>';
+
+                    cantrips.forEach(spell => { container.innerHTML += createSpellCard(spell, 'prepared'); });
+
+                }
+
+                if (prepared.length) {
+
+                    container.innerHTML += '<h3 class="text-xl text-header mt-4">> Spells</h3>';
+
+                    prepared.forEach(spell => { container.innerHTML += createSpellCard(spell, 'prepared'); });
+
+                }
+
+            }
+
+
+
+            function renderSpellbook() {
+
+                const container = module.querySelector('#spellbook-container');
+
+                container.innerHTML = '';
+
+                if (spellState.knownSpells.length === 0) {
+
+                    container.innerHTML = '<p class="text-dim">> Your spellbook is empty. Learn spells from the search panel.</p>';
+
+                    return;
+
+                }
+
+                const grouped = {};
+
+                spellState.knownSpells.forEach(spell => {
+
+                    const lvl = spell.level || 0;
+
+                    if (!grouped[lvl]) grouped[lvl] = [];
+
+                    grouped[lvl].push(spell);
+
+                });
+
+                Object.keys(grouped).sort((a,b)=>a-b).forEach(level => {
+
+                    const heading = level === '0' ? 'Cantrips' : `Level ${level}`;
+
+                    container.innerHTML += `<h3 class="text-xl text-header mt-2">> ${heading}</h3>`;
+
+                    grouped[level].forEach(spell => {
+
+                        container.innerHTML += createSpellCard(spell, 'spellbook');
+
+                    });
+
+                });
+
+            }
+
+
+
+            function renderSearchResults(results) {
+
+                const container = module.querySelector('#search-results-container');
+
+                container.innerHTML = '';
+
+                if (results.length === 0) {
+
+                    container.innerHTML = '<p class="text-dim">> No spells found.</p>';
+
+                    return;
+
+                }
+
+                results.forEach(spell => {
+
+                    container.innerHTML += createSpellCard(spell, 'search');
+
+                });
+
+            }
+
+
+
+            function createSpellCard(spell, type) {
+
+                const isKnown = spellState.knownSpells.some(s => s.index === spell.index);
+
+                const isPrepared = spellState.preparedSpells.includes(spell.name);
+
+                let buttonHtml = '';
+
+                if (type === 'search') {
+
+                    buttonHtml = isKnown ? `<p class="text-dim text-right">> Known</p>` : `<button type="button" class="btn-secondary learn-btn" data-spell-index="${spell.index}">Learn</button>`;
+
+                } else if (type === 'spellbook') {
+
+                    buttonHtml = `<button type="button" class="btn-secondary prepare-btn" data-spell-name="${spell.name}">${isPrepared ? 'Unprepare' : 'Prepare'}</button>`;
+
+                } else if (type === 'prepared') {
+
+                    if (spell.level > 0) {
+
+                        let castButtons = '';
+
+                        const baseLevelStr = String(spell.level);
+
+                        if (spellState.spellSlots[baseLevelStr] && spellState.spellSlots[baseLevelStr].expended < spellState.spellSlots[baseLevelStr].max) {
+
+                            castButtons += `<button type="button" class="btn-secondary cast-btn" data-cast-level="${spell.level}">Lvl ${spell.level}</button>`;
+
+                        }
+
+                        for (let i = spell.level + 1; i <= 9; i++) {
+
+                            const levelStr = String(i);
+
+                            if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
+
+                                castButtons += `<button type="button" class="btn-secondary cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+
+                            }
+
+                        }
+
+                        buttonHtml = castButtons ? `<div class="flex gap-1 flex-wrap justify-center sm:justify-end">${castButtons}</div>` : `<p class="text-dim text-right">> No Slots</p>`;
+
+                    }
+
+                }
+
+                return `
+
+                    <div class="py-2 border-b border-border spell-card">
+
+                        <div class="flex justify-between items-center">
+
+                            <span class="text-item-name cursor-pointer spell-name">${spell.name}</span>
+
+                            <div class="flex-shrink-0 ml-2">${buttonHtml}</div>
+
+                        </div>
+
+                        <div class="mt-2 pt-2 border-t border-border text-sm hidden spell-card-content">
+
+                            ${spell.level !== undefined ? `<p class="text-dim">> Level ${spell.level} ${spell.school?.name || ''}</p>` : ''}
+
+                            ${spell.casting_time ? `<p>> Casting Time: ${spell.casting_time}</p>` : ''}
+
+                            ${spell.range ? `<p>> Range: ${spell.range}</p>` : ''}
+
+                            ${spell.duration ? `<p>> Duration: ${spell.duration}</p>` : ''}
+
+                            ${spell.desc ? `<p class="mt-2 whitespace-pre-wrap">${Array.isArray(spell.desc) ? spell.desc.join('\n') : spell.desc}</p>` : ''}
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+
+
+
+            async function handleLearnSpell(e) {
+
+                const spellIndex = e.target.dataset.spellIndex;
+
+                if (!spellIndex) return;
+
+                const isAlreadyKnown = spellState.knownSpells.some(s => s.index === spellIndex);
+
+                if (isAlreadyKnown) return;
+
+                const spellDetails = await getSpellDetails(spellIndex);
+
+                if (spellDetails) {
+
+                    spellState.knownSpells.push(spellDetails);
+
+                    renderSpellbook();
+
+                    const query = module.querySelector('#search-input').value.trim();
+
+                    if (query) searchSpellsAPI(query);
+
+                }
+
+            }
+
+
+
+            function handlePrepareSpell(e) {
+
+                const spellName = e.target.dataset.spellName;
+
+                if (!spellName) return;
+
+                const prepIndex = spellState.preparedSpells.indexOf(spellName);
+
+                if (prepIndex > -1) {
+
+                    spellState.preparedSpells.splice(prepIndex, 1);
+
+                } else {
+
+                    spellState.preparedSpells.push(spellName);
+
+                }
+
+                renderPreparedSpells();
+
+                renderSpellbook();
+
+            }
+
+
+
+            function handleCastSpell(e) {
+
+                e.preventDefault();
+
+                const button = e.target;
+
+                const spellLevelToUse = parseInt(button.dataset.castLevel, 10);
+
+                if (isNaN(spellLevelToUse)) return;
+
+                if (spellLevelToUse === 0) return;
+
+                const levelStr = String(spellLevelToUse);
+
+                if (spellState.spellSlots[levelStr] && spellState.spellSlots[levelStr].expended < spellState.spellSlots[levelStr].max) {
+
+                    spellState.spellSlots[levelStr].expended++;
+
+                    saveSpellSlots();
+
+                    renderSpellSlots();
+
+                    renderPreparedSpells();
+
+                } else {
+
+                    const originalText = button.textContent;
+
+                    button.textContent = "No Slots!";
+
+                    button.disabled = true;
+
+                    setTimeout(() => {
+
+                        button.textContent = originalText;
+
+                        button.disabled = false;
+
+                    }, 2000);
+
+                }
+
+            }
+
+
+
+            function handleSlotClick(e) {
+
+                if (!e.target.classList.contains('slot')) return;
+
+                const level = e.target.dataset.level;
+
+                const index = parseInt(e.target.dataset.index, 10);
+
+                const levelData = spellState.spellSlots[level];
+
+                const maxSlots = levelData.max;
+
+                const currentAvailable = maxSlots - levelData.expended;
+
+                if (currentAvailable === index + 1) {
+
+                    levelData.expended = maxSlots - index;
+
+                } else {
+
+                    levelData.expended = maxSlots - (index + 1);
+
+                }
+
+                saveSpellSlots();
+
+                renderSpellSlots();
+
+                renderPreparedSpells();
+
+            }
+
+
+
+            function handleLongRest() {
+
+                for (const level in spellState.spellSlots) {
+
+                    spellState.spellSlots[level].expended = 0;
+
+                }
+
+                saveSpellSlots();
+
+                renderSpellSlots();
+
+                renderPreparedSpells();
+
+            }
+
+
+
+            function handleToggleSpellDetails(e) {
+
+                const content = e.target.closest('.spell-card')?.querySelector('.spell-card-content');
+
+                if (content) content.classList.toggle('hidden');
+
+            }
+
+
+
+            function handleSearch() {
+
+                const query = module.querySelector('#search-input').value.trim();
+
+                if (query) searchSpellsAPI(query);
+
+            }
+
+
+
+            module.querySelector('#search-btn').addEventListener('click', handleSearch);
+
+            module.querySelector('#search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(); });
+
+            module.querySelector('#long-rest-btn').addEventListener('click', handleLongRest);
+
+            module.querySelector('#spell-slots-container').addEventListener('click', handleSlotClick);
+
+            module.addEventListener('click', e => {
+
+                if (e.target.classList.contains('learn-btn')) handleLearnSpell(e);
+
+                if (e.target.classList.contains('prepare-btn')) handlePrepareSpell(e);
+
+                if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
+
+                if (e.target.classList.contains('spell-name')) handleToggleSpellDetails(e);
+
+            });
+
+
+
+            window.addEventListener('pageshow', () => {
+
+                const savedSlots2 = localStorage.getItem('spellSlots');
+
+                if (savedSlots2) { try { spellState.spellSlots = JSON.parse(savedSlots2); } catch {} }
+
+                renderSpellbook();
+
+                renderPreparedSpells();
+
+                renderSpellSlots();
+
+            });
+
+
+
+            loadInitialSpells();
+
+        }
+
+
+
+function getModifiedPrice(basePrice) {
+
+    const modifier = state.shopData?.priceModifier || 0;
+
+    const modified = basePrice * (1 + modifier / 100);
+
+    return Math.round(modified * 100) / 100;
+
+}
+
+
+
+        function renderDMView() {
+
+            const { shopkeeper, inventory, carts, shopType, priceModifier, shopName } = state.shopData;
+
+            dmView.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-lg">
+
+                <div class="md:col-span-1 flex flex-col gap-6">
+
+                    <div class="cli-window">
+
+                        <h2 class="text-2xl mb-4 text-header">> DM Controls</h2>
+
+                        <p class="mb-1">> Shop: <span class="text-item-name">${shopName}</span></p>
+
+                        <p class="mb-1">> Type: ${shopType}</p>
+
+                        <div class="mt-4">
+
+                            <label class="block mb-1">> Price Modifier: <span id="price-modifier-label">${priceModifier}%</span></label>
+
+                            <div class="grid grid-cols-3 gap-2">
+
+                                ${[-50,-25,-15,15,25,50].map(v => `<button class="${priceModifier===v?'btn':'btn btn-secondary'} price-mod-btn" data-value="${v}">${v>0?`+${v}`:v}%</button>`).join('')}
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <label class="block mb-1">> Status: <span class="text-item-name">${state.shopData.active ? 'Active' : 'Inactive'}</span></label>
+
+                            <button id="toggle-active-btn" class="btn btn-secondary w-full">${state.shopData.active ? 'Set Inactive' : 'Set Active'}</button>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <button id="delete-shop-btn" class="btn btn-secondary w-full text-red-500 border-red-500">Delete Shop</button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Shopkeeper</h3><p>> Name: <span class="text-item-name">${shopkeeper.name}</span></p><p class="text-dim">> Personality: ${shopkeeper.description||'...'}</p><div class="flex items-center gap-2 mt-2"><p class="whitespace-nowrap">> Gold:</p><input type="number" id="shop-gold-input" value="${shopkeeper.gold}" class="input-field text-price"></div></div>
+
+                </div>
+
+                <div class="md:col-span-1 flex flex-col gap-6">
+
+                    <div class="cli-window">
+
+                        <h3 class="text-2xl mb-4 text-header">> Shop Inventory</h3>
+
+                        <div id="dm-inventory-list" class="space-y-4">${inventory.map((item,index)=>`<div class="item-card border border-white/50 p-3 space-y-2" data-index="${index}"><div class="flex justify-between items-center"><span class="text-item-name">${item.name}</span><button class="text-red-500 hover:text-red-400 dm-remove-item-btn" data-index="${index}">[X]</button></div><textarea class="input-field dm-details-input w-full" data-index="${index}" placeholder="Details">${item.details||''}</textarea><div class="flex items-center gap-2"><label class="text-dim">Qty:</label><input type="number" min="0" class="input-field dm-qty-input w-16" data-index="${index}" value="${item.quantity}"><label class="text-dim">Price:</label><input type="number" min="0" step="0.01" class="input-field dm-price-input w-24" data-index="${index}" value="${item.price}"></div></div>`).join('')}</div>
+
+                        <div class="mt-4">
+
+                            <h4 class="text-xl mb-2 text-header">> Add Custom Item</h4>
+
+                            <input id="custom-item-name" class="input-field mb-2" placeholder="Item Name">
+
+                            <textarea id="custom-item-details" class="input-field mb-2" placeholder="Details"></textarea>
+
+                            <div class="flex gap-2 mb-2">
+
+                                <input id="custom-item-price" type="number" class="input-field flex-1" placeholder="Price">
+
+                                <input id="custom-item-qty" type="number" class="input-field flex-1" placeholder="Qty">
+
+                            </div>
+
+                            <button id="add-custom-item-btn" class="btn w-full">Add Item</button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="md:col-span-1 flex flex-col gap-6">
+
+                    <div class="cli-window"><h3 class="text-2xl mb-4 text-header">> Player Carts</h3><div id="player-carts-list" class="space-y-4">${Object.keys(carts || {}).length===0?'<p class="text-dim">No active carts.</p>':Object.entries(carts).map(([playerId,cartData])=>`<div><h4 class="text-xl text-header">${cartData.playerName}</h4>${cartData.items.length > 0 ? `<ul class="pl-4 list-disc list-inside">${cartData.items.map(item=>`<li><span class="text-item-name">${item.name}</span></li>`).join('')}</ul><p class="mt-2 text-right">> Cart Total: <span class="text-price">${cartData.items.reduce((sum,item)=>sum+getModifiedPrice(item.price),0)} GP</span></p><div class="grid grid-cols-2 gap-2 mt-3"><button class="btn checkout-btn" data-player-id="${playerId}">Checkout</button><button class="btn btn-secondary clear-cart-btn" data-player-id="${playerId}">Clear Cart</button></div>` : `<p class="text-dim">Cart is empty.</p><div class="mt-3"><button class="btn btn-secondary clear-cart-btn w-full" data-player-id="${playerId}">Remove Cart</button></div>`}</div>`).join('')}</div></div>
+
+                </div>
+
+            </div>`;
+
+            attachDMListeners();
+
+        }
+
+
+
+
+
+        function renderPlayerView() {
+
+            const { shopkeeper, inventory, carts, shopType, shopName } = state.shopData;
+
+            const playerCart = carts[state.characterKey] || { items: [] };
+
+            const cartTotal = playerCart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
+
+            playerView.innerHTML = `
+
+                <div class="pb-24 lg:pb-0 lg:grid lg:grid-cols-3 lg:gap-6 text-lg">
+
+                    <div class="lg:col-span-2">
+
+                        <div class="cli-window mb-6">
+
+                            <h1 class="text-3xl text-header">${shopName}</h1>
+
+                            <p class="text-xl text-dim">(${shopType})</p>
+
+                            <p class="mt-2">> Shopkeeper: <span class="text-item-name">${shopkeeper.name}</span></p>
+
+                            <p class="text-dim">> ${shopkeeper.description||'...'}</p>
+
+                        </div>
+
+
+
+                        <div class="cli-window">
+
+                            <h2 class="text-2xl mb-4 text-header">> Items for Sale</h2>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                                ${inventory.map(item=>`
+
+                                    <div class="item-card ${item.quantity === 0 ? 'sold-out' : ''}" data-item-id="${item.id}">
+
+                                        <div class="border border-border p-3 flex flex-col justify-between rounded-lg h-full">
+
+                                            <div>
+
+                                                <p class="text-xl"><span class="text-item-name">${item.name}</span> <span class="text-dim">(x${item.quantity})</span></p>
+
+                                                ${item.details ? `<p class="text-sm text-dim mt-1">${item.details}</p>`:''}
+
+                                            </div>
+
+                                            <div class="mt-3 flex justify-between items-center">
+
+                                                <p class="text-price text-xl">${item.quantity > 0 ? `${getModifiedPrice(item.price)} GP` : 'SOLD OUT'}</p>
+
+                                                ${item.quantity > 0 ? `<button class="btn !p-2 add-to-cart-btn"><i data-lucide="plus" class="w-5 h-5"></i></button>`: ''}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                `).join('')}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="hidden lg:block lg:col-span-1">
+
+                        <div class="cli-window sticky top-24">
+
+                            <h2 class="text-2xl mb-4 text-header">> ${state.playerData.name}'s Purse</h2>
+
+                            <p class="text-2xl text-price">${state.playerData.gold} GP</p>
+
+                            <hr class="border-border my-4">
+
+                            <h2 class="text-2xl mb-4 text-header">> Your Cart</h2>
+
+                            <div id="player-cart-list-desktop" class="space-y-2 mb-4 min-h-[50px] max-h-96 overflow-y-auto custom-scrollbar pr-2">
+
+                                ${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`
+
+                                    <div class="flex justify-between items-center">
+
+                                        <span>- <span class="text-item-name">${item.name}</span></span>
+
+                                        <button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button>
+
+                                    </div>`).join('')}
+
+                            </div>
+
+                            <hr class="border-border my-4">
+
+                            <p class="text-xl text-right">> Total: <span class="text-price">${cartTotal} GP</span></p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div id="mobile-cart-bar" class="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--window-bg)] border-t-2 border-[var(--color-header)] p-3 z-40">
+
+                     <details>
+
+                        <summary class="flex justify-between items-center cursor-pointer">
+
+                            <div>
+
+                                <h3 class="text-header text-xl">> Your Cart (${playerCart.items.length})</h3>
+
+                                <p class="text-price text-lg">${cartTotal} GP</p>
+
+                            </div>
+
+                            <i data-lucide="chevron-up" class="w-6 h-6 text-header"></i>
+
+                        </summary>
+
+                        <div class="mt-4 pt-4 border-t border-border max-h-64 overflow-y-auto custom-scrollbar pr-2">
+
+                             <div id="player-cart-list-mobile" class="space-y-3">
+
+                                ${playerCart.items.length===0?'<p class="text-dim">Your cart is empty.</p>':playerCart.items.map((item,index)=>`
+
+                                    <div class="flex justify-between items-center">
+
+                                        <span>- <span class="text-item-name">${item.name}</span></span>
+
+                                        <button class="text-red-500 hover:text-red-400 remove-from-cart-btn" data-index="${index}">[X]</button>
+
+                                    </div>`).join('')}
+
+                             </div>
+
+                        </div>
+
+                     </details>
+
+                </div>
+
+            `;
+
+            lucide.createIcons();
+
+            attachPlayerListeners();
+
+        }
+
+        
+
+        async function handleCheckout(e) {
+
+            const playerId = e.target.dataset.playerId;
+
+            const shopDocRef = doc(db, "shops", state.shopId);
+
+            const playerDocRef = doc(db, "characters", playerId);
+
+
+
+            try {
+
+                await runTransaction(db, async (transaction) => {
+
+                    const shopDoc = await transaction.get(shopDocRef);
+
+                    const playerDoc = await transaction.get(playerDocRef);
+
+                    if (!shopDoc.exists() || !playerDoc.exists()) { throw "Document not found!"; }
+
+
+
+                    const shopData = shopDoc.data();
+
+                    const playerData = playerDoc.data();
+
+                    const cart = shopData.carts[playerId];
+
+                    if (!cart || cart.items.length === 0) { return; }
+
+
+
+                    const totalCost = cart.items.reduce((sum, item) => sum + getModifiedPrice(item.price), 0);
+
+                    if (playerData.gold < totalCost) { throw `${playerData.name} doesn't have enough gold!`; }
+
+
+
+                    transaction.update(shopDocRef, {
+
+                        "shopkeeper.gold": shopData.shopkeeper.gold + totalCost,
+
+                        [`carts.${playerId}`]: { items: [] }
+
+                    });
+
+
+
+                    transaction.update(playerDocRef, {
+
+                        gold: playerData.gold - totalCost,
+
+                        inventory: [...playerData.inventory, ...cart.items]
+
+                    });
+
+                });
+
+            } catch (error) {
+
+                console.error("Transaction failed: ", error);
+
+                alert(`Checkout failed: ${error}`);
+
+            }
+
+        }
+
+
+
+        async function handleAddToCart(itemId) {
+
+            const shopRef = doc(db, 'shops', state.shopId);
+
+            try {
+
+                await runTransaction(db, async (transaction) => {
+
+                    const shopDoc = await transaction.get(shopRef);
+
+                    if (!shopDoc.exists()) throw "Shop not found";
+
+                    const shopData = shopDoc.data();
+
+                    const invIndex = shopData.inventory.findIndex(item => item.id === itemId);
+
+                    if (invIndex === -1) throw "Item not found";
+
+                    const item = shopData.inventory[invIndex];
+
+                    if (item.quantity <= 0) throw "Item sold out";
+
+
+
+                    const newInventory = [...shopData.inventory];
+
+                    newInventory[invIndex] = { ...item, quantity: item.quantity - 1 };
+
+
+
+                    const playerCart = shopData.carts[state.characterKey] || { playerName: state.playerData.name, items: [] };
+
+                    const { id, name, price, details } = item;
+
+                    const newCartItems = [...playerCart.items, { id, name, price, details }];
+
+
+
+                    transaction.update(shopRef, {
+
+                        inventory: newInventory,
+
+                        [`carts.${state.characterKey}`]: { playerName: state.playerData.name, items: newCartItems }
+
+                    });
+
+                });
+
+            } catch (err) {
+
+                alert(err);
+
+            }
+
+        }
+
+
+
+        async function handleRemoveFromCart(indexToRemove) {
+
+            const shopRef = doc(db, 'shops', state.shopId);
+
+            try {
+
+                await runTransaction(db, async (transaction) => {
+
+                    const shopDoc = await transaction.get(shopRef);
+
+                    if (!shopDoc.exists()) throw "Shop not found";
+
+                    const shopData = shopDoc.data();
+
+                    const cart = shopData.carts[state.characterKey];
+
+                    if (!cart) return;
+
+                    const item = cart.items[indexToRemove];
+
+                    if (!item) return;
+
+
+
+                    const invIndex = shopData.inventory.findIndex(i => i.id === item.id);
+
+                    const newInventory = [...shopData.inventory];
+
+                    if (invIndex !== -1) {
+
+                        newInventory[invIndex] = { ...newInventory[invIndex], quantity: newInventory[invIndex].quantity + 1 };
+
+                    }
+
+                    const newCartItems = cart.items.filter((_, i) => i !== indexToRemove);
+
+
+
+                    const updates = { inventory: newInventory };
+
+                    updates[`carts.${state.characterKey}.items`] = newCartItems;
+
+                    transaction.update(shopRef, updates);
+
+                });
+
+            } catch (err) {
+
+                console.error('Remove from cart failed:', err);
+
+            }
+
+        }
+
+
+
+        async function handleClearCart(e) {
+
+            const playerId = e.target.dataset.playerId;
+
+            const shopRef = doc(db, 'shops', state.shopId);
+
+            try {
+
+                await runTransaction(db, async (transaction) => {
+
+                    const shopDoc = await transaction.get(shopRef);
+
+                    if (!shopDoc.exists()) throw "Shop not found";
+
+                    const shopData = shopDoc.data();
+
+                    const cart = shopData.carts[playerId];
+
+                    if (!cart) return;
+
+                    const newInventory = [...shopData.inventory];
+
+                    cart.items.forEach(it => {
+
+                        const idx = newInventory.findIndex(inv => inv.id === it.id);
+
+                        if (idx !== -1) {
+
+                            newInventory[idx] = { ...newInventory[idx], quantity: newInventory[idx].quantity + 1 };
+
+                        }
+
+                    });
+
+                    const updates = { inventory: newInventory };
+
+                    updates[`carts.${playerId}`] = deleteField();
+
+                    transaction.update(shopRef, updates);
+
+                });
+
+            } catch (err) {
+
+                console.error('Clear cart failed:', err);
+
+            }
+
+        }
+
+
+
+        function handleInventoryUpdate(e) {
+
+            const index = parseInt(e.target.dataset.index, 10);
+
+            const field = e.target.classList.contains('dm-qty-input') ? 'quantity' : e.target.classList.contains('dm-price-input') ? 'price' : 'details';
+
+            let value = field === 'price' ? parseFloat(e.target.value) : field === 'quantity' ? parseInt(e.target.value, 10) : e.target.value;
+
+            if (field !== 'details' && (isNaN(value) || value < 0)) return;
+
+            const newInventory = [...state.shopData.inventory];
+
+            newInventory[index] = { ...newInventory[index], [field]: value };
+
+            state.shopData.inventory = newInventory;
+
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+
+            renderDMView();
+
+        }
+
+
+
+        function handleRemoveInventoryItem(e) {
+
+            const index = parseInt(e.target.dataset.index, 10);
+
+            const newInventory = state.shopData.inventory.filter((_, i) => i !== index);
+
+            state.shopData.inventory = newInventory;
+
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+
+            renderDMView();
+
+        }
+
+
+
+        function handleAddCustomItem() {
+
+            const nameInput = document.getElementById('custom-item-name');
+
+            const detailsInput = document.getElementById('custom-item-details');
+
+            const priceInput = document.getElementById('custom-item-price');
+
+            const qtyInput = document.getElementById('custom-item-qty');
+
+            const name = nameInput.value.trim();
+
+            const details = detailsInput.value.trim();
+
+            const price = parseFloat(priceInput.value);
+
+            const qty = parseInt(qtyInput.value, 10);
+
+            if (!name || isNaN(price) || isNaN(qty) || qty < 0 || price < 0) return;
+
+            const newItem = { id: `item-${Math.random().toString(36).substr(2,9)}`, name, price, quantity: qty, details };
+
+            const newInventory = [...state.shopData.inventory, newItem];
+
+            state.shopData.inventory = newInventory;
+
+            updateDoc(doc(db, 'shops', state.shopId), { inventory: newInventory });
+
+            nameInput.value = '';
+
+            detailsInput.value = '';
+
+            priceInput.value = '';
+
+            qtyInput.value = '';
+
+            renderDMView();
+
+        }
+
+
+
+        function attachDMListeners() {
+
+            document.getElementById('shop-gold-input')?.addEventListener('change', (e) => { const newGold = parseInt(e.target.value, 10); if (!isNaN(newGold)) updateDoc(doc(db, 'shops', state.shopId), { "shopkeeper.gold": newGold }); });
+
+            document.querySelectorAll('.checkout-btn').forEach(btn => btn.addEventListener('click', handleCheckout));
+
+            document.querySelectorAll('.clear-cart-btn').forEach(btn => btn.addEventListener('click', handleClearCart));
+
+            document.querySelectorAll('.dm-qty-input, .dm-price-input, .dm-details-input').forEach(input => input.addEventListener('change', handleInventoryUpdate));
+
+            document.querySelectorAll('.dm-remove-item-btn').forEach(btn => btn.addEventListener('click', handleRemoveInventoryItem));
+
+            document.querySelectorAll('.price-mod-btn').forEach(btn => btn.addEventListener('click', (e) => {
+
+                const value = parseInt(e.target.dataset.value, 10);
+
+                const newVal = state.shopData.priceModifier === value ? 0 : value;
+
+                state.shopData.priceModifier = newVal;
+
+                render();
+
+                updateDoc(doc(db, 'shops', state.shopId), { priceModifier: newVal });
+
+            }));
+
+            document.getElementById('toggle-active-btn')?.addEventListener('click', () => { updateDoc(doc(db, 'shops', state.shopId), { active: !state.shopData.active }); });
+
+            document.getElementById('add-custom-item-btn')?.addEventListener('click', handleAddCustomItem);
+
+            document.getElementById('delete-shop-btn')?.addEventListener('click', async () => {
+
+                if (confirm('Delete this shop? This cannot be undone.')) {
+
+                    await deleteDoc(doc(db, 'shops', state.shopId));
+
+                    exitCurrentMode();
+
+                }
+
+            });
+
+        }
+
+        function attachPlayerListeners() {
+
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => btn.addEventListener('click', (e) => {
+
+                const card = e.target.closest('.item-card');
+
+                handleAddToCart(card.dataset.itemId);
+
+                card.classList.add('glow-once');
+
+                setTimeout(() => card.classList.remove('glow-once'), 700);
+
+            }));
+
+            document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
+
+                btn.addEventListener('click', (e) => {
+
+                    const indexToRemove = parseInt(e.target.dataset.index, 10);
+
+                    handleRemoveFromCart(indexToRemove);
+
+                });
+
+            });
+
+        }
+
+        main();
+
+        
+
+    </script>
+
 </body>
+
 </html>
