@@ -1143,8 +1143,8 @@ async function handleDMActiveChange(e) {
 
             const spellState = {
                 knownSpells: [],
-                preparedSpells: [],
-                spellSlots: (state.playerData.sheet && state.playerData.sheet.spellcasting && state.playerData.sheet.spellcasting.spellSlots) || {
+                preparedSpells: ["Magic Missile", "Shield"],
+                spellSlots: state.playerData.spellSlots || {
                     '1': { max: 4, expended: 0 },
                     '2': { max: 3, expended: 0 },
                     '3': { max: 2, expended: 0 },
@@ -1158,31 +1158,9 @@ async function handleDMActiveChange(e) {
             // expose for external updates (e.g., Firestore listeners)
             state.spellState = spellState;
 
-            function toIndex(name) {
-                return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            }
-
-            async function saveSpellcasting() {
-                const spellcasting = {
-                    spellSlots: spellState.spellSlots,
-                    knownSpells: spellState.knownSpells.map(s => s.name),
-                    preparedSpells: spellState.preparedSpells
-                };
-                state.playerData.sheet = state.playerData.sheet || {};
-                state.playerData.sheet.spellcasting = spellcasting;
-                sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
-                if (state.characterKey) {
-                    try {
-                        await updateDoc(doc(db, 'characters', state.characterKey), { 'sheet.spellcasting': spellcasting });
-                    } catch (err) {
-                        console.error('Error saving spellcasting:', err);
-                    }
-                }
-            }
-
             async function saveSpellSlots() {
                 try {
-                    await saveSpellcasting();
+                    window.saveSpellSlotsDebounced(spellState.spellSlots);
                 } catch (err) {
                     console.error('Error saving spell slots:', err);
                 }
@@ -1217,16 +1195,14 @@ async function handleDMActiveChange(e) {
                 }
             }
 
-            (async () => {
-                const sc = (state.playerData.sheet && state.playerData.sheet.spellcasting) || {};
-                spellState.preparedSpells = sc.preparedSpells || [];
-                const knownNames = sc.knownSpells || [];
-                const spellPromises = knownNames.map(name => getSpellDetails(toIndex(name)));
+            async function loadInitialSpells() {
+                const initialSpellIndexes = ['magic-missile', 'shield', 'fireball', 'light'];
+                const spellPromises = initialSpellIndexes.map(index => getSpellDetails(index));
                 spellState.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
                 renderSpellbook();
                 renderPreparedSpells();
                 renderSpellSlots();
-            })();
+            }
 
             function renderSpellSlots() {
                 const container = module.querySelector('#spell-slots-container');
@@ -1362,7 +1338,6 @@ async function handleDMActiveChange(e) {
                     renderSpellbook();
                     const query = module.querySelector('#search-input').value.trim();
                     if (query) searchSpellsAPI(query);
-                    await saveSpellcasting();
                 }
             }
 
@@ -1377,7 +1352,6 @@ async function handleDMActiveChange(e) {
                 }
                 renderPreparedSpells();
                 renderSpellbook();
-                saveSpellcasting();
             }
 
             function handleCastSpell(e) {
@@ -1457,6 +1431,8 @@ async function handleDMActiveChange(e) {
                 renderPreparedSpells();
                 renderSpellSlots();
             });
+
+            loadInitialSpells();
         }
 
 function getModifiedPrice(basePrice) {
