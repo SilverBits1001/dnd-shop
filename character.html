@@ -603,6 +603,11 @@
             onSnapshot(playerDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     playerData = docSnap.data();
+                    try {
+                        sessionStorage.setItem('currentPlayer', JSON.stringify(playerData));
+                        const slots = playerData.sheet?.spellcasting?.spellSlots;
+                        if (slots) { localStorage.setItem('spellSlots', JSON.stringify(slots)); }
+                    } catch {}
                     const sheet = playerData.sheet;
                     if (sheet) {
                         renderCharacter(sheet, playerData);
