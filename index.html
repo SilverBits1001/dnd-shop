@@ -348,7 +348,10 @@
             saveSlotsDebounceTimer = setTimeout(async () => {
                 try {
                     suppressRender = true; // our write will echo back via onSnapshot
-                    await updateDoc(doc(db, 'characters', state.characterKey), { spellSlots: slots });
+                    await updateDoc(doc(db, 'characters', state.characterKey), {
+                        'sheet.spellcasting.spellSlots': slots,
+                        spellSlots: deleteField(),
+                    });
                 } catch (err) {
                     console.error('saveSpellSlotsDebounced error:', err);
                 } finally {
@@ -547,6 +550,7 @@
                 }
 
                 const next = docSnap.data();
+                delete next.spellSlots;
 
                 function applyData(data) {
                     const prev = state.playerData;
@@ -554,14 +558,21 @@
                     // Update state early so downstream reads see latest
                     state.playerData = data;
 
-                    // Detect if ONLY spellSlots changed
-                    const restEqual = shallowEqualExcept(data, prev, ['spellSlots']);
-                    const slotsPrev = prev?.spellSlots || {};
-                    const slotsNext = data?.spellSlots || {};
+                    const slotsPrev = prev?.sheet?.spellcasting?.spellSlots || {};
+                    const slotsNext = data?.sheet?.spellcasting?.spellSlots || {};
                     const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
                     if (slotsChanged) {
                         try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
                     }
+
+                    function removeSlots(obj) {
+                        const copy = JSON.parse(JSON.stringify(obj || {}));
+                        if (copy.sheet && copy.sheet.spellcasting) {
+                            delete copy.sheet.spellcasting.spellSlots;
+                        }
+                        return copy;
+                    }
+                    const restEqual = JSON.stringify(removeSlots(data)) === JSON.stringify(removeSlots(prev));
                     const onlySlotsChanged = restEqual && slotsChanged;
 
                     // If it's our own write echo, or only slots changed, do minimal update
@@ -1175,7 +1186,7 @@ async function handleDMActiveChange(e) {
             const spellState = {
                 knownSpells: [],
                 preparedSpells: ["Magic Missile", "Shield"],
-                spellSlots: state.playerData.spellSlots || {
+                spellSlots: state.playerData?.sheet?.spellcasting?.spellSlots || {
                     '1': { max: 4, expended: 0 },
                     '2': { max: 3, expended: 0 },
                     '3': { max: 2, expended: 0 },
