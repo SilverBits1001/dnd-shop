@@ -13,7 +13,7 @@
         :root {
             --color-text: #E6E6E6; --color-header: #00FF88; --color-accent: #FFFFFF; --color-price: #FFB454; --color-dim: #6B7280; --color-border: #333333; --shadow-glow: 0 0 8px; --color-bg: #0A0A0A; --window-bg: rgba(20, 20, 20, 0.9); --input-bg: #1a1a1a; --btn-text: #000000; font-family: 'VT323', monospace;
         }
-        body { font-size: 20px; line-height: 1.6; overflow-x: hidden; color: var(--color-text); background-color: var(--color-bg); }
+        body { font-size: 20px; line-height: 1.6; overflow-x: hidden; color: var(--color-text); background-color: var(--color-bg); padding-top: 5rem; }
         .cli-window { border: 1px solid var(--color-border); border-radius: 0.375rem; padding: 1.5rem; background-color: var(--window-bg); box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); }
         .btn { display: inline-block; padding: 0.75rem 1.25rem; background-color: var(--color-accent); color: var(--btn-text); text-shadow: none; cursor: pointer; border: none; border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
         .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
@@ -33,7 +33,11 @@
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
-    <div id="initiative-tracker-view" class="max-w-4xl mx-auto">
+    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-end items-center h-20 bg-[#0A0A0A]">
+        <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="x" class="w-6 h-6"></i></button>
+    </div>
+
+    <div id="initiative-tracker-view" class="max-w-4xl mx-auto mt-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl text-header">&gt; DM Initiative Tracker</h1>
             <p class="text-lg text-dim">Session ID: <span id="session-id" class="text-accent"></span></p>
@@ -105,7 +109,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -121,12 +125,14 @@
         const db = getFirestore(app);
 
         async function fetchPlayers() {
-            // TODO: Replace with real data source
-            return [
-                { id: 'player-1', name: 'Valerius', hp: 45, ac: 18, type: 'player' },
-                { id: 'player-2', name: 'Elara', hp: 32, ac: 15, type: 'player' },
-                { id: 'player-3', name: 'Borg', hp: 58, ac: 16, type: 'player' },
-            ];
+            const snapshot = await getDocs(collection(db, 'characters'));
+            return snapshot.docs.map(docSnap => {
+                const data = docSnap.data() || {};
+                const name = data.name || data.charname || data.sheet?.charname || docSnap.id;
+                const hp = data.hp ?? data.sheet?.combat?.hp?.current ?? null;
+                const ac = data.ac ?? data.sheet?.combat?.ac ?? null;
+                return { id: docSnap.id, name, hp, ac, type: 'player' };
+            });
         }
         
         const statusEffectOptions = ["Blinded", "Charmed", "Concentrating", "Deafened", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
