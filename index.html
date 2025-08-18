@@ -343,7 +343,17 @@
 
         // Debounced saver: localStorage immediately, Firestore after quiet period
         window.saveSpellSlotsDebounced = async function saveSpellSlotsDebounced(slots) {
-            try { localStorage.setItem('spellSlots', JSON.stringify(slots)); } catch {}
+            try {
+                localStorage.setItem('spellSlots', JSON.stringify(slots));
+                const playerStr = sessionStorage.getItem('currentPlayer');
+                if (playerStr) {
+                    const player = JSON.parse(playerStr);
+                    player.sheet = player.sheet || {};
+                    player.sheet.spellcasting = player.sheet.spellcasting || {};
+                    player.sheet.spellcasting.spellSlots = slots;
+                    sessionStorage.setItem('currentPlayer', JSON.stringify(player));
+                }
+            } catch {}
             if (saveSlotsDebounceTimer) clearTimeout(saveSlotsDebounceTimer);
             saveSlotsDebounceTimer = setTimeout(async () => {
                 try {
@@ -557,6 +567,10 @@
 
                     // Update state early so downstream reads see latest
                     state.playerData = data;
+                    try {
+                        sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
+                        sessionStorage.setItem('currentPlayerKey', state.characterKey);
+                    } catch {}
 
                     const slotsPrev = prev?.sheet?.spellcasting?.spellSlots || {};
                     const slotsNext = data?.sheet?.spellcasting?.spellSlots || {};

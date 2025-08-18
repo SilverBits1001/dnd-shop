@@ -448,6 +448,17 @@
             if (!playerDocRef) return;
             try {
                 await updateDoc(playerDocRef, { 'sheet.spellcasting.spellSlots': state.spellSlots });
+                try {
+                    localStorage.setItem('spellSlots', JSON.stringify(state.spellSlots));
+                    const playerStr = sessionStorage.getItem('currentPlayer');
+                    if (playerStr) {
+                        const player = JSON.parse(playerStr);
+                        player.sheet = player.sheet || {};
+                        player.sheet.spellcasting = player.sheet.spellcasting || {};
+                        player.sheet.spellcasting.spellSlots = state.spellSlots;
+                        sessionStorage.setItem('currentPlayer', JSON.stringify(player));
+                    }
+                } catch {}
             } catch (err) {
                 console.error('Failed to save spell slots', err);
             }
