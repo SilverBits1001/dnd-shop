@@ -507,6 +507,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadPlayerSheet();
 
+            // Subscribe immediately if a combat session was already active.
+            const existingId = sessionStorage.getItem('currentCombatId');
+            if (existingId) {
+                const existingRef = doc(db, 'combatSessions', existingId);
+                combatUnsub = onSnapshot(existingRef, (snap) => {
+                    if (snap.exists()) {
+                        hadCombat = true;
+                        updateCombatState(snap.data());
+                    }
+                });
+            }
+
             const activeCombatRef = doc(db, 'currentCombat', 'active');
             onSnapshot(activeCombatRef, (activeSnap) => {
                 const combatId = activeSnap.exists() ? activeSnap.data().id : null;
