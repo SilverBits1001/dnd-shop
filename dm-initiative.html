@@ -23,12 +23,51 @@
         .input-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
         .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
         .text-accent { color: var(--color-accent); } .text-dim { color: var(--color-dim); } .border-border { border-color: var(--color-border); }
-        .combatant-list-item { transition: all 0.3s ease-in-out; border-left: 4px solid transparent; }
+        .combatant-list-item { transition: all 0.3s ease-in-out; border-left: 4px solid transparent; cursor: pointer; position: relative; }
         .combatant-list-item.active { background-color: rgba(0, 255, 136, 0.1); border-left-color: var(--color-header); transform: scale(1.02); }
+        .combatant-list-item.selected { box-shadow: 0 0 10px var(--color-accent); border-left-color: var(--color-accent); }
         .combatant-list-item.downed { opacity: 0.4; background-color: rgba(255, 0, 0, 0.1); }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
         .status-effect-badge { display: inline-flex; align-items: center; gap: 4px; background-color: var(--input-bg); border: 1px solid var(--color-border); border-radius: 9999px; padding: 2px 8px; font-size: 0.8rem; line-height: 1; }
+
+        /* Health Change Animations */
+        .hp-change-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            animation: float-up-fade 1.5s ease-out forwards;
+        }
+        .hp-damage { color: #ef4444; text-shadow: 0 0 5px #ef4444; }
+        .hp-heal { color: #22c55e; text-shadow: 0 0 5px #22c55e; }
+
+        @keyframes float-up-fade {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -200%) scale(1.2); }
+        }
+
+        .flash-damage { animation: flash-red 0.5s ease-out; }
+        .flash-heal { animation: flash-green 0.5s ease-out; }
+        .shake { animation: shake-horizontal 0.4s ease-in-out; }
+
+        @keyframes flash-red {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(239, 68, 68, 0.3); }
+        }
+        @keyframes flash-green {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(34, 197, 94, 0.3); }
+        }
+        @keyframes shake-horizontal {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
@@ -144,6 +183,7 @@
             combatStarted: false,
             statusTargetIndex: null,
             showEnemyHP: false,
+            selectedCombatantIndex: null,
         };
 
         const setupSection = document.getElementById('setup-section');
@@ -189,15 +229,16 @@
             } else {
                 state.combatants.forEach((c, index) => {
                     const isActive = state.combatStarted && index === state.currentTurn;
+                    const isSelected = index === state.selectedCombatantIndex;
                     const playerColor = c.type === 'player' ? 'text-header' : 'text-accent';
-                    
+
                     const initiativeDisplay = (c.type === 'player' && !state.combatStarted)
                         ? `<input type="number" class="input-field player-init-input text-price text-2xl text-center w-20 bg-transparent" placeholder="?" data-id="${c.id}">`
                         : `<span class="text-2xl text-price w-20 text-center">${c.initiative ?? '?'}</span>`;
-                    
+
                     const detailsDisplay = `<p class="text-sm text-dim">HP: ${c.hp ?? '-'} | AC: ${c.ac ?? '-'}</p>`;
-                    
-                    const statusDisplay = c.statusEffects.map((s, sIndex) => `
+
+                    const statusDisplay = (c.statusEffects || []).map((s, sIndex) => `
                         <span class="status-effect-badge">
                             ${s.name} ${s.duration ? `(${s.duration})` : ''}
                             <button class="remove-status-btn" data-combatant-index="${index}" data-status-index="${sIndex}"><i data-lucide="x" class="w-3 h-3 text-red-500"></i></button>
@@ -205,8 +246,9 @@
                     `).join('');
 
                     const listItem = document.createElement('div');
-                    listItem.className = `combatant-list-item p-3 rounded-md ${isActive ? 'active' : ''} ${c.downed ? 'downed' : ''}`;
-                    
+                    listItem.className = `combatant-list-item p-3 rounded-md ${isActive ? 'active' : ''} ${c.downed ? 'downed' : ''} ${isSelected ? 'selected' : ''}`;
+                    listItem.dataset.index = index;
+
                     listItem.innerHTML = `
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-4">
@@ -236,10 +278,10 @@
         
         function updateControls() {
             roundCounter.textContent = state.round;
-            const activeCombatant = state.combatants[state.currentTurn];
+            const selectedCombatant = state.combatants[state.selectedCombatantIndex];
 
-            if (state.combatStarted && activeCombatant && activeCombatant.hp !== null) {
-                activeCombatantName.textContent = activeCombatant.name;
+            if (state.combatStarted && selectedCombatant && selectedCombatant.hp !== null) {
+                activeCombatantName.textContent = selectedCombatant.name;
                 hpModifierSection.classList.remove('hidden');
             } else {
                 hpModifierSection.classList.add('hidden');
@@ -297,6 +339,11 @@
             if (state.currentTurn >= index && state.currentTurn > 0) {
                 state.currentTurn--;
             }
+            if (state.selectedCombatantIndex === index) {
+                state.selectedCombatantIndex = null;
+            } else if (state.selectedCombatantIndex > index) {
+                state.selectedCombatantIndex--;
+            }
             renderTracker();
         }
 
@@ -327,6 +374,7 @@
             state.combatStarted = true;
             state.currentTurn = 0;
             state.round = 1;
+            state.selectedCombatantIndex = 0;
 
             setupSection.classList.add('hidden');
             controlsSection.classList.remove('hidden');
@@ -335,16 +383,16 @@
 
         function nextTurn() {
             if (!state.combatStarted) return;
-            
+
             const activeCombatants = state.combatants.filter(c => !c.downed);
             if (activeCombatants.length === 0) {
                 alert("All combatants are downed. End combat.");
                 return;
             }
-            
+
             const currentCombatant = state.combatants[state.currentTurn];
             if (currentCombatant) {
-                currentCombatant.statusEffects = currentCombatant.statusEffects.map(s => {
+                currentCombatant.statusEffects = (currentCombatant.statusEffects || []).map(s => {
                     if (s.duration) s.duration--;
                     return s;
                 }).filter(s => s.duration === null || s.duration > 0);
@@ -352,19 +400,22 @@
 
             let nextTurnFound = false;
             let safetyCounter = 0;
+            let nextTurnIndex = state.currentTurn;
             while (!nextTurnFound && safetyCounter < state.combatants.length * 2) {
-                state.currentTurn++;
-                if (state.currentTurn >= state.combatants.length) {
-                    state.currentTurn = 0;
+                nextTurnIndex++;
+                if (nextTurnIndex >= state.combatants.length) {
+                    nextTurnIndex = 0;
                     state.round++;
                 }
-                
-                if (!state.combatants[state.currentTurn].downed) {
+
+                if (!state.combatants[nextTurnIndex].downed) {
                     nextTurnFound = true;
                 }
                 safetyCounter++;
             }
-            
+            state.currentTurn = nextTurnIndex;
+            state.selectedCombatantIndex = nextTurnIndex;
+
             renderTracker();
         }
 
@@ -376,6 +427,7 @@
                 c.statusEffects = [];
             });
             state.combatants = state.combatants.filter(c => c.type === 'player');
+            state.selectedCombatantIndex = null;
 
             controlsSection.classList.add('hidden');
             setupSection.classList.remove('hidden');
@@ -383,21 +435,50 @@
             await setDoc(activeCombatRef, { id: null });
         }
 
-        function modifyActiveCombatantHP(action) {
-            const activeCombatant = state.combatants[state.currentTurn];
-            if (!activeCombatant || activeCombatant.hp === null) return;
+        function playHpAnimation(index, amount, type) {
+            const combatantEl = document.querySelector(`.combatant-list-item[data-index="${index}"]`);
+            if (!combatantEl) return;
+
+            const animationEl = document.createElement('div');
+            animationEl.textContent = `${type === 'damage' ? '-' : '+'}${amount}`;
+            animationEl.className = `hp-change-animation ${type === 'damage' ? 'hp-damage' : 'hp-heal'}`;
+            combatantEl.appendChild(animationEl);
+
+            combatantEl.classList.add(type === 'damage' ? 'flash-damage' : 'flash-heal');
+            if (type === 'damage') combatantEl.classList.add('shake');
+
+            setTimeout(() => {
+                animationEl.remove();
+                combatantEl.classList.remove('flash-damage', 'flash-heal', 'shake');
+            }, 1500);
+        }
+
+        function modifySelectedCombatantHP(action) {
+            const targetIndex = state.selectedCombatantIndex;
+            const selectedCombatant = state.combatants[targetIndex];
+            if (selectedCombatant === null || !selectedCombatant || selectedCombatant.hp === null) return;
 
             let amount = hpChangeInput.value ? parseInt(hpChangeInput.value) : 0;
             if (amount === 0) return;
 
             if (action === 'damage') {
-                activeCombatant.hp -= amount;
+                selectedCombatant.hp -= amount;
+                if (selectedCombatant.hp <= 0) {
+                    selectedCombatant.hp = 0;
+                    selectedCombatant.downed = true;
+                }
             } else {
-                activeCombatant.hp += amount;
+                if (selectedCombatant.hp === 0 && amount > 0) {
+                    selectedCombatant.downed = false;
+                }
+                selectedCombatant.hp += amount;
             }
-            
+
+            selectedCombatant.lastHpChange = { amount, type: action };
+
             hpChangeInput.value = '';
             renderTracker();
+            playHpAnimation(targetIndex, amount, action);
         }
 
         function toggleDowned(index) {
@@ -416,6 +497,9 @@
             const name = statusSelect.value;
             const duration = statusDurationInput.value ? parseInt(statusDurationInput.value) : null;
             if (state.statusTargetIndex !== null && state.combatants[state.statusTargetIndex]) {
+                if (!state.combatants[state.statusTargetIndex].statusEffects) {
+                    state.combatants[state.statusTargetIndex].statusEffects = [];
+                }
                 state.combatants[state.statusTargetIndex].statusEffects.push({ name, duration });
                 renderTracker();
             }
@@ -424,13 +508,20 @@
         }
 
         function removeStatusEffect(combatantIndex, statusIndex) {
-            if (state.combatants[combatantIndex]) {
+            if (state.combatants[combatantIndex] && state.combatants[combatantIndex].statusEffects) {
                 state.combatants[combatantIndex].statusEffects.splice(statusIndex, 1);
                 renderTracker();
             }
         }
 
         function attachCombatantListeners() {
+            document.querySelectorAll('.combatant-list-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('button, input')) return;
+                    state.selectedCombatantIndex = parseInt(item.dataset.index);
+                    renderTracker();
+                });
+            });
             document.querySelectorAll('.remove-combatant-btn').forEach(btn => btn.addEventListener('click', (e) => removeCombatant(parseInt(e.currentTarget.dataset.index))));
             document.querySelectorAll('.toggle-downed-btn').forEach(btn => btn.addEventListener('click', (e) => toggleDowned(parseInt(e.currentTarget.dataset.index))));
             document.querySelectorAll('.add-status-modal-btn').forEach(btn => btn.addEventListener('click', (e) => openStatusModal(parseInt(e.currentTarget.dataset.index))));
@@ -459,8 +550,8 @@
             startCombatBtn.addEventListener('click', startCombat);
             nextTurnBtn.addEventListener('click', nextTurn);
             endCombatBtn.addEventListener('click', endCombat);
-            hpDamageBtn.addEventListener('click', () => modifyActiveCombatantHP('damage'));
-            hpHealBtn.addEventListener('click', () => modifyActiveCombatantHP('heal'));
+            hpDamageBtn.addEventListener('click', () => modifySelectedCombatantHP('damage'));
+            hpHealBtn.addEventListener('click', () => modifySelectedCombatantHP('heal'));
             addStatusBtn.addEventListener('click', addStatusEffect);
             closeStatusModalBtn.addEventListener('click', () => statusEffectModal.classList.add('hidden'));
             showEnemyHPCheckbox.addEventListener('change', (e) => {
