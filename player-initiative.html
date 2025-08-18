@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Battle Tracker</title>
+    <title>D&D Player Combat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,40 +11,215 @@
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-text: #E6E6E6; --color-header: #00FF88; --color-accent: #FFFFFF; --color-price: #FFB454; --color-dim: #6B7280; --color-border: #333333; --shadow-glow: 0 0 8px; --color-bg: #0A0A0A; --window-bg: rgba(20, 20, 20, 0.9); font-family: 'VT323', monospace;
+            --color-text: #E6E6E6;
+            --color-header: #00FF88;
+            --color-accent: #FFFFFF;
+            --color-price: #FFB454;
+            --color-dim: #6B7280;
+            --color-border: #333333;
+            --shadow-glow: 0 0 8px;
+            --color-bg: #0A0A0A;
+            --window-bg: rgba(20, 20, 20, 0.9);
+            --input-bg: #1a1a1a;
+            --btn-text: #000000;
         }
-        body { font-size: 20px; line-height: 1.6; overflow-x: hidden; color: var(--color-text); background-color: var(--color-bg); padding-top: 5rem; }
-        .cli-window { border: 1px solid var(--color-border); border-radius: 0.375rem; padding: 1.5rem; background-color: var(--window-bg); box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); }
-        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
-        .text-accent { color: var(--color-accent); } .text-dim { color: var(--color-dim); } .text-price { color: var(--color-price); font-weight: bold; }
-        .combatant-list-item { transition: all 0.3s ease-in-out; border-left: 4px solid transparent; }
-        .combatant-list-item.active { background-color: rgba(0, 255, 136, 0.1); border-left-color: var(--color-header); transform: scale(1.02); }
-        .combatant-list-item.downed { opacity: 0.4; }
-        .status-effect-badge { display: inline-flex; align-items: center; gap: 4px; background-color: #1a1a1a; border: 1px solid var(--color-border); border-radius: 9999px; padding: 2px 8px; font-size: 0.8rem; line-height: 1; }
+
+        body {
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            padding-top: 5rem;
+        }
+
+        .cli-window {
+            border: 1px solid var(--color-border);
+            border-radius: 0.375rem;
+            padding: 1.5rem;
+            background-color: var(--window-bg);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--color-accent);
+            color: var(--btn-text);
+            text-shadow: none;
+            cursor: pointer;
+            border: none;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: var(--color-bg);
+            color: var(--color-accent);
+            box-shadow: 0 0 5px var(--color-accent);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+            border-radius: 0.25rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-accent);
+            color: var(--btn-text);
+        }
+
+        .text-header {
+            color: var(--color-header);
+            text-shadow: var(--shadow-glow) var(--color-header);
+        }
+        .text-accent { color: var(--color-accent); }
+        .text-dim { color: var(--color-dim); }
+        .text-price { color: var(--color-price); font-weight: bold; }
+
+        .combatant-list-item {
+            transition: all 0.3s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+
+        .combatant-list-item.active {
+            background-color: rgba(0, 255, 136, 0.1);
+            border-left-color: var(--color-header);
+            transform: scale(1.02);
+        }
+
+        .combatant-list-item.downed {
+            opacity: 0.4;
+        }
+
+        .status-effect-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background-color: #1a1a1a;
+            border: 1px solid var(--color-border);
+            border-radius: 9999px;
+            padding: 2px 8px;
+            font-size: 0.8rem;
+            line-height: 1;
+        }
+
+        .slot-bar { display: flex; }
+        .slot-segment {
+            width: 1.75rem;
+            height: 1.25rem;
+            transform: skew(-20deg);
+            margin-right: 4px;
+            cursor: pointer;
+            border: 2px solid var(--color-header);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .slot-available {
+            background-color: var(--color-header);
+            box-shadow: var(--shadow-glow) var(--color-header);
+        }
+        .slot-expended {
+            background-color: transparent;
+            box-shadow: none;
+        }
+        .cast-btn { background-color: var(--color-bg); white-space: nowrap; }
+
+        /* Roll Result Modal */
+        #roll-result-modal {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        #roll-result-modal.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
 
-    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-end items-center h-20 bg-[#0A0A0A]">
-        <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- Top Navigation -->
+    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center h-20 bg-[#0A0A0A]">
+        <h1 class="text-3xl text-header">&gt; Player Combat</h1>
+        <div class="relative ml-auto flex items-center gap-4">
+            <button id="exit-mode-btn" onclick="history.back()" title="Back to Hub">
+                <i data-lucide="x" class="w-8 h-8 text-accent hover:text-header"></i>
+            </button>
+        </div>
     </div>
 
-    <div id="player-initiative-view" class="max-w-2xl mx-auto mt-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl text-header">&gt; Combat Order</h1>
-            <p id="round-counter" class="text-2xl text-dim">Round 1</p>
-        </header>
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <main class="cli-window">
-            <div id="combatants-list" class="space-y-3">
-                <p class="text-dim text-center">Waiting for combat to start...</p>
+        <!-- Left Column: Combat Order -->
+        <div class="lg:col-span-1">
+            <div id="initiative-tracker-view">
+                <header class="text-center mb-4">
+                    <h2 class="text-3xl text-header">&gt; Combat Order</h2>
+                    <p id="round-counter" class="text-2xl text-dim">Round 1</p>
+                </header>
+                <main class="cli-window">
+                    <div id="combatants-list" class="space-y-3">
+                        <p class="text-dim text-center">Waiting for combat to start...</p>
+                    </div>
+                </main>
             </div>
-        </main>
+        </div>
+
+        <!-- Right Column: Player Actions -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="cli-window">
+                 <a href="character.html" id="character-sheet-link" class="btn w-full text-center">View Full Character Sheet</a>
+            </div>
+            <!-- Attacks Widget -->
+            <div class="cli-window">
+                <h2 class="text-2xl text-header mb-4">&gt; Attacks</h2>
+                <div class="space-y-2">
+                    <div class="grid grid-cols-3 gap-4 font-bold border-b border-border pb-2">
+                        <p class="text-accent">Attack</p>
+                        <p class="text-accent">To Hit</p>
+                        <p class="text-accent">Damage</p>
+                    </div>
+                    <div id="attacks-container">
+                        <p class="text-dim">> No attacks loaded.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spell Management Widget -->
+            <div class="cli-window">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                    <h2 class="text-2xl text-header">&gt; Spellcasting</h2>
+                    <button id="long-rest-btn" class="btn-secondary">Long Rest</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-xl text-header mb-2">> Prepared Spells</h3>
+                        <div id="prepared-spells-container" class="space-y-2 max-h-64 overflow-y-auto pr-2">
+                            <p class="text-dim">> No spells prepared.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl text-header mb-2">> Spell Slots</h3>
+                        <div id="spell-slots-container" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Roll Result Modal -->
+    <div id="roll-result-modal" class="hidden fixed bottom-5 right-5 bg-black border-2 border-header rounded-lg shadow-lg p-4 z-[100] w-64">
+        <button id="close-roll-modal-btn" class="absolute top-1 right-1 text-accent hover:text-header">&times;</button>
+        <h3 id="roll-title" class="text-lg text-header">Roll Result</h3>
+        <p id="roll-details" class="text-sm text-dim"></p>
+        <p id="roll-total" class="text-4xl text-price text-center my-2"></p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -59,9 +234,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Combat state
         let combatUnsub = null;
         let hadCombat = false;
-
         let combatState = {
             combatants: [],
             currentTurn: 0,
@@ -70,15 +245,67 @@
             showEnemyHP: false,
         };
 
+        // Player sheet state
+        let playerSheet = null;
+        const state = { spellSlots: {}, preparedSpells: [], knownSpells: [] };
+
+        const characterKey = sessionStorage.getItem('currentPlayerKey');
+        const playerDocRef = characterKey ? doc(db, 'characters', characterKey) : null;
+
+        // DOM Elements
         const combatantsList = document.getElementById('combatants-list');
         const roundCounter = document.getElementById('round-counter');
+        const attacksContainer = document.getElementById('attacks-container');
+        const preparedSpellsContainer = document.getElementById('prepared-spells-container');
+        const spellSlotsContainer = document.getElementById('spell-slots-container');
+        const longRestBtn = document.getElementById('long-rest-btn');
+        const rollResultModal = document.getElementById('roll-result-modal');
 
-        function renderPlayerView() {
+        // Dice rolling
+        function rollDice(diceString) {
+            if (!diceString || typeof diceString !== 'string') {
+                return { total: 0, rolls: [], modifier: 0, diceString: 'Invalid' };
+            }
+            const cleanedString = diceString.replace(/\s+/g, '');
+            const match = cleanedString.match(/(\d+)d(\d+)([+-]\d+)?/);
+            if (!match) {
+                const flatNumber = parseInt(cleanedString, 10);
+                return isNaN(flatNumber) ? { total: 0, rolls: [], modifier: 0, diceString: cleanedString } : { total: flatNumber, rolls: [flatNumber], modifier: 0, diceString: cleanedString };
+            }
+            const numDice = parseInt(match[1], 10);
+            const numSides = parseInt(match[2], 10);
+            const modifier = match[3] ? parseInt(match[3], 10) : 0;
+            let total = 0;
+            const rolls = [];
+            for (let i = 0; i < numDice; i++) {
+                const roll = Math.floor(Math.random() * numSides) + 1;
+                rolls.push(roll);
+                total += roll;
+            }
+            total += modifier;
+            return { total, rolls, modifier, diceString: cleanedString };
+        }
+
+        function showRollResult(title, result) {
+            document.getElementById('roll-title').textContent = title;
+            let details = `Rolled: ${result.diceString} -> [${result.rolls.join(', ')}]`;
+            if (result.modifier) {
+                details += ` ${result.modifier > 0 ? '+' : ''} ${result.modifier}`;
+            }
+            document.getElementById('roll-details').textContent = details;
+            document.getElementById('roll-total').textContent = result.total;
+            rollResultModal.classList.remove('hidden');
+            setTimeout(() => rollResultModal.classList.add('hidden'), 4000);
+        }
+        document.getElementById('close-roll-modal-btn').addEventListener('click', () => rollResultModal.classList.add('hidden'));
+
+        // Combat order rendering
+        function renderCombatOrder() {
             if (!combatState.combatStarted || combatState.combatants.length === 0) {
                 combatantsList.innerHTML = '<p class="text-dim text-center">Waiting for combat to start...</p>';
                 return;
             }
-            
+
             combatState.combatants.sort((a, b) => b.initiative - a.initiative);
             combatantsList.innerHTML = '';
             roundCounter.textContent = `Round ${combatState.round}`;
@@ -86,7 +313,7 @@
             combatState.combatants.forEach((c, index) => {
                 const isActive = index === combatState.currentTurn;
                 const playerColor = c.type === 'player' ? 'text-header' : 'text-accent';
-                
+
                 let hpDisplay = '';
                 if (c.type === 'player' && c.hp !== null) {
                     hpDisplay = `<p class="text-sm text-dim">HP: ${c.hp}</p>`;
@@ -94,13 +321,13 @@
                     hpDisplay = `<p class="text-sm text-dim">HP: ${c.hp}</p>`;
                 }
 
-                const statusDisplay = c.statusEffects.map(s => `
+                const statusDisplay = (c.statusEffects || []).map(s => `
                     <span class="status-effect-badge">${s.name} ${s.duration ? `(${s.duration})` : ''}</span>
                 `).join('');
 
                 const listItem = document.createElement('div');
                 listItem.className = `combatant-list-item p-3 rounded-md ${isActive ? 'active' : ''} ${c.downed ? 'downed' : ''}`;
-                
+
                 listItem.innerHTML = `
                     <div class="flex items-center gap-4">
                         <span class="text-2xl text-price w-12 text-center">${c.initiative}</span>
@@ -118,11 +345,167 @@
 
         function updateCombatState(newState) {
             combatState = { ...combatState, ...newState };
-            renderPlayerView();
+            renderCombatOrder();
+        }
+
+        // Attacks rendering
+        function renderAttacks(sheet) {
+            attacksContainer.innerHTML = '';
+            if (!sheet.attacks || sheet.attacks.length === 0) {
+                attacksContainer.innerHTML = '<p class="text-dim">> No attacks listed.</p>';
+                return;
+            }
+            sheet.attacks.forEach(attack => {
+                const attackEl = document.createElement('div');
+                attackEl.className = 'grid grid-cols-3 gap-4 border-t border-border pt-2 items-center';
+                attackEl.innerHTML = `
+                    <p>${attack.name}</p>
+                    <div class="flex items-center gap-2">
+                        <span>${attack.atkBonus}</span>
+                        <button class="btn-secondary !p-1 roll-hit-btn" data-bonus="${attack.atkBonus}">Roll</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span>${attack.damage}</span>
+                        <button class="btn-secondary !p-1 roll-dmg-btn" data-damage="${attack.damage}">Roll</button>
+                    </div>`;
+                attacksContainer.appendChild(attackEl);
+            });
+        }
+
+        // Spell helpers
+        const API_BASE = "https://www.dnd5eapi.co/api";
+        function toIndex(name) {
+            return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        }
+        async function getSpellDetails(index) {
+            try {
+                const res = await fetch(`${API_BASE}/spells/${index}`);
+                if (!res.ok) throw new Error('Spell fetch failed');
+                return await res.json();
+            } catch (err) {
+                console.error('Spell fetch error', err);
+                return null;
+            }
+        }
+
+        async function initSpellData(sheet) {
+            const sc = sheet.spellcasting || {};
+            state.spellSlots = sc.spellSlots || {};
+            const knownNames = sc.knownSpells || [];
+            const preparedNames = sc.preparedSpells || [];
+            const spellPromises = knownNames.map(name => getSpellDetails(toIndex(name)));
+            state.knownSpells = (await Promise.all(spellPromises)).filter(Boolean);
+            state.preparedSpells = preparedNames
+                .map(name => state.knownSpells.find(s => s.name === name))
+                .filter(Boolean);
+            renderSpellSlots();
+            renderPreparedSpells();
+        }
+
+        function renderSpellSlots() {
+            spellSlotsContainer.innerHTML = '';
+            for (const level in state.spellSlots) {
+                const { max, expended } = state.spellSlots[level];
+                let slotBarHtml = '';
+                for (let i = 0; i < max; i++) {
+                    const isAvailable = i < (max - expended);
+                    slotBarHtml += `<div class="slot-segment ${isAvailable ? 'slot-available' : 'slot-expended'}" data-level="${level}" data-index="${i}"></div>`;
+                }
+                spellSlotsContainer.innerHTML += `
+                    <div class="flex items-center justify-start gap-4" data-level-bar="${level}">
+                        <span class="text-accent w-20">Lvl ${level}</span>
+                        <div class="slot-bar">${slotBarHtml}</div>
+                    </div>`;
+            }
+        }
+
+        function renderPreparedSpells() {
+            preparedSpellsContainer.innerHTML = '';
+            if (state.preparedSpells.length === 0) {
+                preparedSpellsContainer.innerHTML = '<p class="text-dim">> No spells prepared.</p>';
+                return;
+            }
+            state.preparedSpells.forEach(spell => {
+                let buttons = '';
+                if (spell.level > 0) {
+                    for (let i = spell.level; i <= 9; i++) {
+                        const slot = state.spellSlots[i];
+                        if (slot && slot.expended < slot.max) {
+                            buttons += `<button class="border border-header px-2 py-1 rounded text-header hover:bg-header hover:text-black cast-btn" data-cast-level="${i}">Lvl ${i}</button>`;
+                        }
+                    }
+                    if (!buttons) buttons = '<span class="text-dim">No Slots</span>';
+                }
+                preparedSpellsContainer.innerHTML += `
+                    <div class="flex justify-between items-center py-1 border-b border-border">
+                        <span class="text-accent">${spell.name}</span>
+                        <div class="flex gap-1">${buttons}</div>
+                    </div>`;
+            });
+        }
+
+        async function saveSpellSlots() {
+            if (!playerDocRef) return;
+            try {
+                await updateDoc(playerDocRef, { 'sheet.spellcasting.spellSlots': state.spellSlots });
+            } catch (err) {
+                console.error('Failed to save spell slots', err);
+            }
+        }
+
+        function handleCastSpell(e) {
+            const level = e.target.dataset.castLevel;
+            const slot = state.spellSlots[level];
+            if (!slot || slot.expended >= slot.max) return;
+            slot.expended++;
+            saveSpellSlots();
+            renderSpellSlots();
+            renderPreparedSpells();
+        }
+        
+        function handleSlotClick(e) {
+            if (!e.target.classList.contains('slot-segment')) return;
+            const level = e.target.dataset.level;
+            const index = Number(e.target.dataset.index);
+            const slot = state.spellSlots[level];
+            if (!slot) return;
+            const maxSlots = slot.max;
+            const currentAvailable = maxSlots - slot.expended;
+            if (currentAvailable === index + 1) {
+                slot.expended = maxSlots - index;
+            } else {
+                slot.expended = maxSlots - (index + 1);
+            }
+            saveSpellSlots();
+            renderSpellSlots();
+            renderPreparedSpells();
+        }
+
+        function handleLongRest() {
+            Object.keys(state.spellSlots).forEach(level => {
+                state.spellSlots[level].expended = 0;
+            });
+            saveSpellSlots();
+            renderSpellSlots();
+            renderPreparedSpells();
+        }
+
+        async function loadPlayerSheet() {
+            if (playerDocRef) {
+                const docSnap = await getDoc(playerDocRef);
+                if (docSnap.exists()) {
+                    playerSheet = docSnap.data().sheet;
+                }
+            }
+            if (!playerSheet) {
+                playerSheet = await fetch('sample-character.json').then(r => r.json());
+            }
+            renderAttacks(playerSheet);
+            initSpellData(playerSheet);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            renderPlayerView();
+            loadPlayerSheet();
 
             const activeCombatRef = doc(db, 'currentCombat', 'active');
             onSnapshot(activeCombatRef, (activeSnap) => {
@@ -149,8 +532,26 @@
                     }
                 });
             });
-        });
 
+            attacksContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('roll-hit-btn')) {
+                    const result = rollDice(`1d20${e.target.dataset.bonus}`);
+                    showRollResult('Attack Roll', result);
+                }
+                if (e.target.classList.contains('roll-dmg-btn')) {
+                    const result = rollDice(e.target.dataset.damage);
+                    showRollResult('Damage Roll', result);
+                }
+            });
+
+            preparedSpellsContainer.addEventListener('click', e => {
+                if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
+            });
+            spellSlotsContainer.addEventListener('click', handleSlotClick);
+            longRestBtn.addEventListener('click', handleLongRest);
+
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>
