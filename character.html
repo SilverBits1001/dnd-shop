@@ -183,20 +183,38 @@
         <main>
             <!-- Core Tab -->
             <div id="core" class="tab-content active">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Ability Scores -->
-                    <div class="md:col-span-1 space-y-3">
-                        <h2 class="text-2xl text-header mb-2">> Abilities</h2>
-                        <div id="abilities-container" class="grid grid-cols-3 gap-2 text-center"></div>
-                        <div class="pt-4">
-                            <p>> Proficiency: <span id="proficiency-bonus" class="text-accent">+3</span></p>
-                            <p>> Inspiration: <span id="inspiration" class="text-accent">Yes</span></p>
-                        </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl text-header">> Core Abilities & Skills</h2>
+                    <button id="sort-core-view-btn" class="px-3 py-1 border border-border text-dim rounded-md hover:border-accent hover:text-accent transition-colors flex items-center gap-2">
+                        <i data-lucide="list-tree" class="w-4 h-4"></i>
+                        <span id="sort-btn-text">Grouped</span>
+                    </button>
+                </div>
+
+                <!-- Grouped View (Default) -->
+                <div id="grouped-view">
+                    <div id="abilities-and-skills-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    <div class="pt-4">
+                        <p>> Proficiency: <span id="proficiency-bonus" class="text-accent">+3</span></p>
+                        <p>> Inspiration: <span id="inspiration" class="text-accent">Yes</span></p>
                     </div>
-                    <!-- Skills -->
-                    <div class="md:col-span-2">
-                        <h2 class="text-2xl text-header mb-2">> Skills</h2>
-                        <div id="skills-container" class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2"></div>
+                </div>
+
+                <!-- Separated View -->
+                <div id="separated-view" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1 space-y-3">
+                            <h3 class="text-xl text-header mb-2">> Abilities</h3>
+                            <div id="separated-abilities-container" class="grid grid-cols-3 gap-2 text-center"></div>
+                            <div class="pt-4">
+                                <p>> Proficiency: <span id="proficiency-bonus-sep" class="text-accent">+3</span></p>
+                                <p>> Inspiration: <span id="inspiration-sep" class="text-accent">Yes</span></p>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <h3 class="text-xl text-header mb-2">> Skills</h3>
+                            <div id="separated-skills-container" class="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-lg custom-scrollbar max-h-80 overflow-y-auto pr-2"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -305,13 +323,86 @@
         // Load character data from sessionStorage or sample file
         let inspiration = false;
         const inspirationEl = document.getElementById('inspiration');
-        inspirationEl.addEventListener('click', () => {
-            inspiration = !inspiration;
-            inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+        const inspirationElSep = document.getElementById('inspiration-sep');
+        [inspirationEl, inspirationElSep].forEach(el => {
+            el.addEventListener('click', () => {
+                inspiration = !inspiration;
+                inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+                inspirationElSep.textContent = inspiration ? 'Yes' : 'No';
+            });
         });
         const playerDataString = sessionStorage.getItem('currentPlayer');
         const characterKey = sessionStorage.getItem('currentPlayerKey');
         let playerData = null;
+
+        const skillAbilityMap = {
+            Strength: ["Athletics"],
+            Dexterity: ["Acrobatics", "Sleight of Hand", "Stealth"],
+            Intelligence: ["Arcana", "History", "Investigation", "Nature", "Religion"],
+            Wisdom: ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"],
+            Charisma: ["Deception", "Intimidation", "Performance", "Persuasion"]
+        };
+
+        function renderGroupedAbilitiesSkills(abilities, skills) {
+            const container = document.getElementById('abilities-and-skills-container');
+            container.innerHTML = '';
+            if (abilities === 'no context provided') return;
+            Object.entries(abilities).forEach(([abilityName, abilityData]) => {
+                const associatedSkills = skillAbilityMap[abilityName] || [];
+                const skillsHtml = associatedSkills.map(skillName => {
+                    const sData = skills ? skills[skillName] : null;
+                    if (!sData) return '';
+                    const profClass = sData.prof ? 'text-header' : '';
+                    return `<div class="flex justify-between items-center text-lg ${profClass}"><span>${skillName}</span><span class="text-accent">${sData.bonus}</span></div>`;
+                }).join('');
+                let mod = get(abilityData, 'mod');
+                if (mod !== 'no context provided' && typeof mod === 'number' && mod >= 0) mod = `+${mod}`;
+                const score = get(abilityData, 'score');
+                container.innerHTML += `
+                    <div class="content-card">
+                        <div class="flex justify-between items-baseline mb-2 pb-1 border-b border-border/50">
+                            <h3 class="text-2xl text-header">${abilityName}</h3>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl text-accent">${score}</span>
+                                <span class="text-lg text-dim">(${mod})</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1 pt-1">${skillsHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderSeparatedAbilitiesSkills(abilities, skills) {
+            const abbrMap = { Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' };
+            const abilitiesContainer = document.getElementById('separated-abilities-container');
+            abilitiesContainer.innerHTML = '';
+            if (abilities !== 'no context provided') {
+                for (const [name, info] of Object.entries(abilities)) {
+                    const abbr = abbrMap[name] || name.slice(0,3).toUpperCase();
+                    let mod = get(info, 'mod');
+                    if (mod !== 'no context provided' && typeof mod === 'number' && mod >= 0) mod = `+${mod}`;
+                    const score = get(info, 'score');
+                    abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${score}</div><div class="text-dim">${mod}</div></div>`;
+                }
+            } else {
+                abilitiesContainer.textContent = 'no context provided';
+            }
+
+            const skillsContainer = document.getElementById('separated-skills-container');
+            skillsContainer.innerHTML = '';
+            if (skills) {
+                for (const [name, info] of Object.entries(skills)) {
+                    const prof = get(info, 'prof');
+                    const bonus = get(info, 'bonus');
+                    const profClass = prof === 'no context provided' ? '' : (prof ? 'text-header' : '');
+                    skillsContainer.innerHTML += `<p class="${profClass}">${name} <span class="text-accent">${bonus}</span></p>`;
+                }
+            } else {
+                skillsContainer.textContent = 'no context provided';
+            }
+        }
+
         function renderCharacter(sheet, player) {
             const avatar = get(sheet, 'avatarUrl');
             document.getElementById('char-avatar').src = avatar;
@@ -328,45 +419,23 @@
             const speed = get(sheet, 'combat.speed');
             document.getElementById('stat-speed').textContent = speed === 'no context provided' ? speed : `${speed}ft`;
             document.getElementById('stat-init').textContent = get(sheet, 'combat.initiative');
-            document.getElementById('proficiency-bonus').textContent = get(sheet, 'proficiencybonus');
+            const proficiency = get(sheet, 'proficiencybonus');
+            document.getElementById('proficiency-bonus').textContent = proficiency;
+            document.getElementById('proficiency-bonus-sep').textContent = proficiency;
             const inspVal = get(sheet, 'inspiration');
             if (inspVal === 'no context provided') {
                 inspirationEl.textContent = 'no context provided';
+                inspirationElSep.textContent = 'no context provided';
             } else {
                 inspiration = !!inspVal;
                 inspirationEl.textContent = inspiration ? 'Yes' : 'No';
+                inspirationElSep.textContent = inspiration ? 'Yes' : 'No';
             }
 
-            const abbrMap = { Strength: 'STR', Dexterity: 'DEX', Constitution: 'CON', Intelligence: 'INT', Wisdom: 'WIS', Charisma: 'CHA' };
-            const abilitiesContainer = document.getElementById('abilities-container');
-            abilitiesContainer.innerHTML = '';
             const abilities = get(sheet, 'abilities');
-            if (abilities !== 'no context provided') {
-                for (const [name, info] of Object.entries(abilities)) {
-                    const abbr = abbrMap[name] || name.slice(0,3).toUpperCase();
-                    let mod = get(info, 'mod');
-                    if (mod !== 'no context provided' && typeof mod === 'number' && mod >= 0) mod = `+${mod}`;
-                    const score = get(info, 'score');
-                    abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${score}</div><div class="text-dim">${mod}</div></div>`;
-                }
-            } else {
-                abilitiesContainer.textContent = 'no context provided';
-            }
-
-            const skillsContainer = document.getElementById('skills-container');
-            skillsContainer.innerHTML = '';
             const skills = get(sheet, 'skills');
-            if (skills !== 'no context provided') {
-                for (const [name, info] of Object.entries(skills)) {
-                    const prof = get(info, 'prof');
-                    const bonus = get(info, 'bonus');
-                    const profClass = prof === 'no context provided' ? '' : (prof ? 'text-header' : '');
-                    const mark = prof === 'no context provided' ? '' : (prof ? '*' : '');
-                    skillsContainer.innerHTML += `<p>${name} <span class="text-accent ${profClass}">${bonus}${mark}</span></p>`;
-                }
-            } else {
-                skillsContainer.textContent = 'no context provided';
-            }
+            renderGroupedAbilitiesSkills(abilities, skills !== 'no context provided' ? skills : null);
+            renderSeparatedAbilitiesSkills(abilities, skills !== 'no context provided' ? skills : null);
 
             const attacksContainer = document.getElementById('attacks-container');
             attacksContainer.innerHTML = '';
@@ -424,6 +493,26 @@
                 const tabId = button.dataset.tab;
                 document.getElementById(tabId).classList.add('active');
             });
+        });
+
+        // Toggle between grouped and separated core views
+        let coreViewMode = 'grouped';
+        const sortButton = document.getElementById('sort-core-view-btn');
+        const sortButtonText = document.getElementById('sort-btn-text');
+        const groupedView = document.getElementById('grouped-view');
+        const separatedView = document.getElementById('separated-view');
+        sortButton.addEventListener('click', () => {
+            if (coreViewMode === 'grouped') {
+                coreViewMode = 'separated';
+                groupedView.classList.add('hidden');
+                separatedView.classList.remove('hidden');
+                sortButtonText.textContent = 'Separated';
+            } else {
+                coreViewMode = 'grouped';
+                groupedView.classList.remove('hidden');
+                separatedView.classList.add('hidden');
+                sortButtonText.textContent = 'Grouped';
+            }
         });
 
         // Spell state and rendering
