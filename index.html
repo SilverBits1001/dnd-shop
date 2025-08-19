@@ -1274,12 +1274,14 @@
         }
 
         function rollDice(diceString) {
-            if (!diceString || typeof diceString !== 'string') return { total: 0, rolls: [], modifier: 0, diceString: 'Invalid' };
+            if (!diceString || typeof diceString !== 'string') return { total: 0, rolls: [], modifier: 0, diceString: 'Invalid', maxRoll: 0 };
             const cleanedString = diceString.replace(/\s+/g, '');
             const match = cleanedString.match(/(\d+)d(\d+)([+-]\d+)?/);
             if (!match) {
                 const flatNumber = parseInt(cleanedString, 10);
-                return isNaN(flatNumber) ? { total: 0, rolls: [], modifier: 0, diceString: cleanedString } : { total: flatNumber, rolls: [flatNumber], modifier: 0, diceString: cleanedString };
+                return isNaN(flatNumber)
+                    ? { total: 0, rolls: [], modifier: 0, diceString: cleanedString, maxRoll: 0 }
+                    : { total: flatNumber, rolls: [flatNumber], modifier: 0, diceString: cleanedString, maxRoll: flatNumber };
             }
             const numDice = parseInt(match[1], 10);
             const numSides = parseInt(match[2], 10);
@@ -1292,7 +1294,22 @@
                 total += roll;
             }
             total += modifier;
-            return { total, rolls, modifier, diceString: cleanedString };
+            return { total, rolls, modifier, diceString: cleanedString, maxRoll: numSides };
+        }
+
+        function animateRoll(max, final) {
+            const totalEl = document.getElementById('roll-total');
+            let current = 1;
+            totalEl.classList.add('animate-pulse');
+            const interval = setInterval(() => {
+                totalEl.textContent = current;
+                current = current >= max ? 1 : current + 1;
+            }, 50);
+            setTimeout(() => {
+                clearInterval(interval);
+                totalEl.classList.remove('animate-pulse');
+                totalEl.textContent = final;
+            }, 800);
         }
 
         function showRollResult(title, result) {
@@ -1301,7 +1318,7 @@
             let details = `Rolled: ${result.diceString} -> [${result.rolls.join(', ')}]`;
             if (result.modifier) details += ` ${result.modifier > 0 ? '+' : ''} ${result.modifier}`;
             document.getElementById('roll-details').textContent = details;
-            document.getElementById('roll-total').textContent = result.total;
+            animateRoll(result.maxRoll || result.total, result.total);
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('hidden'), 4000);
         }
