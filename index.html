@@ -143,39 +143,6 @@
         .slot-segment { width: 1.75rem; height: 1.25rem; transform: skew(-20deg); margin-right: 4px; cursor: pointer; border: 2px solid var(--color-header); transition: background-color 0.2s ease, box-shadow 0.2s ease; }
         .slot-available { background-color: var(--color-header); box-shadow: var(--shadow-glow) var(--color-header); }
         .slot-expended { background-color: transparent; box-shadow: none; }
-        .stat-block {
-            background-color: var(--input-bg);
-            border: 1px solid var(--color-border);
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            text-align: center;
-        }
-        .progress-bar-container {
-            background-color: #1a1a1a;
-            border-radius: 9999px;
-            overflow: hidden;
-            border: 1px solid var(--color-border);
-        }
-        .progress-bar {
-            height: 10px;
-            border-radius: 9999px;
-            transition: width 0.5s ease-in-out;
-        }
-        .hp-bar { background-color: var(--color-header); }
-        .tab-button {
-            background-color: transparent;
-            border-bottom: 2px solid transparent;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            color: var(--color-dim);
-        }
-        .tab-button.active {
-            color: var(--color-header);
-            border-bottom-color: var(--color-header);
-        }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8 cli-theme">
@@ -1006,321 +973,146 @@
                 characterHubView.innerHTML = `<div class="cli-window text-center"><p class="text-header">Loading Character...</p></div>`;
                 return;
             }
-            const sheet = player.sheet || {};
-            const combat = sheet.combat || {};
-            const hpCurrent = combat.hp?.current ?? 0;
-            const hpMax = combat.hp?.max ?? 0;
-            const ac = combat.ac ?? '-';
-            const speed = combat.speed ?? '-';
-            const init = combat.initiative ?? '+0';
-            const prof = sheet.proficiencybonus ?? '+0';
-            const perception = sheet.passiveperception ?? '-';
-            const spellSaveDc = sheet.spellcasting?.spellSaveDc ?? '-';
-            const conditions = player.conditions || sheet.conditions || [];
-            const inventorySummary = (player.inventory || []).reduce((acc, item) => { acc[item.name] = (acc[item.name] || 0) + 1; return acc; }, {});
-            const abilities = sheet.abilities || {};
-            const abilityMap = { Strength:'STR', Dexterity:'DEX', Constitution:'CON', Intelligence:'INT', Wisdom:'WIS', Charisma:'CHA' };
-            const savingThrowsHtml = Object.entries(abilities).map(([name,data])=>{
-                const abbr = abilityMap[name] || name.slice(0,3).toUpperCase();
-                return `<div class="stat-block !p-1 ${data.saveProf ? 'border-header' : ''}"><span class="text-dim text-sm">${abbr}</span><span class="text-xl text-accent">${data.save || '+0'}</span></div>`;
-            }).join('');
-            const skills = sheet.skills || {};
-            const skillsHtml = Object.entries(skills).map(([name,data])=>`<div class="flex justify-between items-center ${data.prof ? 'text-header' : ''}"><span>${name}</span><span class="text-accent">${data.bonus}</span></div>`).join('');
-            const attacks = sheet.attacks || [];
-            const attacksHtml = attacks.map(attack=>`
-                <div class="grid grid-cols-5 gap-4 items-center p-2 rounded-md hover:bg-[var(--input-bg)]">
-                    <span class="text-accent col-span-2">${attack.name}</span>
-                    <span>${attack.atkBonus}</span>
-                    <span>${attack.damage}</span>
-                    <div class="flex gap-1">
-                        <button class="px-2 py-1 text-sm border border-accent rounded-md hover:bg-accent hover:text-black roll-btn" data-roll="1d20${attack.atkBonus}" data-title="${attack.name} Hit">Hit</button>
-                        <button class="px-2 py-1 text-sm border border-price rounded-md hover:bg-price hover:text-black roll-btn" data-roll="${attack.damage}" data-title="${attack.name} Damage">Dmg</button>
-                    </div>
-                </div>
-            `).join('');
-            const preparedSpells = sheet.spellcasting?.preparedSpells || [];
-            const preparedHtml = preparedSpells.map(spell=>`<span class="bg-indigo-600/50 border border-indigo-500 px-3 py-1 rounded-full text-sm">${spell}</span>`).join('');
-            const spellSlots = sheet.spellcasting?.spellSlots || {};
-            state.spellState = { spellSlots };
-            let spellSlotsHtml = '';
-            for (const level in spellSlots) {
-                const { max, expended } = spellSlots[level];
-                let bar = '';
-                for (let i=0;i<max;i++) {
-                    const isAvailable = i < (max - expended);
-                    bar += `<div class="slot-segment slot ${isAvailable ? 'slot-available' : 'slot-expended'}" data-level="${level}" data-index="${i}"></div>`;
-                }
-                spellSlotsHtml += `<div class="flex items-center justify-start gap-4"><span class="text-accent w-20">Lvl ${level}</span><div class="slot-bar">${bar}</div></div>`;
-            }
-            const inventoryHtml = `<p class="text-2xl text-price mb-2">${player.gold} GP</p><div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">${Object.entries(inventorySummary).map(([name,count])=>`<div><span class="text-accent">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}</div>`;
-            const shopsHtml = state.activeShops.length===0 ? '<p class="text-dim">No active shops.</p>' : state.activeShops.map(s=>`<div class="flex justify-between items-center p-2 rounded-md hover:bg-[var(--input-bg)]"><span class="text-accent">${s.shopName || s.shopType}</span><a href="#" class="px-3 py-1 border border-header rounded-md text-header hover:bg-header hover:text-black transition-colors enter-shop-btn" data-shop-id="${s.id}">Enter</a></div>`).join('');
-            const features = sheet.features || [];
-            const featuresHtml = features.length ? features.map(f=>`<div><p class="text-accent text-lg">${f.name}</p><p class="text-dim">${f.desc}</p></div>`).join('') : '<p class="text-dim">No features.</p>';
-            const resources = sheet.resources || [];
-            const resourcesHtml = resources.length ? resources.map(r=>`<div class="flex justify-between items-center"><span class="text-accent">${r.name}</span><span class="text-lg">${r.current} / ${r.max}</span></div>`).join('') : '<p class="text-dim">No resources.</p>';
-            const conditionsHtml = conditions.map(c=>`<span class="bg-red-600/50 border border-red-500 px-3 py-1 rounded-full text-sm">${c}</span>`).join('');
-            const hpPercent = hpMax ? (hpCurrent / hpMax) * 100 : 0;
+            const inventorySummary = player.inventory.reduce((acc, item) => {
+                acc[item.name] = (acc[item.name] || 0) + 1;
+                return acc;
+            }, {});
+            const classLevel = player.sheet?.classlevel || '';
+            const formattedClassLevel = classLevel && !classLevel.toLowerCase().startsWith('lvl') ? `Level ${classLevel}` : classLevel;
+            const alignment = player.sheet?.alignment || '';
+            const subtitle = [formattedClassLevel, alignment].filter(Boolean).join(' | ');
+            const imgSrc = player.sheet?.avatarUrl || "https://i.imgur.com/zLRhJXx.png";
+            const hpValue = player.sheet?.combat?.hp ? `${player.sheet.combat.hp.current ?? "-"} / ${player.sheet.combat.hp.max ?? "-"}` : "-";
+            const acValue = player.sheet?.combat?.ac ?? "-";
+            const speedValue = player.sheet?.combat?.speed ?? "-";
 
             characterHubView.innerHTML = `
-    <div class="max-w-screen-2xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <aside class="lg:col-span-3 space-y-6">
-            <div class="dashboard-card p-4">
-                <div class="flex items-center gap-4">
-                    <img id="char-avatar" src="${sheet.avatarUrl || 'https://i.imgur.com/zLRhJXx.png'}" alt="Avatar" class="w-20 h-20 rounded-full border-2 border-header">
-                    <div>
-                        <h1 id="char-name" class="text-3xl text-header">${player.name}</h1>
-                        <p id="char-classlevel" class="text-lg text-dim">${sheet.classlevel || ''}</p>
-                    </div>
-                </div>
-                <div class="mt-4 text-sm">
-                    <span class="text-dim">Key:</span>
-                    <span id="player-key" class="text-header tracking-widest cursor-pointer" title="Click to copy">${state.characterKey}</span>
-                </div>
-            </div>
-
-            <div id="conditions-card" class="dashboard-card p-4 ${conditions.length ? '' : 'hidden'}">
-                <h2 class="text-xl text-header mb-3">&gt; Conditions</h2>
-                <div id="conditions-container" class="flex flex-wrap gap-2">${conditionsHtml}</div>
-            </div>
-
-            <div class="dashboard-card p-4">
-                <h2 class="text-xl text-header mb-3">&gt; Core Stats</h2>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between items-baseline mb-1">
-                            <span class="text-accent">Health</span>
-                            <span id="stat-hp" class="text-lg">${hpCurrent} / ${hpMax}</span>
+                <header class="mb-8">
+                    <div class="flex flex-col sm:flex-row items-center gap-6 p-4 border border-border rounded-lg bg-black/30">
+                        <div class="flex-shrink-0">
+                            <img src="${imgSrc}" alt="Character Avatar" class="w-32 h-32 object-cover rounded-full border-2 border-header shadow-[0_0_15px_rgba(0,255,136,0.5)]">
                         </div>
-                        <div class="progress-bar-container">
-                            <div id="hp-bar" class="progress-bar hp-bar" style="width: ${hpPercent}%;"></div>
+                        <div class="flex-1 text-center sm:text-left">
+                            <h1 class="text-4xl text-header">${player.name}</h1>
+                            <p class="text-xl text-dim">${subtitle}</p>
+                            <div class="mt-3 flex items-center justify-center sm:justify-start gap-2 text-sm">
+                                <span class="text-dim">Key:</span>
+                                <span id="player-key" class="text-header tracking-widest cursor-pointer" title="Click to copy">${state.characterKey}</span>
+                                <i data-lucide="clipboard" class="w-4 h-4 text-dim"></i>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-center text-lg w-full sm:w-auto">
+                            <div class="dashboard-card !p-3">
+                                <span class="text-dim">HP</span>
+                                <span class="text-2xl text-accent">${hpValue}</span>
+                            </div>
+                            <div class="dashboard-card !p-3">
+                                <span class="text-dim">AC</span>
+                                <span class="text-2xl text-accent">${acValue}</span>
+                            </div>
+                            <div class="dashboard-card !p-3">
+                                <span class="text-dim">Speed</span>
+                                <span class="text-2xl text-accent">${speedValue}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">AC</span>
-                            <span id="stat-ac" class="text-2xl text-accent">${ac}</span>
+                </header>
+                <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="dashboard-card lg:col-span-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="scroll-text" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Character Sheet</h2>
                         </div>
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">Speed</span>
-                            <span id="stat-speed" class="text-2xl text-accent">${speed}ft</span>
+                        <p class="text-dim mb-4 flex-grow">Review your full character details, including abilities, skills, and background.</p>
+                        <a href="character.html" id="open-full-sheet-btn" class="btn mt-auto">Open Full Sheet</a>
+                    </div>
+
+                    <div class="dashboard-card lg:col-span-2" id="inventory-card">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="backpack" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Inventory</h2>
                         </div>
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">Initiative</span>
-                            <span id="stat-init" class="text-2xl text-accent">${init}</span>
+                        <div class="flex-grow mb-4">
+                            <p class="text-3xl text-price mb-4">${player.gold} GP</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-lg max-h-32 overflow-y-auto">
+                                ${Object.keys(inventorySummary).length === 0 ? '<p class="text-dim">Empty.</p>' : Object.entries(inventorySummary).map(([name, count]) => `<div><span class="text-accent">${name}</span> <span class="text-dim">(x${count})</span></div>`).join('')}
+                            </div>
                         </div>
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">Prof.</span>
-                            <span id="stat-prof" class="text-2xl text-accent">${prof}</span>
+                        <button id="edit-inventory-btn" class="btn mt-auto">Manage Inventory</button>
+                    </div>
+
+                    <div id="spell-management-details" class="dashboard-card lg:col-span-2">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="sparkles" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Spellcasting</h2>
+                            <div class="ml-auto"><button id="long-rest-btn" type="button" class="btn">Long Rest</button></div>
                         </div>
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">Perception</span>
-                            <span id="stat-perc" class="text-2xl text-accent">${perception}</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4 flex-grow">
+                            <div>
+                                <h3 class="text-xl text-accent mb-2">Spell Slots</h3>
+                                <div class="space-y-2" id="spell-slots-container"></div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl text-accent mb-2">Prepared Spells</h3>
+                                <ul class="list-disc list-inside text-dim" id="prepared-spells-container"></ul>
+                            </div>
                         </div>
-                        <div class="stat-block">
-                            <span class="text-dim text-sm">Save DC</span>
-                            <span id="stat-dc" class="text-2xl text-accent">${spellSaveDc}</span>
+                        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <details class="cli-window">
+                                <summary class="text-xl text-header cursor-pointer">Spellbook</summary>
+                                <div id="spellbook-container" class="space-y-2 h-[50vh] lg:h-[600px] overflow-y-auto custom-scrollbar pr-2 mt-4"></div>
+                            </details>
+                            <details class="cli-window">
+                                <summary class="text-xl text-header cursor-pointer">Spell Search</summary>
+                                <div class="mt-4">
+                                    <div class="flex gap-2 mb-4">
+                                        <input type="text" id="search-input" class="input-field" placeholder="Search Spells">
+                                        <button id="search-btn" type="button" class="btn">Go</button>
+                                    </div>
+                                    <div id="search-results-container" class="space-y-2 min-h-[100px] max-h-[50vh] lg:max-h-[520px] overflow-y-auto custom-scrollbar pr-2"></div>
+                                </div>
+                            </details>
                         </div>
                     </div>
-                    <div class="pt-4 mt-4 border-t border-border">
-                        <h3 class="text-lg text-accent mb-2">Saving Throws</h3>
-                        <div id="saving-throws-container" class="grid grid-cols-3 gap-3">${savingThrowsHtml}</div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="dashboard-card p-4">
-                <h2 class="text-xl text-header mb-3">&gt; Skills</h2>
-                <div id="skills-container" class="grid grid-cols-2 gap-x-4 gap-y-1 text-lg max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                    ${skillsHtml}
-                </div>
-            </div>
-        </aside>
-
-        <main class="lg:col-span-6">
-            <div class="dashboard-card h-full">
-                <nav class="flex border-b border-border">
-                    <button class="tab-button active" data-tab="combat-actions"><i data-lucide="swords" class="inline-block w-4 h-4 mr-1"></i> Combat</button>
-                    <button class="tab-button" data-tab="resources"><i data-lucide="gem" class="inline-block w-4 h-4 mr-1"></i> Resources</button>
-                </nav>
-
-                <div class="p-4 custom-scrollbar overflow-y-auto" style="max-height: calc(100vh - 100px);">
-                    <div id="combat-actions" class="tab-content active space-y-6">
-                        <div>
-                            <h3 class="text-xl text-header mb-2">&gt; Attacks</h3>
-                            <div id="attacks-container" class="space-y-2">${attacksHtml}</div>
+                    <div class="dashboard-card lg:col-span-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="store" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Shops</h2>
                         </div>
-                        <div>
-                            <h3 class="text-xl text-header mb-2">&gt; Spellcasting</h3>
-                            <p class="text-dim">Prepared Spells:</p>
-                            <div class="flex flex-wrap gap-2">${preparedHtml}</div>
-                            <div id="spell-slots-container" class="space-y-3 pt-4 mt-4 border-t border-border">${spellSlotsHtml}</div>
+                        <div class="space-y-3 flex-grow mb-4">
+                            ${state.activeShops.length === 0
+                                ? '<p class="text-dim">No active shops.</p>'
+                                : state.activeShops.map(s => `
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-accent">${s.shopName || s.shopType}</span>
+                                        <button class="btn-secondary !p-2 text-sm join-shop-btn" data-shop-id="${s.id}">Enter</button>
+                                    </div>
+                                `).join('')}
                         </div>
                     </div>
-                    <div id="resources" class="tab-content space-y-6">
-                        <div>
-                            <h3 class="text-xl text-header mb-2">&gt; Inventory</h3>
-                            <div id="inventory-container" class="space-y-2">${inventoryHtml}</div>
-                        </div>
-                        <div>
-                            <h3 class="text-xl text-header mb-2">&gt; Shops</h3>
-                            <div id="shops-container" class="space-y-2">${shopsHtml}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
 
-        <aside class="lg:col-span-3 space-y-6">
-            <div class="dashboard-card p-4">
-                <h2 class="text-xl text-header mb-3">&gt; Actions</h2>
-                <div class="space-y-3">
-                    <a href="character.html" id="open-full-sheet-btn" class="block text-center w-full p-3 bg-indigo-600/50 border border-indigo-500 rounded-md hover:bg-indigo-500/50 transition-colors">
-                        <i data-lucide="scroll-text" class="mx-auto mb-1 w-8 h-8"></i>
-                        Full Character Sheet
-                    </a>
-                    <a href="player-initiative.html" class="block text-center w-full p-3 bg-red-600/50 border border-red-500 rounded-md hover:bg-red-500/50 transition-colors">
-                        <i data-lucide="swords" class="mx-auto mb-1 w-8 h-8"></i>
-                        Enter Combat
-                    </a>
-                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-border">
-                        <button id="short-rest-btn" class="p-2 bg-yellow-600/50 border border-yellow-500 rounded-md hover:bg-yellow-500/50 transition-colors">Short Rest</button>
-                        <button id="long-rest-btn" class="p-2 bg-green-600/50 border border-green-500 rounded-md hover:bg-green-500/50 transition-colors">Long Rest</button>
+                    <div class="dashboard-card lg:col-span-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="swords" class="w-8 h-8 text-header"></i>
+                            <h2 class="text-2xl text-header">&gt; Join the Battle</h2>
+                        </div>
+                        <p class="text-dim mb-4 flex-grow">View the turn order and track the flow of combat.</p>
+                        <a href="player-initiative.html" class="btn mt-auto">Open Battle Tracker</a>
                     </div>
-                </div>
-            </div>
-            <div class="dashboard-card p-4">
-                <h2 class="text-xl text-header mb-3">&gt; Class Resources</h2>
-                <div id="class-resources-container" class="space-y-3">${resourcesHtml}</div>
-            </div>
-            <div class="dashboard-card p-4">
-                <h2 class="text-xl text-header mb-3">&gt; Features & Traits</h2>
-                <div id="features-container" class="space-y-2 text-sm max-h-96 overflow-y-auto custom-scrollbar pr-2">${featuresHtml}</div>
-            </div>
-        </aside>
-    </div>
-
-    <div id="roll-result-modal" class="hidden fixed bottom-5 right-5 bg-black border-2 border-header rounded-lg shadow-lg p-4 z-[100] w-64">
-        <button id="close-roll-modal-btn" class="absolute top-1 right-1 text-accent hover:text-header">&times;</button>
-        <h3 id="roll-title" class="text-lg text-header">Roll Result</h3>
-        <p id="roll-details" class="text-sm text-dim"></p>
-        <p id="roll-total" class="text-4xl text-price text-center my-2"></p>
-    </div>
+                </main>
             `;
             lucide.createIcons();
-            characterHubView.querySelectorAll('.enter-shop-btn').forEach(btn => {
-                btn.addEventListener('click', e => { e.preventDefault(); joinShop(e.currentTarget.dataset.shopId); });
-            });
-            document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
-            const tabButtons = characterHubView.querySelectorAll('.tab-button');
-            const tabContents = characterHubView.querySelectorAll('.tab-content');
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-                    button.classList.add('active');
-                    characterHubView.querySelector(`#${button.dataset.tab}`).classList.add('active');
-                });
-            });
-            characterHubView.addEventListener('click', e => {
-                if (e.target.classList.contains('roll-btn')) {
-                    const result = rollDice(e.target.dataset.roll);
-                    showRollResult(e.target.dataset.title, result);
-                } else if (e.target.classList.contains('slot-segment')) {
-                    handleSlotClick(e);
-                }
-            });
-            document.getElementById('close-roll-modal-btn')?.addEventListener('click', () => document.getElementById('roll-result-modal').classList.add('hidden'));
-            document.getElementById('long-rest-btn')?.addEventListener('click', handleLongRest);
-            document.getElementById('short-rest-btn')?.addEventListener('click', () => alert('Short Rest logic not yet implemented.'));
             document.getElementById('open-full-sheet-btn')?.addEventListener('click', () => {
                 sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
                 sessionStorage.setItem('currentPlayerKey', state.characterKey);
             });
-        }
-
-        function handleSlotClick(e) {
-            if (!e.target.classList.contains('slot-segment')) return;
-            const level = e.target.dataset.level;
-            const index = parseInt(e.target.dataset.index, 10);
-            const slots = state.playerData?.sheet?.spellcasting?.spellSlots;
-            if (!slots || !slots[level]) return;
-            const slot = slots[level];
-            const max = slot.max;
-            const currentAvailable = max - slot.expended;
-            slot.expended = (currentAvailable === index + 1) ? max - index : max - (index + 1);
-            state.spellState = { spellSlots: slots };
-            updateSpellSlotsUI(slots);
-            try { window.saveSpellSlotsDebounced(slots); } catch {}
-        }
-
-        async function handleLongRest() {
-            const sheet = state.playerData?.sheet;
-            if (!sheet) return;
-            if (sheet.combat?.hp) {
-                sheet.combat.hp.current = sheet.combat.hp.max;
-            }
-            const slots = sheet.spellcasting?.spellSlots || {};
-            Object.values(slots).forEach(slot => slot.expended = 0);
-            state.spellState = { spellSlots: slots };
-            updateSpellSlotsUI(slots);
-            try {
-                window.saveSpellSlotsDebounced(slots);
-                await updateDoc(doc(db, 'characters', state.characterKey), { 'sheet.combat.hp.current': sheet.combat.hp.current });
-            } catch (err) {
-                console.error('Error during long rest:', err);
-            }
-            renderCharacterHub();
-            alert('You feel fully rested. HP and spell slots restored.');
-        }
-
-        function rollDice(diceString) {
-            if (!diceString || typeof diceString !== 'string') return { total: 0, rolls: [], modifier: 0, diceString: 'Invalid', maxRoll: 0 };
-            const cleanedString = diceString.replace(/\s+/g, '');
-            const match = cleanedString.match(/(\d+)d(\d+)([+-]\d+)?/);
-            if (!match) {
-                const flatNumber = parseInt(cleanedString, 10);
-                return isNaN(flatNumber)
-                    ? { total: 0, rolls: [], modifier: 0, diceString: cleanedString, maxRoll: 0 }
-                    : { total: flatNumber, rolls: [flatNumber], modifier: 0, diceString: cleanedString, maxRoll: flatNumber };
-            }
-            const numDice = parseInt(match[1], 10);
-            const numSides = parseInt(match[2], 10);
-            const modifier = match[3] ? parseInt(match[3], 10) : 0;
-            let total = 0;
-            const rolls = [];
-            for (let i = 0; i < numDice; i++) {
-                const roll = Math.floor(Math.random() * numSides) + 1;
-                rolls.push(roll);
-                total += roll;
-            }
-            total += modifier;
-            return { total, rolls, modifier, diceString: cleanedString, maxRoll: numSides };
-        }
-
-        function animateRoll(max, final) {
-            const totalEl = document.getElementById('roll-total');
-            let current = 1;
-            totalEl.classList.add('animate-pulse');
-            const interval = setInterval(() => {
-                totalEl.textContent = current;
-                current = current >= max ? 1 : current + 1;
-            }, 50);
-            setTimeout(() => {
-                clearInterval(interval);
-                totalEl.classList.remove('animate-pulse');
-                totalEl.textContent = final;
-            }, 800);
-        }
-
-        function showRollResult(title, result) {
-            const modal = document.getElementById('roll-result-modal');
-            document.getElementById('roll-title').textContent = title;
-            let details = `Rolled: ${result.diceString} -> [${result.rolls.join(', ')}]`;
-            if (result.modifier) details += ` ${result.modifier > 0 ? '+' : ''} ${result.modifier}`;
-            document.getElementById('roll-details').textContent = details;
-            animateRoll(result.maxRoll || result.total, result.total);
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.classList.add('hidden'), 4000);
+            document.querySelectorAll('.join-shop-btn').forEach(btn => {
+                btn.addEventListener('click', e => joinShop(e.target.dataset.shopId));
+            });
+            document.getElementById('edit-inventory-btn')?.addEventListener('click', handleEditInventory);
+            document.getElementById('player-key')?.addEventListener('click', () => navigator.clipboard.writeText(state.characterKey));
+            initializeSpellManagement();
         }
 
         function renderDMHub() {
