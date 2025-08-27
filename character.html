@@ -338,16 +338,28 @@
         const skillAbilityMap = {
             Strength: ["Athletics"],
             Dexterity: ["Acrobatics", "Sleight of Hand", "Stealth"],
+            Constitution: [],
             Intelligence: ["Arcana", "History", "Investigation", "Nature", "Religion"],
             Wisdom: ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"],
             Charisma: ["Deception", "Intimidation", "Performance", "Persuasion"]
         };
 
+        const abilityOrder = [
+            'Strength',
+            'Dexterity',
+            'Constitution',
+            'Intelligence',
+            'Wisdom',
+            'Charisma'
+        ];
+
         function renderGroupedAbilitiesSkills(abilities, skills) {
             const container = document.getElementById('abilities-and-skills-container');
             container.innerHTML = '';
             if (abilities === 'no context provided') return;
-            Object.entries(abilities).forEach(([abilityName, abilityData]) => {
+            abilityOrder.forEach(abilityName => {
+                const abilityData = abilities[abilityName];
+                if (!abilityData) return;
                 const associatedSkills = skillAbilityMap[abilityName] || [];
                 const skillsHtml = associatedSkills.map(skillName => {
                     const sData = skills ? skills[skillName] : null;
@@ -378,13 +390,15 @@
             const abilitiesContainer = document.getElementById('separated-abilities-container');
             abilitiesContainer.innerHTML = '';
             if (abilities !== 'no context provided') {
-                for (const [name, info] of Object.entries(abilities)) {
+                abilityOrder.forEach(name => {
+                    const info = abilities[name];
+                    if (!info) return;
                     const abbr = abbrMap[name] || name.slice(0,3).toUpperCase();
                     let mod = get(info, 'mod');
                     if (mod !== 'no context provided' && typeof mod === 'number' && mod >= 0) mod = `+${mod}`;
                     const score = get(info, 'score');
                     abilitiesContainer.innerHTML += `<div class="content-card !p-2"><div class="text-sm text-accent">${abbr}</div><div class="text-2xl">${score}</div><div class="text-dim">${mod}</div></div>`;
-                }
+                });
             } else {
                 abilitiesContainer.textContent = 'no context provided';
             }
