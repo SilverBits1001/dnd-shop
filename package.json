@@ -1,8 +1,0 @@
-{
-  "name": "dnd-shop",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "test": "node dice.test.js"
-  }
-}

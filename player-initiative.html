@@ -165,15 +165,6 @@
             20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
 
-        /* Roll Result Modal */
-        #roll-result-modal {
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-        }
-        #roll-result-modal.hidden {
-            opacity: 0;
-            transform: translateY(20px);
-            pointer-events: none;
-        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
@@ -210,14 +201,6 @@
         <div class="lg:col-span-2 space-y-6">
             <div class="cli-window">
                  <a href="character.html" id="character-sheet-link" class="btn w-full text-center">View Full Character Sheet</a>
-            </div>
-            <!-- Dice Roller -->
-            <div class="cli-window">
-                <h2 class="text-2xl text-header mb-4">&gt; Dice Roller</h2>
-                <div class="flex gap-2">
-                    <input id="player-dice-input" type="text" class="input-field flex-grow" placeholder="e.g. 1d20+5">
-                    <button id="player-roll-btn" class="btn">Roll</button>
-                </div>
             </div>
             <!-- Attacks Widget -->
             <div class="cli-window">
@@ -257,17 +240,9 @@
     </div>
     
     <!-- Roll Result Modal -->
-    <div id="roll-result-modal" class="hidden fixed bottom-5 right-5 bg-black border-2 border-header rounded-lg shadow-lg p-4 z-[100] w-64">
-        <button id="close-roll-modal-btn" class="absolute top-1 right-1 text-accent hover:text-header">&times;</button>
-        <h3 id="roll-title" class="text-lg text-header">Roll Result</h3>
-        <p id="roll-details" class="text-sm text-dim"></p>
-        <p id="roll-total" class="text-4xl text-price text-center my-2"></p>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { rollExpr } from './dice.js';
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -308,50 +283,6 @@
         const preparedSpellsContainer = document.getElementById('prepared-spells-container');
         const spellSlotsContainer = document.getElementById('spell-slots-container');
         const longRestBtn = document.getElementById('long-rest-btn');
-        const rollResultModal = document.getElementById('roll-result-modal');
-        const playerDiceInput = document.getElementById('player-dice-input');
-        const playerRollBtn = document.getElementById('player-roll-btn');
-
-        // Dice rolling
-        function rollDice(expr) {
-            try {
-                return { expr, ...rollExpr(expr) };
-            } catch {
-                return { expr, total: 0, rolls: [] };
-            }
-        }
-
-        function animateRoll(max, final) {
-            const totalEl = document.getElementById('roll-total');
-            let current = 1;
-            totalEl.classList.add('animate-pulse');
-            const interval = setInterval(() => {
-                totalEl.textContent = current;
-                current = current >= max ? 1 : current + 1;
-            }, 50);
-            setTimeout(() => {
-                clearInterval(interval);
-                totalEl.classList.remove('animate-pulse');
-                totalEl.textContent = final;
-            }, 800);
-        }
-
-        function showRollResult(title, result) {
-            document.getElementById('roll-title').textContent = title;
-            const base = result.rolls.reduce((a, b) => a + b, 0);
-            const mod = result.total - base;
-            let details = `Rolled: ${result.expr} -> [${result.rolls.join(', ')}]`;
-            if (mod) {
-                details += ` ${mod > 0 ? '+' : ''} ${mod}`;
-            }
-            document.getElementById('roll-details').textContent = details;
-            const max = result.rolls.length ? Math.max(result.total, ...result.rolls) : result.total;
-            animateRoll(max, result.total);
-            rollResultModal.classList.remove('hidden');
-            setTimeout(() => rollResultModal.classList.add('hidden'), 4000);
-        }
-        document.getElementById('close-roll-modal-btn').addEventListener('click', () => rollResultModal.classList.add('hidden'));
-
         // Combat order rendering
         function renderCombatOrder() {
             if (!combatState.combatStarted || combatState.combatants.length === 0) {
@@ -447,11 +378,9 @@
                     <p>${attack.name}</p>
                     <div class="flex items-center gap-2">
                         <span>${attack.atkBonus}</span>
-                        <button class="btn-secondary !p-1 roll-hit-btn" data-bonus="${attack.atkBonus}">Roll</button>
                     </div>
                     <div class="flex items-center gap-2">
                         <span>${attack.damage}</span>
-                        <button class="btn-secondary !p-1 roll-dmg-btn" data-damage="${attack.damage}">Roll</button>
                     </div>`;
                 attacksContainer.appendChild(attackEl);
             });
@@ -641,28 +570,11 @@
                 });
             });
 
-            attacksContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('roll-hit-btn')) {
-                    const result = rollDice(`1d20${e.target.dataset.bonus}`);
-                    showRollResult('Attack Roll', result);
-                }
-                if (e.target.classList.contains('roll-dmg-btn')) {
-                    const result = rollDice(e.target.dataset.damage);
-                    showRollResult('Damage Roll', result);
-                }
-            });
-
             preparedSpellsContainer.addEventListener('click', e => {
                 if (e.target.classList.contains('cast-btn')) handleCastSpell(e);
             });
             spellSlotsContainer.addEventListener('click', handleSlotClick);
             longRestBtn.addEventListener('click', handleLongRest);
-            playerRollBtn.addEventListener('click', () => {
-                const expr = playerDiceInput.value.trim();
-                if (!expr) return;
-                const result = rollDice(expr);
-                showRollResult('Dice Roll', result);
-            });
 
             lucide.createIcons();
         });
