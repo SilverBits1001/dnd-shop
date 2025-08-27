@@ -478,6 +478,15 @@
             if (savedKey) {
                 document.getElementById('character-key-input').value = savedKey;
             }
+
+            // Restore previous character session if available
+            const sessionPlayer = sessionStorage.getItem('currentPlayer');
+            const sessionKey = sessionStorage.getItem('currentPlayerKey');
+            if (sessionPlayer && sessionKey) {
+                state.characterKey = sessionKey;
+                state.playerData = JSON.parse(sessionPlayer);
+                listenToPlayerData(sessionKey);
+            }
             listenToActiveShops();
             render();
         }
