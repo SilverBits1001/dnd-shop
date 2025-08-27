@@ -68,6 +68,15 @@
             10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
             20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
+        /* Roll Result Modal */
+        #roll-result-modal {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        #roll-result-modal.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
@@ -121,6 +130,13 @@
                                 <button id="hp-heal-btn" class="btn !p-3 bg-green-800 hover:!bg-green-700 !text-white" title="Heal"><i data-lucide="plus" class="w-5 h-5"></i></button>
                             </div>
                         </div>
+                        <div class="pt-3 border-t border-border">
+                            <h3 class="text-xl text-accent mb-2">&gt; Dice Roller</h3>
+                            <div class="flex gap-2">
+                                <input id="dm-dice-input" type="text" class="input-field flex-grow" placeholder="e.g. 1d20+5">
+                                <button id="dm-roll-btn" class="btn">Roll</button>
+                            </div>
+                        </div>
                         <div class="pt-3 border-t border-border flex items-center justify-center gap-2 text-sm"><input id="show-enemy-hp-checkbox" type="checkbox" class="h-4 w-4"><label for="show-enemy-hp-checkbox">Show Enemy HP to Players</label></div>
                         <button id="end-combat-btn" class="btn-secondary w-full mt-4">End Combat</button>
                      </div>
@@ -142,13 +158,22 @@
                 <select id="status-select" class="input-field !text-white"></select>
                 <input id="status-duration-input" type="number" class="input-field" placeholder="Duration in rounds (optional)">
                 <button id="add-status-btn" class="btn w-full">Add Effect</button>
-             </div>
-        </div>
+            </div>
+       </div>
+    </div>
+
+    <!-- Roll Result Modal -->
+    <div id="roll-result-modal" class="hidden fixed bottom-5 right-5 bg-black border-2 border-header rounded-lg shadow-lg p-4 z-[100] w-64">
+        <button id="close-roll-modal-btn" class="absolute top-1 right-1 text-accent hover:text-header">&times;</button>
+        <h3 id="roll-title" class="text-lg text-header">Roll Result</h3>
+        <p id="roll-details" class="text-sm text-dim"></p>
+        <p id="roll-total" class="text-4xl text-price text-center my-2"></p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { rollExpr } from './dice.js';
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -206,12 +231,54 @@
         const addStatusBtn = document.getElementById('add-status-btn');
         const closeStatusModalBtn = document.getElementById('close-status-modal-btn');
         const showEnemyHPCheckbox = document.getElementById('show-enemy-hp-checkbox');
+        const dmDiceInput = document.getElementById('dm-dice-input');
+        const dmRollBtn = document.getElementById('dm-roll-btn');
+        const rollResultModal = document.getElementById('roll-result-modal');
         const sessionIdDisplay = document.getElementById('session-id');
         const combatId = sessionStorage.getItem('currentCombatId') || Math.random().toString(36).substring(2, 8);
         sessionStorage.setItem('currentCombatId', combatId);
         const combatDocRef = doc(db, 'combatSessions', combatId);
         const activeCombatRef = doc(db, 'currentCombat', 'active');
         setDoc(activeCombatRef, { id: combatId });
+
+        // Dice rolling
+        function rollDice(expr) {
+            try {
+                return { expr, ...rollExpr(expr) };
+            } catch {
+                return { expr, total: 0, rolls: [] };
+            }
+        }
+
+        function animateRoll(max, final) {
+            const totalEl = document.getElementById('roll-total');
+            let current = 1;
+            totalEl.classList.add('animate-pulse');
+            const interval = setInterval(() => {
+                totalEl.textContent = current;
+                current = current >= max ? 1 : current + 1;
+            }, 50);
+            setTimeout(() => {
+                clearInterval(interval);
+                totalEl.classList.remove('animate-pulse');
+                totalEl.textContent = final;
+            }, 800);
+        }
+
+        function showRollResult(title, result) {
+            document.getElementById('roll-title').textContent = title;
+            const base = result.rolls.reduce((a, b) => a + b, 0);
+            const mod = result.total - base;
+            let details = `Rolled: ${result.expr} -> [${result.rolls.join(', ')}]`;
+            if (mod) details += ` ${mod > 0 ? '+' : ''} ${mod}`;
+            document.getElementById('roll-details').textContent = details;
+            const max = result.rolls.length ? Math.max(result.total, ...result.rolls) : result.total;
+            animateRoll(max, result.total);
+            rollResultModal.classList.remove('hidden');
+            setTimeout(() => rollResultModal.classList.add('hidden'), 4000);
+        }
+
+        document.getElementById('close-roll-modal-btn').addEventListener('click', () => rollResultModal.classList.add('hidden'));
 
         async function broadcastState() {
             await setDoc(combatDocRef, state);
@@ -554,6 +621,12 @@
             hpHealBtn.addEventListener('click', () => modifySelectedCombatantHP('heal'));
             addStatusBtn.addEventListener('click', addStatusEffect);
             closeStatusModalBtn.addEventListener('click', () => statusEffectModal.classList.add('hidden'));
+            dmRollBtn.addEventListener('click', () => {
+                const expr = dmDiceInput.value.trim();
+                if (!expr) return;
+                const result = rollDice(expr);
+                showRollResult('Dice Roll', result);
+            });
             showEnemyHPCheckbox.addEventListener('change', (e) => {
                 state.showEnemyHP = e.target.checked;
                 renderTracker();

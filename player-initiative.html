@@ -211,6 +211,14 @@
             <div class="cli-window">
                  <a href="character.html" id="character-sheet-link" class="btn w-full text-center">View Full Character Sheet</a>
             </div>
+            <!-- Dice Roller -->
+            <div class="cli-window">
+                <h2 class="text-2xl text-header mb-4">&gt; Dice Roller</h2>
+                <div class="flex gap-2">
+                    <input id="player-dice-input" type="text" class="input-field flex-grow" placeholder="e.g. 1d20+5">
+                    <button id="player-roll-btn" class="btn">Roll</button>
+                </div>
+            </div>
             <!-- Attacks Widget -->
             <div class="cli-window">
                 <h2 class="text-2xl text-header mb-4">&gt; Attacks</h2>
@@ -259,6 +267,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { rollExpr } from './dice.js';
 
         const firebaseConfig = {
           apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
@@ -300,32 +309,16 @@
         const spellSlotsContainer = document.getElementById('spell-slots-container');
         const longRestBtn = document.getElementById('long-rest-btn');
         const rollResultModal = document.getElementById('roll-result-modal');
+        const playerDiceInput = document.getElementById('player-dice-input');
+        const playerRollBtn = document.getElementById('player-roll-btn');
 
         // Dice rolling
-        function rollDice(diceString) {
-            if (!diceString || typeof diceString !== 'string') {
-                return { total: 0, rolls: [], modifier: 0, diceString: 'Invalid', maxRoll: 0 };
+        function rollDice(expr) {
+            try {
+                return { expr, ...rollExpr(expr) };
+            } catch {
+                return { expr, total: 0, rolls: [] };
             }
-            const cleanedString = diceString.replace(/\s+/g, '');
-            const match = cleanedString.match(/(\d+)d(\d+)([+-]\d+)?/);
-            if (!match) {
-                const flatNumber = parseInt(cleanedString, 10);
-                return isNaN(flatNumber)
-                    ? { total: 0, rolls: [], modifier: 0, diceString: cleanedString, maxRoll: 0 }
-                    : { total: flatNumber, rolls: [flatNumber], modifier: 0, diceString: cleanedString, maxRoll: flatNumber };
-            }
-            const numDice = parseInt(match[1], 10);
-            const numSides = parseInt(match[2], 10);
-            const modifier = match[3] ? parseInt(match[3], 10) : 0;
-            let total = 0;
-            const rolls = [];
-            for (let i = 0; i < numDice; i++) {
-                const roll = Math.floor(Math.random() * numSides) + 1;
-                rolls.push(roll);
-                total += roll;
-            }
-            total += modifier;
-            return { total, rolls, modifier, diceString: cleanedString, maxRoll: numSides };
         }
 
         function animateRoll(max, final) {
@@ -345,12 +338,15 @@
 
         function showRollResult(title, result) {
             document.getElementById('roll-title').textContent = title;
-            let details = `Rolled: ${result.diceString} -> [${result.rolls.join(', ')}]`;
-            if (result.modifier) {
-                details += ` ${result.modifier > 0 ? '+' : ''} ${result.modifier}`;
+            const base = result.rolls.reduce((a, b) => a + b, 0);
+            const mod = result.total - base;
+            let details = `Rolled: ${result.expr} -> [${result.rolls.join(', ')}]`;
+            if (mod) {
+                details += ` ${mod > 0 ? '+' : ''} ${mod}`;
             }
             document.getElementById('roll-details').textContent = details;
-            animateRoll(result.maxRoll || result.total, result.total);
+            const max = result.rolls.length ? Math.max(result.total, ...result.rolls) : result.total;
+            animateRoll(max, result.total);
             rollResultModal.classList.remove('hidden');
             setTimeout(() => rollResultModal.classList.add('hidden'), 4000);
         }
@@ -661,6 +657,12 @@
             });
             spellSlotsContainer.addEventListener('click', handleSlotClick);
             longRestBtn.addEventListener('click', handleLongRest);
+            playerRollBtn.addEventListener('click', () => {
+                const expr = playerDiceInput.value.trim();
+                if (!expr) return;
+                const result = rollDice(expr);
+                showRollResult('Dice Roll', result);
+            });
 
             lucide.createIcons();
         });
