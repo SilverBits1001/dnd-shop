@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D DM Initiative Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-text: #E6E6E6; --color-header: #00FF88; --color-accent: #FFFFFF; --color-price: #FFB454; --color-dim: #6B7280; --color-border: #333333; --shadow-glow: 0 0 8px; --color-bg: #0A0A0A; --window-bg: rgba(20, 20, 20, 0.9); --input-bg: #1a1a1a; --btn-text: #000000; font-family: 'VT323', monospace;
+        }
+        body { font-size: 20px; line-height: 1.6; overflow-x: hidden; color: var(--color-text); background-color: var(--color-bg); padding-top: 5rem; }
+        .cli-window { border: 1px solid var(--color-border); border-radius: 0.375rem; padding: 1.5rem; background-color: var(--window-bg); box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); }
+        .btn { display: inline-block; padding: 0.75rem 1.25rem; background-color: var(--color-accent); color: var(--btn-text); text-shadow: none; cursor: pointer; border: none; border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
+        .btn:hover:not(:disabled) { background-color: var(--color-bg); color: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
+        .btn-secondary { background-color: transparent; color: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.25rem; transition: all 0.2s ease-in-out; }
+        .btn-secondary:hover { background-color: var(--color-accent); color: var(--btn-text); }
+        .input-field { background-color: var(--input-bg); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.5rem; width: 100%; font-family: inherit; border-radius: 0.25rem; }
+        .input-field:focus { outline: none; box-shadow: 0 0 8px var(--color-accent); }
+        .text-header { color: var(--color-header); text-shadow: var(--shadow-glow) var(--color-header); }
+        .text-accent { color: var(--color-accent); } .text-dim { color: var(--color-dim); } .border-border { border-color: var(--color-border); }
+        .combatant-list-item { transition: all 0.3s ease-in-out; border-left: 4px solid transparent; cursor: pointer; position: relative; }
+        .combatant-list-item.active { background-color: rgba(0, 255, 136, 0.1); border-left-color: var(--color-header); transform: scale(1.02); }
+        .combatant-list-item.selected { box-shadow: 0 0 10px var(--color-accent); border-left-color: var(--color-accent); }
+        .combatant-list-item.downed { opacity: 0.4; background-color: rgba(255, 0, 0, 0.1); }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .status-effect-badge { display: inline-flex; align-items: center; gap: 4px; background-color: var(--input-bg); border: 1px solid var(--color-border); border-radius: 9999px; padding: 2px 8px; font-size: 0.8rem; line-height: 1; }
+
+        /* Health Change Animations */
+        .hp-change-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            animation: float-up-fade 1.5s ease-out forwards;
+        }
+        .hp-damage { color: #ef4444; text-shadow: 0 0 5px #ef4444; }
+        .hp-heal { color: #22c55e; text-shadow: 0 0 5px #22c55e; }
+
+        @keyframes float-up-fade {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -200%) scale(1.2); }
+        }
+
+        .flash-damage { animation: flash-red 0.5s ease-out; }
+        .flash-heal { animation: flash-green 0.5s ease-out; }
+        .shake { animation: shake-horizontal 0.4s ease-in-out; }
+
+        @keyframes flash-red {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(239, 68, 68, 0.3); }
+        }
+        @keyframes flash-green {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(34, 197, 94, 0.3); }
+        }
+        @keyframes shake-horizontal {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div id="toolbar" class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-end items-center h-20 bg-[#0A0A0A]">
+        <button id="exit-mode-btn" onclick="history.back()"><i data-lucide="x" class="w-6 h-6"></i></button>
+    </div>
+
+    <div id="initiative-tracker-view" class="max-w-4xl mx-auto mt-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl text-header">&gt; DM Initiative Tracker</h1>
+            <p class="text-lg text-dim">Session ID: <span id="session-id" class="text-accent"></span></p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-1 space-y-6">
+                <div id="setup-section" class="cli-window">
+                    <h2 class="text-2xl text-header mb-4">&gt; Setup</h2>
+                    <div class="space-y-4">
+                        <button id="add-players-btn" class="btn-secondary w-full">Add All Players</button>
+                        <div>
+                            <h3 class="text-xl text-accent mb-2">&gt; Add Enemies</h3>
+                            <div class="space-y-2">
+                                <input id="enemy-name-input" type="text" class="input-field" placeholder="Enemy Name">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input id="enemy-hp-input" type="number" class="input-field" placeholder="HP">
+                                    <input id="enemy-ac-input" type="number" class="input-field" placeholder="AC">
+                                    <input id="enemy-initiative-input" type="number" class="input-field" placeholder="Init">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input id="enemy-quantity-input" type="number" class="input-field" placeholder="Qty" value="1">
+                                    <div class="flex items-center gap-2 text-sm"><input id="group-initiative-checkbox" type="checkbox" class="h-4 w-4"><label for="group-initiative-checkbox">Group Init</label></div>
+                                </div>
+                                <button id="add-enemy-btn" class="btn w-full">Add Enemies</button>
+                            </div>
+                        </div>
+                        <button id="start-combat-btn" class="btn w-full !bg-[var(--color-header)] !text-black">Start Combat</button>
+                    </div>
+                </div>
+
+                <div id="controls-section" class="cli-window hidden">
+                     <h2 class="text-2xl text-header mb-4">&gt; Controls</h2>
+                     <div class="space-y-3">
+                        <div class="text-center"><p class="text-dim text-lg">ROUND</p><p id="round-counter" class="text-4xl text-accent">1</p></div>
+                        <button id="next-turn-btn" class="btn w-full text-lg">Next Turn</button>
+                        <div id="hp-modifier-section" class="pt-3 border-t border-border hidden">
+                            <p class="text-dim text-center">Modify HP for: <span id="active-combatant-name" class="text-accent font-bold"></span></p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button id="hp-damage-btn" class="btn !p-3 bg-red-800 hover:!bg-red-700 !text-white" title="Damage"><i data-lucide="minus" class="w-5 h-5"></i></button>
+                                <input id="hp-change-input" type="number" class="input-field text-center text-price text-lg" placeholder="Amount">
+                                <button id="hp-heal-btn" class="btn !p-3 bg-green-800 hover:!bg-green-700 !text-white" title="Heal"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+                        <div class="pt-3 border-t border-border flex items-center justify-center gap-2 text-sm"><input id="show-enemy-hp-checkbox" type="checkbox" class="h-4 w-4"><label for="show-enemy-hp-checkbox">Show Enemy HP to Players</label></div>
+                        <button id="end-combat-btn" class="btn-secondary w-full mt-4">End Combat</button>
+                     </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 cli-window">
+                <h2 class="text-2xl text-header mb-4">&gt; Combat Order</h2>
+                <div id="combatants-list" class="space-y-3"><p class="text-dim">Add players and enemies to begin.</p></div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="status-effect-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="cli-window w-full max-w-md">
+             <button id="close-status-modal-btn" class="absolute top-2 right-2 text-accent hover:text-header"><i data-lucide="x" class="w-6 h-6"></i></button>
+             <h2 class="text-2xl text-header mb-4">&gt; Add Status Effect</h2>
+             <div class="space-y-2">
+                <select id="status-select" class="input-field !text-white"></select>
+                <input id="status-duration-input" type="number" class="input-field" placeholder="Duration in rounds (optional)">
+                <button id="add-status-btn" class="btn w-full">Add Effect</button>
+             </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4KsHgYxihH0fgsSET1kcnONHxtlInZIE",
+          authDomain: "dnd-shop-app-c4f86.firebaseapp.com",
+          projectId: "dnd-shop-app-c4f86",
+          storageBucket: "dnd-shop-app-c4f86.appspot.com",
+          messagingSenderId: "480358969004",
+          appId: "1:480358969004:web:51e08541ec64dc4b4a7909",
+          measurementId: "G-DWLMWMZTZ3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function fetchPlayers() {
+            const snapshot = await getDocs(collection(db, 'characters'));
+            return snapshot.docs.map(docSnap => {
+                const data = docSnap.data() || {};
+                const name = data.name || data.charname || data.sheet?.charname || docSnap.id;
+                const hp = data.hp ?? data.sheet?.combat?.hp?.current ?? null;
+                const ac = data.ac ?? data.sheet?.combat?.ac ?? null;
+                return { id: docSnap.id, name, hp, ac, type: 'player' };
+            });
+        }
+        
+        const statusEffectOptions = ["Blinded", "Charmed", "Concentrating", "Deafened", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious"];
+
+        let state = {
+            combatants: [],
+            currentTurn: 0,
+            round: 1,
+            combatStarted: false,
+            statusTargetIndex: null,
+            showEnemyHP: false,
+            selectedCombatantIndex: null,
+        };
+
+        const setupSection = document.getElementById('setup-section');
+        const controlsSection = document.getElementById('controls-section');
+        const combatantsList = document.getElementById('combatants-list');
+        const roundCounter = document.getElementById('round-counter');
+        const addPlayersBtn = document.getElementById('add-players-btn');
+        const addEnemyBtn = document.getElementById('add-enemy-btn');
+        const startCombatBtn = document.getElementById('start-combat-btn');
+        const nextTurnBtn = document.getElementById('next-turn-btn');
+        const endCombatBtn = document.getElementById('end-combat-btn');
+        const hpModifierSection = document.getElementById('hp-modifier-section');
+        const activeCombatantName = document.getElementById('active-combatant-name');
+        const hpChangeInput = document.getElementById('hp-change-input');
+        const hpDamageBtn = document.getElementById('hp-damage-btn');
+        const hpHealBtn = document.getElementById('hp-heal-btn');
+        const statusEffectModal = document.getElementById('status-effect-modal');
+        const statusSelect = document.getElementById('status-select');
+        const statusDurationInput = document.getElementById('status-duration-input');
+        const addStatusBtn = document.getElementById('add-status-btn');
+        const closeStatusModalBtn = document.getElementById('close-status-modal-btn');
+        const showEnemyHPCheckbox = document.getElementById('show-enemy-hp-checkbox');
+        const sessionIdDisplay = document.getElementById('session-id');
+        const combatId = sessionStorage.getItem('currentCombatId') || Math.random().toString(36).substring(2, 8);
+        sessionStorage.setItem('currentCombatId', combatId);
+        const combatDocRef = doc(db, 'combatSessions', combatId);
+        const activeCombatRef = doc(db, 'currentCombat', 'active');
+        setDoc(activeCombatRef, { id: combatId });
+
+        async function broadcastState() {
+            await setDoc(combatDocRef, state);
+        }
+
+        function renderTracker() {
+            if (state.combatStarted) {
+                state.combatants.sort((a, b) => b.initiative - a.initiative);
+            }
+
+            combatantsList.innerHTML = '';
+
+            if (state.combatants.length === 0) {
+                combatantsList.innerHTML = '<p class="text-dim">Add players and enemies to begin.</p>';
+            } else {
+                state.combatants.forEach((c, index) => {
+                    const isActive = state.combatStarted && index === state.currentTurn;
+                    const isSelected = index === state.selectedCombatantIndex;
+                    const playerColor = c.type === 'player' ? 'text-header' : 'text-accent';
+
+                    const initiativeDisplay = (c.type === 'player' && !state.combatStarted)
+                        ? `<input type="number" class="input-field player-init-input text-price text-2xl text-center w-20 bg-transparent" placeholder="?" data-id="${c.id}">`
+                        : `<span class="text-2xl text-price w-20 text-center">${c.initiative ?? '?'}</span>`;
+
+                    const detailsDisplay = `<p class="text-sm text-dim">HP: ${c.hp ?? '-'} | AC: ${c.ac ?? '-'}</p>`;
+
+                    const statusDisplay = (c.statusEffects || []).map((s, sIndex) => `
+                        <span class="status-effect-badge">
+                            ${s.name} ${s.duration ? `(${s.duration})` : ''}
+                            <button class="remove-status-btn" data-combatant-index="${index}" data-status-index="${sIndex}"><i data-lucide="x" class="w-3 h-3 text-red-500"></i></button>
+                        </span>
+                    `).join('');
+
+                    const listItem = document.createElement('div');
+                    listItem.className = `combatant-list-item p-3 rounded-md ${isActive ? 'active' : ''} ${c.downed ? 'downed' : ''} ${isSelected ? 'selected' : ''}`;
+                    listItem.dataset.index = index;
+
+                    listItem.innerHTML = `
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-4">
+                                ${initiativeDisplay}
+                                <div>
+                                    <p class="text-xl ${playerColor}">${c.name}</p>
+                                    ${detailsDisplay}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="add-status-modal-btn" data-index="${index}" title="Add Status"><i data-lucide="plus-circle" class="w-5 h-5 text-accent hover:text-header"></i></button>
+                                <button class="toggle-downed-btn" data-index="${index}" title="Toggle Downed"><i data-lucide="skull" class="w-5 h-5 text-dim hover:text-white"></i></button>
+                                <button class="text-red-500 hover:text-red-400 remove-combatant-btn" data-index="${index}" title="Remove"><i data-lucide="x-circle" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+                        ${statusDisplay ? `<div class="flex flex-wrap gap-2 mt-2 pl-[104px]">${statusDisplay}</div>` : ''}
+                    `;
+                    combatantsList.appendChild(listItem);
+                });
+            }
+            
+            updateControls();
+            lucide.createIcons();
+            attachCombatantListeners();
+            broadcastState();
+        }
+        
+        function updateControls() {
+            roundCounter.textContent = state.round;
+            const selectedCombatant = state.combatants[state.selectedCombatantIndex];
+
+            if (state.combatStarted && selectedCombatant && selectedCombatant.hp !== null) {
+                activeCombatantName.textContent = selectedCombatant.name;
+                hpModifierSection.classList.remove('hidden');
+            } else {
+                hpModifierSection.classList.add('hidden');
+            }
+        }
+
+        async function addPlayers() {
+            const players = await fetchPlayers();
+            players.forEach(player => {
+                if (!state.combatants.some(c => c.id === player.id)) {
+                    state.combatants.push({ ...player, initiative: null, downed: false, statusEffects: [] });
+                }
+            });
+            renderTracker();
+        }
+
+        function addEnemy() {
+            const nameInput = document.getElementById('enemy-name-input');
+            const hpInput = document.getElementById('enemy-hp-input');
+            const acInput = document.getElementById('enemy-ac-input');
+            const initiativeInput = document.getElementById('enemy-initiative-input');
+            const quantityInput = document.getElementById('enemy-quantity-input');
+            const groupInitCheckbox = document.getElementById('group-initiative-checkbox');
+
+            const name = nameInput.value.trim() || 'Enemy';
+            const hp = hpInput.value ? parseInt(hpInput.value) : null;
+            const ac = acInput.value ? parseInt(acInput.value) : null;
+            let initiative = initiativeInput.value ? parseInt(initiativeInput.value) : null;
+            const quantity = quantityInput.value ? parseInt(quantityInput.value) : 1;
+            
+            if (initiative === null && !groupInitCheckbox.checked) {
+                alert('Enemy must have an initiative value, or use group initiative.');
+                return;
+            }
+            if (groupInitCheckbox.checked && initiative === null) {
+                initiative = Math.floor(Math.random() * 20) + 1;
+            }
+
+            for (let i = 0; i < quantity; i++) {
+                const enemyName = quantity > 1 ? `${name} ${i + 1}` : name;
+                state.combatants.push({ 
+                    id: `enemy-${Date.now()}-${i}`, name: enemyName, hp, ac, 
+                    initiative: groupInitCheckbox.checked ? initiative : (initiativeInput.value ? parseInt(initiativeInput.value) : Math.floor(Math.random() * 20) + 1),
+                    type: 'enemy', downed: false, statusEffects: []
+                });
+            }
+            
+            initiativeInput.value = '';
+            quantityInput.value = '1';
+            renderTracker();
+        }
+        
+        function removeCombatant(index) {
+            state.combatants.splice(index, 1);
+            if (state.currentTurn >= index && state.currentTurn > 0) {
+                state.currentTurn--;
+            }
+            if (state.selectedCombatantIndex === index) {
+                state.selectedCombatantIndex = null;
+            } else if (state.selectedCombatantIndex > index) {
+                state.selectedCombatantIndex--;
+            }
+            renderTracker();
+        }
+
+        function startCombat() {
+            let allPlayerInitiativesSet = true;
+            
+            state.combatants.forEach(c => {
+                if (c.type === 'player') {
+                    const input = document.querySelector(`.player-init-input[data-id="${c.id}"]`);
+                    if (input && input.value) {
+                        c.initiative = parseInt(input.value, 10);
+                    } else if (c.initiative === null) {
+                        allPlayerInitiativesSet = false;
+                    }
+                }
+            });
+
+            if (!allPlayerInitiativesSet) {
+                alert('Please enter an initiative value for all players.');
+                return;
+            }
+
+            if (state.combatants.length < 2) {
+                alert('Add at least two combatants to start.');
+                return;
+            }
+
+            state.combatStarted = true;
+            state.currentTurn = 0;
+            state.round = 1;
+            state.selectedCombatantIndex = 0;
+
+            setupSection.classList.add('hidden');
+            controlsSection.classList.remove('hidden');
+            renderTracker();
+        }
+
+        function nextTurn() {
+            if (!state.combatStarted) return;
+
+            const activeCombatants = state.combatants.filter(c => !c.downed);
+            if (activeCombatants.length === 0) {
+                alert("All combatants are downed. End combat.");
+                return;
+            }
+
+            const currentCombatant = state.combatants[state.currentTurn];
+            if (currentCombatant) {
+                currentCombatant.statusEffects = (currentCombatant.statusEffects || []).map(s => {
+                    if (s.duration) s.duration--;
+                    return s;
+                }).filter(s => s.duration === null || s.duration > 0);
+            }
+
+            let nextTurnFound = false;
+            let safetyCounter = 0;
+            let nextTurnIndex = state.currentTurn;
+            while (!nextTurnFound && safetyCounter < state.combatants.length * 2) {
+                nextTurnIndex++;
+                if (nextTurnIndex >= state.combatants.length) {
+                    nextTurnIndex = 0;
+                    state.round++;
+                }
+
+                if (!state.combatants[nextTurnIndex].downed) {
+                    nextTurnFound = true;
+                }
+                safetyCounter++;
+            }
+            state.currentTurn = nextTurnIndex;
+            state.selectedCombatantIndex = nextTurnIndex;
+
+            renderTracker();
+        }
+
+        async function endCombat() {
+            state.combatStarted = false;
+            state.combatants.forEach(c => {
+                c.initiative = null;
+                c.downed = false;
+                c.statusEffects = [];
+            });
+            state.combatants = state.combatants.filter(c => c.type === 'player');
+            state.selectedCombatantIndex = null;
+
+            controlsSection.classList.add('hidden');
+            setupSection.classList.remove('hidden');
+            renderTracker();
+            await setDoc(activeCombatRef, { id: null });
+        }
+
+        function playHpAnimation(index, amount, type) {
+            const combatantEl = document.querySelector(`.combatant-list-item[data-index="${index}"]`);
+            if (!combatantEl) return;
+
+            const animationEl = document.createElement('div');
+            animationEl.textContent = `${type === 'damage' ? '-' : '+'}${amount}`;
+            animationEl.className = `hp-change-animation ${type === 'damage' ? 'hp-damage' : 'hp-heal'}`;
+            combatantEl.appendChild(animationEl);
+
+            combatantEl.classList.add(type === 'damage' ? 'flash-damage' : 'flash-heal');
+            if (type === 'damage') combatantEl.classList.add('shake');
+
+            setTimeout(() => {
+                animationEl.remove();
+                combatantEl.classList.remove('flash-damage', 'flash-heal', 'shake');
+            }, 1500);
+        }
+
+        function modifySelectedCombatantHP(action) {
+            const targetIndex = state.selectedCombatantIndex;
+            const selectedCombatant = state.combatants[targetIndex];
+            if (selectedCombatant === null || !selectedCombatant || selectedCombatant.hp === null) return;
+
+            let amount = hpChangeInput.value ? parseInt(hpChangeInput.value) : 0;
+            if (amount === 0) return;
+
+            if (action === 'damage') {
+                selectedCombatant.hp -= amount;
+                if (selectedCombatant.hp <= 0) {
+                    selectedCombatant.hp = 0;
+                    selectedCombatant.downed = true;
+                }
+            } else {
+                if (selectedCombatant.hp === 0 && amount > 0) {
+                    selectedCombatant.downed = false;
+                }
+                selectedCombatant.hp += amount;
+            }
+
+            selectedCombatant.lastHpChange = { amount, type: action };
+
+            hpChangeInput.value = '';
+            renderTracker();
+            playHpAnimation(targetIndex, amount, action);
+        }
+
+        function toggleDowned(index) {
+            if(state.combatants[index]) {
+                state.combatants[index].downed = !state.combatants[index].downed;
+                renderTracker();
+            }
+        }
+
+        function openStatusModal(index) {
+            state.statusTargetIndex = index;
+            statusEffectModal.classList.remove('hidden');
+        }
+
+        function addStatusEffect() {
+            const name = statusSelect.value;
+            const duration = statusDurationInput.value ? parseInt(statusDurationInput.value) : null;
+            if (state.statusTargetIndex !== null && state.combatants[state.statusTargetIndex]) {
+                if (!state.combatants[state.statusTargetIndex].statusEffects) {
+                    state.combatants[state.statusTargetIndex].statusEffects = [];
+                }
+                state.combatants[state.statusTargetIndex].statusEffects.push({ name, duration });
+                renderTracker();
+            }
+            statusEffectModal.classList.add('hidden');
+            statusDurationInput.value = '';
+        }
+
+        function removeStatusEffect(combatantIndex, statusIndex) {
+            if (state.combatants[combatantIndex] && state.combatants[combatantIndex].statusEffects) {
+                state.combatants[combatantIndex].statusEffects.splice(statusIndex, 1);
+                renderTracker();
+            }
+        }
+
+        function attachCombatantListeners() {
+            document.querySelectorAll('.combatant-list-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('button, input')) return;
+                    state.selectedCombatantIndex = parseInt(item.dataset.index);
+                    renderTracker();
+                });
+            });
+            document.querySelectorAll('.remove-combatant-btn').forEach(btn => btn.addEventListener('click', (e) => removeCombatant(parseInt(e.currentTarget.dataset.index))));
+            document.querySelectorAll('.toggle-downed-btn').forEach(btn => btn.addEventListener('click', (e) => toggleDowned(parseInt(e.currentTarget.dataset.index))));
+            document.querySelectorAll('.add-status-modal-btn').forEach(btn => btn.addEventListener('click', (e) => openStatusModal(parseInt(e.currentTarget.dataset.index))));
+            document.querySelectorAll('.remove-status-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const { combatantIndex, statusIndex } = e.currentTarget.dataset;
+                    removeStatusEffect(parseInt(combatantIndex), parseInt(statusIndex));
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            sessionIdDisplay.textContent = combatId;
+            statusSelect.innerHTML = statusEffectOptions.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            const existing = await getDoc(combatDocRef);
+            if (existing.exists()) {
+                state = { ...state, ...existing.data() };
+            } else {
+                await setDoc(combatDocRef, state);
+            }
+            showEnemyHPCheckbox.checked = state.showEnemyHP;
+
+            addPlayersBtn.addEventListener('click', addPlayers);
+            addEnemyBtn.addEventListener('click', addEnemy);
+            startCombatBtn.addEventListener('click', startCombat);
+            nextTurnBtn.addEventListener('click', nextTurn);
+            endCombatBtn.addEventListener('click', endCombat);
+            hpDamageBtn.addEventListener('click', () => modifySelectedCombatantHP('damage'));
+            hpHealBtn.addEventListener('click', () => modifySelectedCombatantHP('heal'));
+            addStatusBtn.addEventListener('click', addStatusEffect);
+            closeStatusModalBtn.addEventListener('click', () => statusEffectModal.classList.add('hidden'));
+            showEnemyHPCheckbox.addEventListener('change', (e) => {
+                state.showEnemyHP = e.target.checked;
+                renderTracker();
+            });
+
+            renderTracker();
+        });
+    </script>
+</body>
+</html>
