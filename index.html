@@ -183,6 +183,15 @@
                     <input type="text" id="character-key-input" class="input-field flex-grow" placeholder="ENTER CHARACTER KEY" maxlength="6">
                     <button id="login-key-btn" class="btn">Enter</button>
                 </div>
+                <div class="mt-4">
+                    <button id="show-create-character-btn" class="link-style">Create a new character</button>
+                </div>
+            </div>
+            <div id="create-character-container" class="hidden max-w-md mx-auto mb-8 cli-window text-center">
+                <h2 class="text-2xl mb-4 text-header">> Create Your Character</h2>
+                <input type="text" id="new-character-name" class="input-field mb-4" placeholder="CHARACTER NAME">
+                <button id="create-character-btn" class="btn w-full">Create</button>
+                <button id="cancel-create-character-btn" class="link-style mt-4">Cancel</button>
             </div>
         </div>
 
@@ -192,8 +201,6 @@
         <div id="dm-hub-view" class="hidden"></div>
         <!-- Create Shop View -->
         <div id="create-shop-view" class="hidden max-w-md mx-auto"></div>
-        <!-- DM View -->
-        <div id="dm-view" class="hidden"></div>
         <!-- Player View -->
         <div id="player-view" class="hidden max-w-7xl mx-auto"></div>
     </div>
@@ -403,7 +410,6 @@
         const characterHubView = document.getElementById('character-hub-view');
         const dmHubView = document.getElementById('dm-hub-view');
         const createShopView = document.getElementById('create-shop-view');
-        const dmView = document.getElementById('dm-view');
         const playerView = document.getElementById('player-view');
         const toolbarTitle = document.getElementById('toolbar-title');
         const controlsContainer = document.getElementById('controls-container');
@@ -415,6 +421,8 @@
         const inventoryModal = document.getElementById('inventory-modal');
         const updateSheetModal = document.getElementById('update-sheet-modal');
         const sheetJsonTextarea = document.getElementById('sheet-json-textarea');
+        const createCharacterContainer = document.getElementById('create-character-container');
+        const loginContainer = document.getElementById('login-container');
 
         function closeNewKeyModal() {
             newKeyModal.classList.add('hidden');
@@ -427,6 +435,15 @@
         function main() {
             // Auth
             document.getElementById('login-key-btn').addEventListener('click', handleKeyLogin);
+            document.getElementById('show-create-character-btn').addEventListener('click', () => {
+                loginContainer.classList.add('hidden');
+                createCharacterContainer.classList.remove('hidden');
+            });
+            document.getElementById('cancel-create-character-btn').addEventListener('click', () => {
+                loginContainer.classList.remove('hidden');
+                createCharacterContainer.classList.add('hidden');
+            });
+            document.getElementById('create-character-btn').addEventListener('click', handleCreateCharacter);
 
             document.getElementById('key-modal-continue-btn').addEventListener('click', closeNewKeyModal);
             newKeyModal.addEventListener('click', (e) => {
@@ -528,21 +545,33 @@
         }
 
         async function handleCreateCharacter() {
-            const name = prompt("Enter your character's name:");
-            if (!name || !name.trim()) { return; }
+            const nameInput = document.getElementById('new-character-name');
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert("Please enter a character name.");
+                return;
+            }
             const key = Math.random().toString(36).substring(2, 8).toUpperCase();
             const playerDocRef = doc(db, 'characters', key);
 
             try {
+                const response = await fetch('https://storage.googleapis.com/silverbits-preview/dnd-shop/sample-character.json');
+                if (!response.ok) throw new Error("Could not load character template.");
+                const sampleSheet = await response.json();
+
                 await setDoc(playerDocRef, {
-                    name: name.trim(),
+                    name: name,
                     gold: 50,
-                    inventory: []
+                    inventory: [],
+                    sheet: sampleSheet
                 });
                 document.getElementById('new-key-display').textContent = key;
                 newKeyModal.classList.remove('hidden');
                 state.characterKey = key;
                 localStorage.setItem('dndShopCharacterKey', key);
+                nameInput.value = '';
+                loginContainer.classList.remove('hidden');
+                createCharacterContainer.classList.add('hidden');
             } catch (error) {
                 console.error("Error creating character:", error);
                 alert("Could not create character. Please try again.");
@@ -558,61 +587,10 @@
                     logout();
                     return;
                 }
-
-                const next = docSnap.data();
-                delete next.spellSlots;
-
-                function applyData(data) {
-                    const prev = state.playerData;
-
-                    // Update state early so downstream reads see latest
-                    state.playerData = data;
-                    try {
-                        sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
-                        sessionStorage.setItem('currentPlayerKey', state.characterKey);
-                    } catch {}
-
-                    const slotsPrev = prev?.sheet?.spellcasting?.spellSlots || {};
-                    const slotsNext = data?.sheet?.spellcasting?.spellSlots || {};
-                    const slotsChanged = JSON.stringify(slotsPrev) !== JSON.stringify(slotsNext);
-                    if (slotsChanged) {
-                        try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
-                    }
-
-                    function removeSlots(obj) {
-                        const copy = JSON.parse(JSON.stringify(obj || {}));
-                        if (copy.sheet && copy.sheet.spellcasting) {
-                            delete copy.sheet.spellcasting.spellSlots;
-                        }
-                        return copy;
-                    }
-                    const restEqual = JSON.stringify(removeSlots(data)) === JSON.stringify(removeSlots(prev));
-                    const onlySlotsChanged = restEqual && slotsChanged;
-
-                    // If it's our own write echo, or only slots changed, do minimal update
-                    if (suppressRender || onlySlotsChanged) {
-                        updateSpellSlotsUI(slotsNext);
-                        if (state.spellState) {
-                            state.spellState.spellSlots = slotsNext;
-                            try { localStorage.setItem('spellSlots', JSON.stringify(slotsNext)); } catch {}
-                        }
-                        return; // skip full render to prevent flashing
-                    }
-
-                    // Otherwise proceed with the normal render
-                    render();
-                }
-
-                if (!next.sheet) {
-                    fetch('sample-character.json')
-                        .then(r => r.json())
-                        .then(sample => {
-                            applyData({ ...next, sheet: sample });
-                        });
-                    return;
-                }
-
-                applyData(next);
+                state.playerData = docSnap.data();
+                sessionStorage.setItem('currentPlayer', JSON.stringify(state.playerData));
+                sessionStorage.setItem('currentPlayerKey', state.characterKey);
+                render();
             }, (error) => {
                 console.error('Firestore listener error:', error);
             });
@@ -957,8 +935,7 @@
                     renderCharacterHub();
                 }
             } else if (state.isDM) {
-                dmView.classList.remove('hidden');
-                renderDMView();
+                // DM shop interactions are handled on a separate page.
             } else {
                 playerView.classList.remove('hidden');
                 renderPlayerView();
