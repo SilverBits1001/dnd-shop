@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="cli-theme">
+<head>
+  <meta charset="UTF-8">
+  <title>Campaign Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-4">
+  <div id="join-campaign" class="space-x-2 mb-4">
+    <input id="campaign-id-input" placeholder="Campaign ID" class="border p-2"/>
+    <button id="join-btn" class="btn">Join Campaign</button>
+  </div>
+  <div id="campaign-view" class="hidden">
+    <h1 id="campaign-name" class="text-2xl font-bold mb-4"></h1>
+    <section class="mb-4">
+      <h2 class="text-xl font-semibold">Members</h2>
+      <ul id="members-list" class="list-disc pl-5"></ul>
+    </section>
+    <section class="mb-4">
+      <h2 class="text-xl font-semibold">Characters</h2>
+      <div id="characters-list"></div>
+    </section>
+    <section class="mb-4">
+      <h2 class="text-xl font-semibold">Notes</h2>
+      <div id="notes-list"></div>
+      <button id="add-note-btn" class="btn mt-2">Add Note</button>
+    </section>
+    <section class="mb-4">
+      <h2 class="text-xl font-semibold">Carts</h2>
+      <div id="carts-summary"></div>
+    </section>
+  </div>
+  <script type="module" src="campaign.js"></script>
+</body>
+</html>
